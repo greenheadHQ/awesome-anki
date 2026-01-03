@@ -1,11 +1,49 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useDecks } from '../hooks/useDecks';
 import { useCards, useCardDetail } from '../hooks/useCards';
+import { useValidationCache, useValidateCard } from '../hooks/useValidationCache';
 import { cn } from '../lib/utils';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  HelpCircle,
+  Shield,
+  Loader2,
+} from 'lucide-react';
+import type { ValidationStatus } from '../lib/api';
+
+// 검증 상태 아이콘 컴포넌트
+function ValidationIcon({
+  status,
+  size = 'sm',
+}: {
+  status: ValidationStatus | null;
+  size?: 'sm' | 'md';
+}) {
+  const sizeClass = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+
+  if (status === null) {
+    return <HelpCircle className={cn(sizeClass, 'text-gray-300')} title="미검증" />;
+  }
+
+  switch (status) {
+    case 'valid':
+      return <CheckCircle className={cn(sizeClass, 'text-green-500')} title="검증 통과" />;
+    case 'warning':
+      return <AlertTriangle className={cn(sizeClass, 'text-yellow-500')} title="검토 필요" />;
+    case 'error':
+      return <XCircle className={cn(sizeClass, 'text-red-500')} title="문제 발견" />;
+    default:
+      return <HelpCircle className={cn(sizeClass, 'text-gray-400')} title="알 수 없음" />;
+  }
+}
 
 export function CardBrowser() {
   const location = useLocation();
@@ -13,24 +51,60 @@ export function CardBrowser() {
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(initialDeck);
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<'all' | 'splitable'>('all');
+  const [filter, setFilter] = useState<'all' | 'splitable' | 'unvalidated' | 'needs-review'>('all');
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
 
   const { data: decksData } = useDecks();
-  const { data: cardsData, isLoading } = useCards(selectedDeck, { page, limit: 20, filter });
+  const { data: cardsData, isLoading } = useCards(selectedDeck, { page, limit: 20, filter: filter === 'splitable' ? 'splitable' : 'all' });
   const { data: cardDetail } = useCardDetail(selectedNoteId);
+
+  const { getValidation, getValidationStatuses, cacheSize } = useValidationCache();
+  const validateMutation = useValidateCard(selectedDeck);
+
+  // 카드 목록에서 검증 상태 가져오기
+  const validationStatuses = useMemo(() => {
+    if (!cardsData?.cards) return new Map<number, ValidationStatus | null>();
+    return getValidationStatuses(cardsData.cards.map((c) => c.noteId));
+  }, [cardsData?.cards, getValidationStatuses]);
+
+  // 필터링된 카드 목록
+  const filteredCards = useMemo(() => {
+    if (!cardsData?.cards) return [];
+
+    if (filter === 'unvalidated') {
+      return cardsData.cards.filter((card) => !validationStatuses.get(card.noteId));
+    }
+
+    if (filter === 'needs-review') {
+      return cardsData.cards.filter((card) => {
+        const status = validationStatuses.get(card.noteId);
+        return status === 'warning' || status === 'error';
+      });
+    }
+
+    return cardsData.cards;
+  }, [cardsData?.cards, filter, validationStatuses]);
+
+  // 현재 선택된 카드의 검증 결과
+  const selectedCardValidation = selectedNoteId ? getValidation(selectedNoteId) : null;
 
   return (
     <div className="flex gap-6">
       {/* Main Content */}
       <div className="flex-1 space-y-4">
-        <div>
-          <h1 className="text-3xl font-bold">카드 브라우저</h1>
-          <p className="text-muted-foreground">덱의 카드를 탐색하고 분석하세요</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">카드 브라우저</h1>
+            <p className="text-muted-foreground">덱의 카드를 탐색하고 분석하세요</p>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            <Shield className="inline-block w-4 h-4 mr-1" />
+            캐시: {cacheSize}개 검증됨
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           <select
             className="rounded-md border bg-background px-3 py-2 text-sm"
             value={selectedDeck || ''}
@@ -51,12 +125,14 @@ export function CardBrowser() {
             className="rounded-md border bg-background px-3 py-2 text-sm"
             value={filter}
             onChange={(e) => {
-              setFilter(e.target.value as 'all' | 'splitable');
+              setFilter(e.target.value as typeof filter);
               setPage(1);
             }}
           >
             <option value="all">전체</option>
             <option value="splitable">분할 가능</option>
+            <option value="unvalidated">미검증</option>
+            <option value="needs-review">검토 필요</option>
           </select>
         </div>
 
@@ -65,12 +141,13 @@ export function CardBrowser() {
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-4 text-center text-muted-foreground">로딩 중...</div>
-            ) : !cardsData?.cards.length ? (
+            ) : !filteredCards.length ? (
               <div className="p-4 text-center text-muted-foreground">카드가 없습니다</div>
             ) : (
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
+                    <th className="p-3 text-left text-sm font-medium w-10">검증</th>
                     <th className="p-3 text-left text-sm font-medium">Note ID</th>
                     <th className="p-3 text-left text-sm font-medium">미리보기</th>
                     <th className="p-3 text-left text-sm font-medium">Cloze</th>
@@ -78,7 +155,7 @@ export function CardBrowser() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cardsData.cards.map((card) => (
+                  {filteredCards.map((card) => (
                     <tr
                       key={card.noteId}
                       className={cn(
@@ -87,6 +164,9 @@ export function CardBrowser() {
                       )}
                       onClick={() => setSelectedNoteId(card.noteId)}
                     >
+                      <td className="p-3">
+                        <ValidationIcon status={validationStatuses.get(card.noteId) || null} />
+                      </td>
                       <td className="p-3 font-mono text-sm">{card.noteId}</td>
                       <td className="max-w-md truncate p-3 text-sm">
                         {card.text.replace(/<[^>]*>/g, '').slice(0, 100)}...
@@ -158,6 +238,61 @@ export function CardBrowser() {
             <div>
               <h4 className="text-sm font-medium">Note ID</h4>
               <p className="font-mono text-sm text-muted-foreground">{cardDetail.noteId}</p>
+            </div>
+
+            {/* 검증 상태 섹션 */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-medium flex items-center gap-1">
+                  <Shield className="w-4 h-4" />
+                  검증 상태
+                </h4>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => validateMutation.mutate(selectedNoteId)}
+                  disabled={validateMutation.isPending}
+                >
+                  {validateMutation.isPending ? (
+                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                  ) : null}
+                  {selectedCardValidation ? '재검증' : '검증'}
+                </Button>
+              </div>
+              {selectedCardValidation ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <ValidationIcon status={selectedCardValidation.status} size="md" />
+                    <span className="text-sm">
+                      {selectedCardValidation.status === 'valid' && '검증 통과'}
+                      {selectedCardValidation.status === 'warning' && '검토 필요'}
+                      {selectedCardValidation.status === 'error' && '문제 발견'}
+                      {selectedCardValidation.status === 'unknown' && '검증 불가'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    검증 시간: {new Date(selectedCardValidation.validatedAt).toLocaleString('ko-KR')}
+                  </p>
+                  {selectedCardValidation.results && (
+                    <div className="text-xs space-y-1 mt-2 p-2 bg-muted rounded">
+                      <div className="flex items-center justify-between">
+                        <span>팩트 체크:</span>
+                        <ValidationIcon status={selectedCardValidation.results.factCheck.status} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>최신성:</span>
+                        <ValidationIcon status={selectedCardValidation.results.freshness.status} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>유사성:</span>
+                        <ValidationIcon status={selectedCardValidation.results.similarity.status} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">아직 검증되지 않았습니다</p>
+              )}
             </div>
 
             <div>
