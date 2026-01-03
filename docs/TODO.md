@@ -108,11 +108,11 @@
 3. [ ] ValidationPanel 컴포넌트
 4. [ ] CardBrowser에 검증 상태 뱃지 추가
 
-### 🔴 우선순위 높음: ContentRenderer 파싱 로직 개선
+### ✅ 완료: ContentRenderer 파싱 로직 개선
 
 **문제**: 현재 ContentRenderer는 자체 파싱 로직을 사용하여 Anki 템플릿과 미스매칭 발생
 
-**제안**: 기존 Anki 템플릿(`templates/front.html`)의 파싱 로직 재사용
+**해결**: 기존 Anki 템플릿(`templates/front.html`)의 파싱 로직 재사용
 
 **분석 결과**:
 
@@ -221,25 +221,7 @@
 
 ## 다음 세션에서 할 작업
 
-### 1️⃣ ContentRenderer 파싱 로직 개선 🔴 (우선순위 높음)
-
-**목표**: Anki 템플릿(`templates/front.html`)과 동일한 파싱 로직 사용
-
-**이유**: 자체 구현 파싱 로직으로 인한 미스매칭 문제 해결
-
-**빠른 시작**:
-```bash
-cd /Users/green/IdeaProjects/anki-claude-code/packages/web
-bun add markdown-it markdown-it-container markdown-it-mark highlight.js
-bun add -d @types/markdown-it
-```
-
-**핵심 참고 파일**: `templates/front.html`의 다음 함수들
-- `getMarkdownRenderer()` (라인 152~270)
-- `renderLink()` (라인 356~392)
-- `convertBackticksToCodeTags()` (라인 472~509)
-
-### 2️⃣ Phase 5: 카드 검증 기능
+### Phase 5: 카드 검증 기능 🔴
 
 **목표**: Gemini를 활용한 카드 내용 검증
 
@@ -260,7 +242,6 @@ bun add -d @types/markdown-it
 4. CardBrowser에 검증 상태 뱃지 추가
 
 ### 예상 소요 시간
-- ContentRenderer 파싱 개선: 2시간
 - Phase 5 (카드 검증): 2-3시간
 
 ---
