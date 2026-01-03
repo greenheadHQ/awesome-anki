@@ -260,6 +260,23 @@
 
 ## 다음 세션에서 할 작업
 
+### 이번 세션 완료 (2026-01-03)
+
+**SplitWorkspace 상태 관리 개선**
+- [x] 대시보드/Split 페이지 분할 후보 수 불일치 해결 (`canSoftSplit` 필드 추가)
+- [x] Soft Split 자동 Gemini API 호출 제거 → 명시적 "Gemini 분석 요청" 버튼으로 변경
+- [x] React Query 캐시 기반 카드별 독립 상태 관리 (페이지 이탈/복귀 시 결과 유지)
+- [x] 에러 발생 시 상세 메시지 표시 + "다시 시도" 버튼 추가
+- [x] "캐시된 결과" 배지로 사용자에게 시각적 피드백
+
+**수정된 파일**:
+- `packages/core/src/splitter/atomic-converter.ts` - `canSoftSplit` 필드 추가
+- `packages/web/src/hooks/useSplit.ts` - `onSuccess` 캐시 저장, `getCachedSplitPreview` 함수 추가
+- `packages/web/src/pages/SplitWorkspace.tsx` - 캐시 기반 상태 관리, 에러 UI 개선
+- `docs/TROUBLESHOOTING.md` - 14.5, 14.6, 14.7 섹션 추가
+
+---
+
 ### 기타 기능 개선 (낮은 우선순위)
 
 1. **임베딩 생성 진행률 표시**

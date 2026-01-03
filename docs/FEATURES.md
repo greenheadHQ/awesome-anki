@@ -259,6 +259,13 @@ Markdown + KaTeX + Cloze 렌더링
 | 중앙 (5/12) | 원본 카드 (ContentRenderer + 검증 패널) |
 | 오른쪽 (4/12) | 분할 미리보기 (ContentRenderer + Raw 토글) + 적용 버튼 |
 
+**분할 미리보기 캐싱**:
+- React Query 캐시 활용 (카드별 독립 캐시 키)
+- 페이지 이탈/복귀 시 결과 유지
+- Hard Split: 카드 선택 시 자동 미리보기 (정규식, 비용 없음)
+- Soft Split: "Gemini 분석 요청" 버튼 클릭 시에만 API 호출 (비용 발생 사전 고지)
+- "캐시된 결과" 배지로 사용자에게 시각적 피드백
+
 ### CardBrowser
 | 컬럼 | 설명 |
 |------|------|
