@@ -314,15 +314,65 @@ export function useValidationCache() {
 
 ---
 
-## 12. 디버깅 팁
+## 12. 임베딩 모듈 이슈
 
-### 12.1 API 응답 확인
+### 12.1 Gemini SDK TaskType 미지원
+
+**문제**: `@google/genai` 패키지에서 `TaskType` enum이 export되지 않음
+
+```typescript
+// 에러 발생
+import { GoogleGenAI, TaskType } from '@google/genai';
+// error TS2305: Module '"@google/genai"' has no exported member 'TaskType'.
+```
+
+**해결**: 문자열로 직접 지정
+
+```typescript
+import { GoogleGenAI } from '@google/genai';
+
+const response = await client.models.embedContent({
+  model: 'gemini-embedding-001',
+  contents: text,
+  config: {
+    taskType: 'SEMANTIC_SIMILARITY', // 문자열로 직접 지정
+    outputDimensionality: 768,
+  },
+});
+```
+
+**참고**: 사용 가능한 taskType 값
+- `RETRIEVAL_QUERY` - 검색 쿼리
+- `RETRIEVAL_DOCUMENT` - 검색 문서
+- `SEMANTIC_SIMILARITY` - 의미적 유사도 (권장)
+- `CLASSIFICATION` - 분류
+- `CLUSTERING` - 클러스터링
+
+### 12.2 임베딩 캐시 위치
+
+- 캐시 파일: `output/embeddings/{deckNameHash}.json`
+- 덱 이름을 MD5 해시로 변환하여 파일명 생성
+- 텍스트 변경 감지: MD5 해시로 비교
+
+```bash
+# 캐시 상태 확인
+curl -s "http://localhost:3000/api/embedding/status/덱이름" | python3 -m json.tool
+
+# 캐시 삭제
+curl -X DELETE "http://localhost:3000/api/embedding/cache/덱이름"
+```
+
+---
+
+## 13. 디버깅 팁
+
+### 13.1 API 응답 확인
 ```bash
 curl -s http://localhost:3000/api/decks | python3 -m json.tool
 curl -s http://localhost:3000/api/cards/1757399484677 | python3 -m json.tool
 ```
 
-### 12.2 AnkiConnect 직접 테스트
+### 13.2 AnkiConnect 직접 테스트
 ```bash
 curl -s http://localhost:8765 -X POST -d '{
   "action": "deckNames",
@@ -330,7 +380,7 @@ curl -s http://localhost:8765 -X POST -d '{
 }' | python3 -m json.tool
 ```
 
-### 12.3 타입체크
+### 13.3 타입체크
 ```bash
 bun run --cwd packages/web tsc --noEmit
 bun run --cwd packages/server tsc --noEmit
