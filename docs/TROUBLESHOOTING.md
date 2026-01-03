@@ -263,7 +263,7 @@ function preprocessAnkiHtml(text: string): string {
     <CardContent className="flex-1 overflow-y-auto p-4 min-h-0">
 ```
 
-### 10.5 ContentRenderer 파싱 문제 (미해결)
+### 10.5 ContentRenderer 파싱 문제 (해결됨)
 
 **문제**: 원본 카드의 렌더링된 뷰에서 ::: 컨테이너, nid 링크 등이 제대로 표시되지 않음
 
@@ -272,26 +272,57 @@ function preprocessAnkiHtml(text: string): string {
 - `[제목|nid...]` 형식의 nid 링크가 파싱되지 않음
 - HTML과 마크다운이 혼합된 내용이 깨짐
 
-**원인 추정**:
+**원인**:
 - ReactMarkdown + rehypeRaw 조합에서 복잡한 HTML/마크다운 혼합 처리 문제
-- `processContainers`, `processCloze` 함수의 처리 순서 문제
-- Anki 카드의 `<br>` 태그와 마크다운 줄바꿈 충돌
+
+**해결**:
+- ReactMarkdown → markdown-it으로 전면 리팩토링
+- markdown-it-container 플러그인으로 컨테이너 처리
+- highlight.js로 코드 하이라이팅
+- 직접 전처리: Cloze, nid 링크, 이미지 프록시
 
 **관련 파일**: `packages/web/src/components/card/ContentRenderer.tsx`
 
-**상태**: 추후 해결 필요 (TODO 참고)
+---
+
+## 11. Phase 5-6 이슈
+
+### 11.1 useValidationCache 상태 공유 문제
+
+**문제**: `useValidateCard` 훅에서 검증 성공 후 CardBrowser의 상태가 업데이트되지 않음
+
+**원인**: `useValidationCache()` 훅이 각 컴포넌트에서 별도의 React 상태를 생성
+
+**해결**: `useSyncExternalStore`를 사용하여 전역 상태 공유
+
+```typescript
+// 전역 캐시 상태
+let globalCache: ValidationCache = loadCacheFromStorage();
+const listeners = new Set<() => void>();
+
+export function useValidationCache() {
+  const cache = useSyncExternalStore(subscribe, getSnapshot);
+  // ...
+}
+```
+
+### 11.2 분할 미리보기 렌더링 문제
+
+**문제**: SplitWorkspace의 분할 미리보기에서 Raw HTML로만 표시되고 KaTeX/Markdown이 렌더링되지 않음
+
+**해결**: `SplitPreviewCard` 컴포넌트에 `ContentRenderer` 적용 + Raw/Rendered 토글 추가
 
 ---
 
-## 11. 디버깅 팁
+## 12. 디버깅 팁
 
-### 10.1 API 응답 확인
+### 12.1 API 응답 확인
 ```bash
 curl -s http://localhost:3000/api/decks | python3 -m json.tool
 curl -s http://localhost:3000/api/cards/1757399484677 | python3 -m json.tool
 ```
 
-### 10.2 AnkiConnect 직접 테스트
+### 12.2 AnkiConnect 직접 테스트
 ```bash
 curl -s http://localhost:8765 -X POST -d '{
   "action": "deckNames",
@@ -299,7 +330,7 @@ curl -s http://localhost:8765 -X POST -d '{
 }' | python3 -m json.tool
 ```
 
-### 10.3 타입체크
+### 12.3 타입체크
 ```bash
 bun run --cwd packages/web tsc --noEmit
 bun run --cwd packages/server tsc --noEmit

@@ -15,7 +15,7 @@
 | 프론트엔드 | React + Vite |
 | 스타일링 | Tailwind CSS v4 |
 | 상태 관리 | TanStack Query |
-| 렌더링 | react-markdown + rehype-katex |
+| 렌더링 | markdown-it + KaTeX |
 
 ---
 
@@ -31,6 +31,7 @@ anki-claude-code/
 │   │       ├── gemini/     # Gemini API 호출
 │   │       ├── parser/     # 텍스트 파싱
 │   │       ├── splitter/   # 분할 로직
+│   │       ├── validator/  # 카드 검증 (fact-check, freshness, similarity)
 │   │       └── utils/      # 유틸리티
 │   │
 │   ├── server/         # Hono REST API
@@ -209,6 +210,14 @@ interface ClozeItem {
 | GET | /api/backup | 백업 목록 |
 | POST | /api/backup/:id/rollback | 롤백 실행 |
 
+### Validate
+| Method | Path | 설명 |
+|--------|------|------|
+| POST | /api/validate/fact-check | 카드 내용 팩트 체크 |
+| POST | /api/validate/freshness | 기술 최신성 검사 |
+| POST | /api/validate/similarity | 유사/중복 카드 탐지 |
+| POST | /api/validate/all | 전체 검증 (병렬 실행) |
+
 ---
 
 ## 웹 GUI 컴포넌트
@@ -227,23 +236,30 @@ Markdown + KaTeX + Cloze 렌더링
 **처리 순서**:
 1. Cloze 구문 → `<span class="cloze">` 변환
 2. 컨테이너 구문 → `<div class="callout-*">` 변환
-3. Markdown → HTML (react-markdown)
-4. KaTeX 수식 렌더링 (rehype-katex)
+3. Markdown → HTML (markdown-it + highlight.js)
+4. KaTeX 수식 렌더링
+5. nid 링크 처리
+6. 이미지 프록시 (AnkiConnect)
 
 ### SplitWorkspace (3단 레이아웃)
 | 영역 | 내용 |
 |------|------|
 | 왼쪽 (3/12) | 분할 후보 목록 + Hard/Soft 뱃지 |
-| 중앙 (5/12) | 원본 카드 (ContentRenderer) |
-| 오른쪽 (4/12) | 분할 미리보기 + 적용 버튼 |
+| 중앙 (5/12) | 원본 카드 (ContentRenderer + 검증 패널) |
+| 오른쪽 (4/12) | 분할 미리보기 (ContentRenderer + Raw 토글) + 적용 버튼 |
 
 ### CardBrowser
 | 컬럼 | 설명 |
 |------|------|
+| 검증 | 검증 상태 아이콘 (✅/⚠️/❌/❓) |
 | Note ID | 노트 식별자 |
 | 미리보기 | 카드 내용 요약 |
 | Cloze | Cloze 개수 |
 | 분할 타입 | hard/soft 뱃지 |
+
+**검증 필터 옵션**: 전체, 분할 가능, 미검증, 검토 필요
+
+**검증 캐싱**: localStorage + useSyncExternalStore (24시간 TTL)
 
 ---
 

@@ -13,7 +13,7 @@
 |------|------|------|
 | CLI 기능 | ✅ 완료 | status, split, analyze, rollback, backups |
 | 웹 API | ✅ 완료 | decks, cards, split, backup, validate 라우트 |
-| 웹 GUI | ✅ 완료 | Phase 1-5 완료 |
+| 웹 GUI | ✅ 완료 | Phase 1-6 완료 |
 
 ---
 
@@ -115,7 +115,12 @@
 - [x] 필터: 검증 필요한 카드만 보기 (미검증, 검토 필요)
 - [x] 상세 패널에 검증/재검증 버튼 및 결과 표시
 
-**2. 문맥 일관성 검사**
+**2. 분할 미리보기 렌더링** ✅
+- [x] SplitPreviewCard에 ContentRenderer 적용
+- [x] Raw/Rendered 토글 버튼 추가
+- [x] KaTeX, Markdown, 테이블 정상 렌더링
+
+**3. 문맥 일관성 검사**
 - [ ] context-checker.ts 구현
 - [ ] 관련 카드 간 논리적 연결 확인
 - [ ] nid 링크로 연결된 카드 그룹 분석
@@ -169,14 +174,19 @@
 
 ### 추가 기능 📋
 
-**우선순위 1: 다크모드**
+**우선순위 1: 문맥 일관성 검사**
+- context-checker.ts 구현
+- nid 링크로 연결된 카드 그룹 분석
+- 관련 카드 간 논리적 연결 확인
+
+**우선순위 2: 임베딩 기반 유사성 검사**
+- Gemini 임베딩 API 연동
+- Jaccard → 코사인 유사도 개선
+
+**우선순위 3 (낮음): 다크모드**
 - CSS 변수 활용 (.dark 클래스)
 - 시스템 설정 연동 (prefers-color-scheme)
 - 토글 버튼 추가
-
-**우선순위 2: 문맥 일관성 검사**
-- context-checker.ts 구현
-- nid 링크로 연결된 카드 그룹 분석
 
 ---
 
