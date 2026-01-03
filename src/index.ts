@@ -16,10 +16,17 @@ import {
   getModelNames,
   getModelFieldNames,
 } from './anki/client.js';
-import { getDeckNotes, extractTextField, extractTags } from './anki/operations.js';
-import { analyzeForSplit, performHardSplit } from './splitter/atomic-converter.js';
-import { requestCardSplit, analyzeCardForSplit } from './gemini/client.js';
-import { printSplitPreview, printBatchAnalysis, printProgress } from './utils/diff-viewer.js';
+import {
+  getDeckNotes,
+  extractTextField,
+  extractTags,
+  applySplitResult,
+  type SplitResult,
+  type SplitCard,
+} from './anki/operations.js';
+import { analyzeForSplit, performHardSplit, type AtomicCard } from './splitter/atomic-converter.js';
+import { requestCardSplit } from './gemini/client.js';
+import { printSplitPreview, printProgress } from './utils/diff-viewer.js';
 import { parseNidLinks } from './parser/nid-parser.js';
 import { parseClozes } from './parser/cloze-parser.js';
 
@@ -98,6 +105,18 @@ async function runStatus() {
 }
 
 /**
+ * 분할 결과 타입 (Hard/Soft 통합)
+ */
+interface UnifiedSplitResult {
+  noteId: number;
+  originalText: string;
+  tags: string[];
+  splitType: 'hard' | 'soft';
+  cards: Array<{ title: string; content: string; isMainCard: boolean }>;
+  mainCardIndex: number;
+}
+
+/**
  * split 명령어: 복합 카드 분할
  */
 async function runSplit(deckName: string, shouldApply: boolean) {
@@ -142,52 +161,128 @@ async function runSplit(deckName: string, shouldApply: boolean) {
   // 2단계: Hard Split 시도 (정규식 기반)
   console.log(chalk.yellow('2단계: Hard Split 분석...\n'));
 
-  const hardSplitResults: Array<{
-    noteId: number;
-    originalText: string;
-    cards: ReturnType<typeof performHardSplit>;
-  }> = [];
+  const allSplitResults: UnifiedSplitResult[] = [];
+  const softSplitCandidates: typeof splitCandidates = [];
 
   for (const candidate of splitCandidates) {
     if (candidate.analysis.canHardSplit) {
       const cards = performHardSplit(candidate.text, candidate.noteId);
       if (cards && cards.length > 1) {
-        hardSplitResults.push({
+        allSplitResults.push({
           noteId: candidate.noteId,
           originalText: candidate.text,
-          cards,
+          tags: candidate.tags,
+          splitType: 'hard',
+          cards: cards.map((c) => ({
+            title: c.title,
+            content: c.content,
+            isMainCard: c.isMainCard,
+          })),
+          mainCardIndex: cards.findIndex((c) => c.isMainCard),
         });
+      } else {
+        softSplitCandidates.push(candidate);
+      }
+    } else {
+      softSplitCandidates.push(candidate);
+    }
+  }
+
+  console.log(chalk.green(`✅ Hard Split: ${allSplitResults.length}개`));
+  console.log(chalk.gray(`   Soft Split 후보: ${softSplitCandidates.length}개\n`));
+
+  // 3단계: Soft Split (Gemini 기반) - 처음 5개만
+  if (softSplitCandidates.length > 0) {
+    console.log(chalk.yellow('3단계: Soft Split 분석 (Gemini)...\n'));
+
+    const softTargets = softSplitCandidates.slice(0, 5);
+    let softSplitCount = 0;
+
+    for (let i = 0; i < softTargets.length; i++) {
+      const candidate = softTargets[i];
+      printProgress(i + 1, softTargets.length, `카드 ${candidate.noteId} 분석 중...`);
+
+      try {
+        const geminiResult = await requestCardSplit({
+          noteId: candidate.noteId,
+          text: candidate.text,
+          tags: candidate.tags,
+        });
+
+        if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
+          allSplitResults.push({
+            noteId: candidate.noteId,
+            originalText: candidate.text,
+            tags: candidate.tags,
+            splitType: 'soft',
+            cards: geminiResult.splitCards.map((c, idx) => ({
+              title: c.title,
+              content: c.content,
+              isMainCard: idx === geminiResult.mainCardIndex,
+            })),
+            mainCardIndex: geminiResult.mainCardIndex,
+          });
+          softSplitCount++;
+        }
+      } catch (error) {
+        console.error(chalk.red(`\n   카드 ${candidate.noteId} 분석 실패`));
       }
     }
-  }
 
-  console.log(chalk.green(`✅ Hard Split 가능: ${hardSplitResults.length}개\n`));
+    console.log(chalk.green(`\n✅ Soft Split: ${softSplitCount}개\n`));
+  }
 
   // 미리보기 출력
-  for (const result of hardSplitResults.slice(0, 3)) {
-    if (result.cards) {
-      printSplitPreview(
-        result.noteId,
-        result.originalText,
-        result.cards.map((c) => ({
-          title: c.title,
-          content: c.content,
-          isMainCard: c.isMainCard,
-        }))
-      );
-    }
+  console.log(chalk.bold.cyan(`\n📊 총 분할 가능: ${allSplitResults.length}개\n`));
+
+  for (const result of allSplitResults.slice(0, 5)) {
+    const typeLabel = result.splitType === 'hard' ? chalk.blue('[Hard]') : chalk.magenta('[Soft]');
+    console.log(`${typeLabel} Note ${result.noteId}`);
+    printSplitPreview(result.noteId, result.originalText, result.cards);
   }
 
-  if (hardSplitResults.length > 3) {
-    console.log(chalk.gray(`... 외 ${hardSplitResults.length - 3}개 더\n`));
+  if (allSplitResults.length > 5) {
+    console.log(chalk.gray(`... 외 ${allSplitResults.length - 5}개 더\n`));
   }
 
   // 적용 모드
-  if (shouldApply) {
-    console.log(chalk.yellow('\n⚠️  --apply 플래그가 설정되었습니다.'));
-    console.log(chalk.red('아직 적용 기능은 구현되지 않았습니다. (안전을 위해)\n'));
-    // TODO: 실제 적용 로직 구현
-  } else {
+  if (shouldApply && allSplitResults.length > 0) {
+    console.log(chalk.yellow('\n⚠️  분할 적용을 시작합니다...\n'));
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const result of allSplitResults) {
+      try {
+        // SplitResult 형식으로 변환
+        const splitResult: SplitResult = {
+          originalNoteId: result.noteId,
+          mainCardIndex: result.mainCardIndex,
+          splitCards: result.cards.map((c) => ({
+            title: c.title,
+            content: c.content,
+            inheritImages: [],
+            inheritTags: [],
+            preservedLinks: [],
+            backLinks: [],
+          })),
+          splitReason: '',
+          splitType: result.splitType,
+        };
+
+        const applied = await applySplitResult(deckName, splitResult, result.tags);
+        console.log(
+          chalk.green(`✅ ${result.noteId}: 메인 유지, ${applied.newNoteIds.length}개 새 카드 생성`)
+        );
+        successCount++;
+      } catch (error) {
+        console.error(chalk.red(`❌ ${result.noteId}: 적용 실패`));
+        failCount++;
+      }
+    }
+
+    console.log(chalk.bold.cyan(`\n📊 적용 완료: 성공 ${successCount}개, 실패 ${failCount}개\n`));
+  } else if (!shouldApply) {
     console.log(chalk.cyan('\n💡 실제 적용하려면 --apply 플래그를 추가하세요.\n'));
   }
 }

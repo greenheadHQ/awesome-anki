@@ -49,9 +49,10 @@ src/
 - `####` 헤더나 `---` 구분선으로 명확히 분리되는 경우
 - 정규식 기반으로 빠르고 정확
 
-### Soft Split (미구현)
-- 구분자 없지만 정보 밀도 높은 경우
-- Gemini에게 분할 제안 요청
+### Soft Split (구현 완료)
+- 구분자 없지만 정보 밀도 높은 경우 (Cloze > 3개)
+- Gemini 3 Flash Preview에게 분할 제안 요청
+- 처음 5개 후보만 분석 (API 비용 고려)
 
 ### nid 승계 전략
 - `mainCardIndex` 카드: `updateNoteFields`로 기존 nid 유지
@@ -76,10 +77,9 @@ src/
 
 ## 미구현 기능
 
-1. **--apply 플래그**: 실제 분할 적용 (현재 Dry Run만)
-2. **Soft Split**: Gemini 호출 분할
-3. **rollback**: 변경 되돌리기
-4. **학습 데이터 복제**: 분할 카드에 원본 학습 이력 복사
+1. **rollback**: 변경 되돌리기
+2. **학습 데이터 복제**: 분할 카드에 원본 학습 이력 복사
+3. **전체 Soft Split**: 현재 5개만 분석 (전체 후보 분석 미지원)
 
 ## 실행 방법
 
@@ -87,8 +87,11 @@ src/
 # 연결 확인
 bun run status
 
-# 분할 미리보기
+# 분할 미리보기 (Hard + Soft Split)
 bun run split
+
+# 분할 실제 적용 (⚠️ 주의)
+bun run split --apply
 
 # 특정 카드 분석
 bun run src/index.ts analyze "[책] 이것이 취업을 위한 컴퓨터 과학이다" 1757399484677
