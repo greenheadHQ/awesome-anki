@@ -33,6 +33,9 @@ export function useOnboarding() {
   }, []);
 
   const startOnboarding = useCallback(() => {
+    // 완료 상태를 리셋하고 다시 시작
+    localStorage.removeItem(STORAGE_KEY);
+    setIsCompleted(false);
     setShouldRun(true);
   }, []);
 

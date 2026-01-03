@@ -22,44 +22,19 @@ const steps: Step[] = [
       <div className="text-left">
         <h3 className="font-bold mb-2">1. 덱 선택</h3>
         <p className="text-sm text-gray-600">
-          먼저 작업할 덱을 선택하세요. 선택하면 해당 덱의 통계와 분할 후보가 표시됩니다.
+          먼저 작업할 덱을 선택하세요.<br /><br />
+          선택하면 통계 카드(총 노트, 분할 후보, 임베딩 상태)와
+          빠른 작업 버튼이 표시됩니다.
         </p>
       </div>
     ),
     placement: 'bottom',
-  },
-  {
-    target: '[data-tour="stats-cards"]',
-    content: (
-      <div className="text-left">
-        <h3 className="font-bold mb-2">2. 통계 확인</h3>
-        <p className="text-sm text-gray-600">
-          총 노트 수, 분할 가능한 카드 수, 임베딩 커버리지를 확인할 수 있습니다.
-          각 항목 옆의 (?) 아이콘을 클릭하면 자세한 설명을 볼 수 있습니다.
-        </p>
-      </div>
-    ),
-    placement: 'bottom',
-  },
-  {
-    target: '[data-tour="quick-actions"]',
-    content: (
-      <div className="text-left">
-        <h3 className="font-bold mb-2">3. 빠른 작업</h3>
-        <p className="text-sm text-gray-600">
-          • <strong>분할 시작</strong>: 카드 분할 작업 페이지로 이동<br />
-          • <strong>카드 브라우저</strong>: 카드 목록 조회 및 검증<br />
-          • <strong>임베딩 생성</strong>: 유사성 검사를 위한 임베딩 생성
-        </p>
-      </div>
-    ),
-    placement: 'top',
   },
   {
     target: '[data-tour="nav-split"]',
     content: (
       <div className="text-left">
-        <h3 className="font-bold mb-2">Split 페이지</h3>
+        <h3 className="font-bold mb-2">2. Split 페이지</h3>
         <p className="text-sm text-gray-600">
           분할 후보를 선택하고 미리보기를 확인한 후 분할을 적용합니다.
           3단 레이아웃으로 원본과 결과를 비교할 수 있습니다.
@@ -73,7 +48,7 @@ const steps: Step[] = [
     target: '[data-tour="nav-backups"]',
     content: (
       <div className="text-left">
-        <h3 className="font-bold mb-2">Backups 페이지</h3>
+        <h3 className="font-bold mb-2">3. Backups 페이지</h3>
         <p className="text-sm text-gray-600">
           분할 적용 전 자동으로 백업이 생성됩니다.
           언제든지 롤백하여 원래 상태로 복구할 수 있습니다.
@@ -87,7 +62,7 @@ const steps: Step[] = [
     target: '[data-tour="nav-help"]',
     content: (
       <div className="text-left">
-        <h3 className="font-bold mb-2">도움말</h3>
+        <h3 className="font-bold mb-2">4. 도움말</h3>
         <p className="text-sm text-gray-600">
           더 자세한 기능 설명과 FAQ는 Help 페이지에서 확인하세요.
           언제든지 다시 볼 수 있습니다!
@@ -105,16 +80,17 @@ interface OnboardingTourProps {
 }
 
 export function OnboardingTour({ run, onComplete }: OnboardingTourProps) {
-  const { shouldRun, completeOnboarding } = useOnboarding();
-  const isRunning = run !== undefined ? run : shouldRun;
+  // run prop이 전달되면 외부에서 제어, 아니면 내부 hook 사용
+  const internalState = useOnboarding();
+  const isRunning = run !== undefined ? run : internalState.shouldRun;
+  const handleComplete = onComplete || internalState.completeOnboarding;
 
   const handleCallback = (data: CallBackProps) => {
     const { status } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
     if (finishedStatuses.includes(status)) {
-      completeOnboarding();
-      onComplete?.();
+      handleComplete();
     }
   };
 

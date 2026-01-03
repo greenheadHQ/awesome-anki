@@ -16,7 +16,7 @@ export function Dashboard() {
   const { data: decksData, isLoading: isLoadingDecks } = useDecks();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const { data: stats, isLoading: isLoadingStats } = useDeckStats(selectedDeck);
-  const { isCompleted: onboardingCompleted, startOnboarding } = useOnboarding();
+  const { isCompleted: onboardingCompleted, shouldRun: onboardingShouldRun, startOnboarding, completeOnboarding } = useOnboarding();
 
   // 임베딩 상태 조회
   const { data: embeddingStatus, isLoading: isLoadingEmbedding } = useQuery({
@@ -37,7 +37,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Onboarding Tour */}
-      <OnboardingTour />
+      <OnboardingTour run={onboardingShouldRun} onComplete={completeOnboarding} />
 
       {/* Header */}
       <div className="flex items-center justify-between">
