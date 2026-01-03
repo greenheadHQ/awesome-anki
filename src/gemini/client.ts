@@ -19,7 +19,7 @@ function getClient(): GoogleGenAI {
   return genAI;
 }
 
-const MODEL_NAME = 'gemini-2.0-flash';
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 export interface CardForSplit {
   noteId: number;
