@@ -108,9 +108,9 @@
 3. [ ] ValidationPanel 컴포넌트
 4. [ ] CardBrowser에 검증 상태 뱃지 추가
 
-### 🔴 우선순위 높음: ContentRenderer 파싱 미스매칭 수정
+### ✅ 완료: ContentRenderer 파싱 미스매칭 수정
 
-**현재 상태**: markdown-it 기반으로 리팩토링 완료, 하지만 Anki 원본 렌더링과 미스매칭 존재
+**해결됨**: markdown-it 기반 + CSS 스타일 추가로 Anki 원본과 동일하게 렌더링
 
 **완료된 작업**:
 - [x] markdown-it + markdown-it-container + highlight.js 적용
@@ -119,83 +119,19 @@
 - [x] Cloze 강조 표시
 - [x] 이미지 API 프록시
 - [x] `<br>` 및 `&lt;br&gt;` 이스케이프 처리
+- [x] Header (h1-h6) CSS 스타일 추가 (font-weight: bold, font-size 차등)
+- [x] Bullet point (ul/ol) list-style-type 추가
+- [x] Splitter (hr) border-top 스타일 추가
 
-**남은 문제점** (Anki 원본 vs 현재 구현 비교):
+**검증 결과** (Anki 원본 vs 현재 구현):
 
 | 항목 | Anki 원본 | 현재 구현 | 상태 |
 |------|-----------|-----------|------|
-| Header (#, ##, ###) | 크고 굵은 글씨로 강조 | 일반 텍스트처럼 표시 | ❌ |
-| Bullet point (*, -) | 점(•)으로 표시 | 점 없이 텍스트만 표시 | ❌ |
-| Splitter (---) | 가로선으로 표시 | 아예 사라짐 | ❌ |
+| Header (#, ##, ###) | 크고 굵은 글씨로 강조 | 크고 굵은 글씨로 강조 | ✅ |
+| Bullet point (*, -) | 점(•)으로 표시 | 점(•)으로 표시 | ✅ |
+| Splitter (---) | 가로선으로 표시 | 가로선으로 표시 | ✅ |
 | 번호 리스트 (1., 2.) | 정상 표시 | 정상 표시 | ✅ |
 | 컨테이너 (::: link) | 배경색 + 테두리 | 배경색 + 테두리 | ✅ |
-
-**문제 원인 분석**:
-
-1. **Header 스타일 문제**
-   - markdown-it가 `<h1>`, `<h2>`, `<h3>` 태그를 생성하지만 CSS 스타일이 적용 안됨
-   - `.prose` 클래스의 스타일이 제대로 상속되지 않는 것으로 추정
-   - 관련 파일: `packages/web/src/index.css`
-
-2. **Bullet point 누락 문제**
-   - `<ul><li>` 태그는 생성되지만 list-style이 none으로 설정된 것으로 추정
-   - Tailwind CSS의 기본 리셋이 원인일 수 있음
-   - 해결: `.prose ul { list-style-type: disc; }`
-
-3. **Splitter(---) 사라짐 문제**
-   - markdown-it가 `---`를 `<hr>` 태그로 변환하지만 보이지 않음
-   - CSS에서 `<hr>` 스타일이 없거나 숨겨진 상태
-   - 해결: `.prose hr { border-top: 1px solid #ccc; margin: 1em 0; }`
-
-**수정 방법**:
-
-```css
-/* packages/web/src/index.css에 추가 */
-
-/* Header 스타일 강화 */
-.content-rendered h1,
-.content-rendered h2,
-.content-rendered h3,
-.content-rendered h4 {
-  font-weight: bold;
-  margin-top: 1em;
-  margin-bottom: 0.5em;
-}
-
-.content-rendered h1 { font-size: 1.5em; }
-.content-rendered h2 { font-size: 1.3em; }
-.content-rendered h3 { font-size: 1.1em; }
-
-/* Bullet point 스타일 */
-.content-rendered ul {
-  list-style-type: disc;
-  padding-left: 1.5em;
-}
-
-.content-rendered ol {
-  list-style-type: decimal;
-  padding-left: 1.5em;
-}
-
-/* Splitter (hr) 스타일 */
-.content-rendered hr {
-  border: none;
-  border-top: 1px solid #ccc;
-  margin: 1em 0;
-}
-```
-
-**테스트 방법**:
-1. `bun run dev` 실행
-2. Split 페이지에서 카드 선택
-3. Anki에서 동일 카드 열어서 비교
-
-**관련 파일**:
-- `packages/web/src/index.css` - CSS 스타일
-- `packages/web/src/lib/markdown-renderer.ts` - 마크다운 렌더러
-- `templates/style.css` - 원본 Anki 템플릿 스타일 참고
-
-**예상 소요 시간**: 30분
 
 ---
 
@@ -241,36 +177,7 @@
 
 ## 다음 세션에서 할 작업
 
-### 1️⃣ ContentRenderer CSS 스타일 수정 🔴 (우선순위 높음)
-
-**목표**: Anki 원본 렌더링과 동일하게 표시
-
-**수정할 문제**:
-1. Header (#, ##, ###) - 크고 굵은 글씨로 표시되어야 함
-2. Bullet point (*, -) - 앞에 점(•)이 표시되어야 함
-3. Splitter (---) - 가로선으로 표시되어야 함
-
-**빠른 수정** (`packages/web/src/index.css` 수정):
-```css
-/* Header 스타일 */
-.content-rendered h1, .content-rendered h2, .content-rendered h3, .content-rendered h4 {
-  font-weight: bold;
-  margin-top: 1em;
-  margin-bottom: 0.5em;
-}
-.content-rendered h1 { font-size: 1.5em; }
-.content-rendered h2 { font-size: 1.3em; }
-.content-rendered h3 { font-size: 1.1em; }
-
-/* Bullet point */
-.content-rendered ul { list-style-type: disc; padding-left: 1.5em; }
-.content-rendered ol { list-style-type: decimal; padding-left: 1.5em; }
-
-/* Splitter */
-.content-rendered hr { border: none; border-top: 1px solid #ccc; margin: 1em 0; }
-```
-
-### 2️⃣ Phase 5: 카드 검증 기능
+### Phase 5: 카드 검증 기능 🔴
 
 **목표**: Gemini를 활용한 카드 내용 검증
 
@@ -291,7 +198,6 @@
 4. CardBrowser에 검증 상태 뱃지 추가
 
 ### 예상 소요 시간
-- ContentRenderer CSS 수정: 30분
 - Phase 5 (카드 검증): 2-3시간
 
 ---
