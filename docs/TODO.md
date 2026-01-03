@@ -110,11 +110,9 @@
 
 ### 기타 미구현 기능 📋
 
-1. [ ] **ContentRenderer 파싱 문제**
-   - 원본 카드의 렌더링된 뷰에서 파싱이 정상적으로 적용되지 않음
-   - 증상: ::: 컨테이너, nid 링크 등이 제대로 렌더링되지 않음
-   - 원인: ReactMarkdown + rehypeRaw 조합에서 복잡한 HTML 처리 문제
-   - 관련 파일: `packages/web/src/components/card/ContentRenderer.tsx`
+1. [x] ~~**ContentRenderer 파싱 문제**~~ ✅ 해결됨
+   - nid 링크 처리 함수 추가
+   - 처리 순서 개선: HTML 전처리 → nid 링크 → Cloze → 컨테이너
 
 2. [ ] **전체 Soft Split**
    - 현재: 5개 후보만 분석 (API 비용 고려)
@@ -156,23 +154,27 @@
 
 ## 다음 세션에서 할 작업
 
-### 우선순위 높음 🔴
+### Phase 5: 카드 검증 기능 🔴
 
-1. **ContentRenderer 파싱 문제 수정**
-   - 증상: ::: 컨테이너, nid 링크가 제대로 렌더링되지 않음
-   - 원인: ReactMarkdown + 복잡한 HTML 혼합 처리 문제
-   - 관련 파일: `packages/web/src/components/card/ContentRenderer.tsx`
+**목표**: Gemini를 활용한 카드 내용 검증
 
-### Phase 5 (카드 검증)
+**필요한 작업**:
+1. `packages/core/src/validator/` 모듈 구현
+   - fact-checker.ts: 팩트 체크 (Gemini + Web Search)
+   - freshness-checker.ts: 최신성 검사
+   - similarity-checker.ts: 중복/유사성 검사
+   - context-checker.ts: 문맥 일관성 검사
 
-```typescript
-// packages/core/src/validator/ 모듈 구현
-// packages/server/src/routes/validate.ts API 추가
-// ValidationPanel 컴포넌트 구현
-```
+2. `packages/server/src/routes/validate.ts` API 추가
+   - POST /api/validate/fact-check
+   - POST /api/validate/freshness
+   - POST /api/validate/similarity
+   - POST /api/validate/context
+
+3. ValidationPanel 컴포넌트 구현
+4. CardBrowser에 검증 상태 뱃지 추가
 
 ### 예상 소요 시간
-- ContentRenderer 파싱 문제: 1시간
 - Phase 5 (카드 검증): 2-3시간
 
 ---
