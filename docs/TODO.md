@@ -215,6 +215,170 @@
 
 ## 다음 세션에서 할 작업
 
+### Phase 7: 도움말 시스템 + 온보딩 🎯
+
+> 목표: 첫 방문 사용자가 프로젝트의 기능을 쉽게 이해할 수 있도록 도움말 제공
+
+#### 7.1 도움말 페이지 (Help.tsx)
+
+**구현 내용**
+- 사이드바에 "Help" 메뉴 추가 (HelpCircle 아이콘)
+- `/help` 라우트 생성
+- 전체 기능 설명을 한 페이지에서 제공
+
+**페이지 구성**
+```
+1. 시작하기 (Getting Started)
+   - Anki Splitter란?
+   - 기본 워크플로우: 덱 선택 → 카드 확인 → 분할 실행
+
+2. 용어 설명 (Glossary)
+   - Hard Split: #### 헤더로 명확히 구분된 카드를 자동 분할
+   - Soft Split: AI(Gemini)가 의미적으로 판단하여 분할 제안
+   - Cloze: Anki의 빈칸 채우기 형식 {{c1::답}}
+   - 임베딩: 텍스트를 숫자 벡터로 변환하여 의미 기반 유사도 비교
+   - nid: 노트 ID, 카드 간 링크에 사용
+
+3. 기능별 가이드
+   - Dashboard: 덱 선택 및 통계 확인
+   - Split: 카드 분할 작업
+   - Browse: 카드 목록 조회 및 검증
+   - Backups: 분할 롤백 관리
+
+4. 검증 기능 설명
+   - 팩트 체크: AI가 카드 내용의 사실 여부 확인
+   - 최신성 검사: 기술 정보가 최신인지 확인
+   - 유사성 검사: 중복/유사 카드 탐지 (Jaccard vs 임베딩)
+   - 문맥 일관성: nid로 연결된 카드 간 논리적 일관성
+
+5. FAQ
+   - 분할 후 원래대로 되돌릴 수 있나요?
+   - 임베딩은 언제 사용하나요?
+   - API 비용은 얼마나 드나요?
+```
+
+**파일 생성**
+- `packages/web/src/pages/Help.tsx`
+- `packages/web/src/components/help/HelpSection.tsx`
+- `packages/web/src/components/help/GlossaryItem.tsx`
+
+#### 7.2 컨텍스트 도움말 (HelpTooltip 컴포넌트)
+
+**구현 내용**
+- 각 기능 옆에 (?) 아이콘 추가
+- 클릭 시 해당 기능만 설명하는 팝오버/모달 표시
+- shadcn/ui의 Popover 또는 Tooltip 활용
+
+**적용 위치**
+```
+Dashboard:
+- [?] 임베딩 커버리지 (임베딩이 무엇인지, 왜 필요한지)
+- [?] Hard Split 개수 (Hard Split이란?)
+- [?] Soft Split 개수 (Soft Split이란?)
+
+SplitWorkspace:
+- [?] 분할 후보 목록 (어떤 기준으로 선정되는지)
+- [?] 분할 미리보기 (분할 결과가 어떻게 적용되는지)
+
+ValidationPanel:
+- [?] Jaccard vs 임베딩 (두 방식의 차이점)
+- [?] 각 검증 항목별 설명
+
+CardBrowser:
+- [?] 검증 상태 아이콘 (각 아이콘의 의미)
+```
+
+**컴포넌트 설계**
+```tsx
+// HelpTooltip.tsx
+interface HelpTooltipProps {
+  helpKey: string;  // 'embedding' | 'hardSplit' | 'softSplit' | ...
+  children?: React.ReactNode;
+}
+
+// 도움말 내용은 별도 파일로 관리
+// helpContent.ts
+export const helpContent = {
+  embedding: {
+    title: '임베딩이란?',
+    description: '텍스트를 768차원의 숫자 벡터로 변환...',
+    learnMore: '/help#embedding'
+  },
+  // ...
+};
+```
+
+**파일 생성**
+- `packages/web/src/components/help/HelpTooltip.tsx`
+- `packages/web/src/lib/helpContent.ts`
+
+#### 7.3 온보딩 투어 (첫 방문자 가이드)
+
+**구현 내용**
+- 첫 방문 시 단계별 하이라이트 투어
+- localStorage로 "투어 완료" 상태 저장
+- "다시 보기" 버튼으로 재실행 가능
+
+**라이브러리 선택**
+- Option A: `react-joyride` (인기, 기능 풍부)
+- Option B: 커스텀 구현 (경량, 의존성 최소화)
+- 권장: `react-joyride` (빠른 구현)
+
+**투어 단계**
+```
+Step 1: 덱 선택
+  - 위치: Dashboard 덱 셀렉터
+  - 설명: "먼저 작업할 덱을 선택하세요"
+
+Step 2: 통계 확인
+  - 위치: Dashboard 통계 카드
+  - 설명: "분할 가능한 카드 수를 확인할 수 있습니다"
+
+Step 3: 분할 시작
+  - 위치: "분할 시작" 버튼
+  - 설명: "이 버튼을 눌러 분할 작업을 시작하세요"
+
+Step 4: 분할 작업 (SplitWorkspace)
+  - 위치: 3단 레이아웃
+  - 설명: "왼쪽에서 카드 선택, 가운데에서 원본 확인, 오른쪽에서 분할 미리보기"
+
+Step 5: 적용 버튼
+  - 위치: "분할 적용" 버튼
+  - 설명: "미리보기를 확인한 후 적용하세요. 언제든 Backups에서 롤백 가능합니다"
+```
+
+**파일 생성**
+- `packages/web/src/components/onboarding/OnboardingTour.tsx`
+- `packages/web/src/hooks/useOnboarding.ts`
+
+#### 7.4 구현 순서
+
+1. **HelpTooltip 컴포넌트** (가장 작은 단위, 재사용 가능)
+   - helpContent.ts 작성
+   - HelpTooltip.tsx 구현
+   - Dashboard에 먼저 적용
+
+2. **Help 페이지**
+   - 라우트 추가 (/help)
+   - 사이드바 메뉴 추가
+   - 페이지 콘텐츠 작성
+
+3. **온보딩 투어**
+   - react-joyride 설치
+   - 투어 단계 정의
+   - 첫 방문 감지 로직
+
+#### 7.5 예상 작업량
+
+| 작업 | 예상 파일 수 | 복잡도 |
+|------|-------------|--------|
+| HelpTooltip | 2개 | 낮음 |
+| Help 페이지 | 3-4개 | 중간 |
+| 온보딩 투어 | 2개 | 중간 |
+| **합계** | **7-8개** | - |
+
+---
+
 ### 기타 기능 개선 (낮은 우선순위)
 
 1. **임베딩 생성 진행률 표시**
@@ -225,12 +389,10 @@
    - 전체 덱 스캔하여 유사 카드 그룹 자동 탐지
    - 중복 카드 병합/삭제 제안
 
-### 기타 (낮은 우선순위)
-
-**다크모드**
-- CSS 변수 활용 (.dark 클래스)
-- 시스템 설정 연동 (prefers-color-scheme)
-- 토글 버튼 추가
+3. **다크모드**
+   - CSS 변수 활용 (.dark 클래스)
+   - 시스템 설정 연동 (prefers-color-scheme)
+   - 토글 버튼 추가
 
 ---
 
