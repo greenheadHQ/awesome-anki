@@ -13,7 +13,7 @@ description: |
 ## 실행
 
 ```bash
-cd /Users/green/IdeaProjects/anki-claude-code
+# 프로젝트 루트에서 실행
 bun run src/index.ts <command>
 ```
 
