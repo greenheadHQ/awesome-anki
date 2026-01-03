@@ -1,5 +1,21 @@
 # Anki Claude Code - LLM 가이드
 
+## 세션 규칙 ⚠️
+
+### 세션 시작 시
+- `docs/` 디렉토리 내 모든 문서 정독 필수
+  - `docs/TODO.md` - 진행 상황 및 다음 작업
+  - `docs/FEATURES.md` - 기능 및 기술 상세
+  - `docs/TROUBLESHOOTING.md` - 문제 해결 기록
+
+### 세션 종료 시
+- `docs/*.md` 문서 최신화 필수
+  - 완료된 작업 체크
+  - 새로운 결정사항 기록
+  - 다음 작업 업데이트
+
+---
+
 ## 프로젝트 개요
 
 Anki 카드를 원자적 단위로 분할하는 Claude Code 스킬. 정보 밀도 높은 카드를 학습 효율이 좋은 작은 카드들로 분리.
@@ -31,12 +47,13 @@ anki-claude-code/
 │   │       ├── gemini/       # Gemini API 호출
 │   │       ├── parser/       # 텍스트 파싱 (container, nid, cloze)
 │   │       ├── splitter/     # Hard/Soft Split 로직
+│   │       ├── validator/    # 카드 검증 (fact-check, freshness, similarity)
 │   │       └── utils/        # HTML 스타일 보존, diff
 │   │
 │   ├── server/               # Hono REST API 서버
 │   │   └── src/
 │   │       ├── index.ts      # 서버 진입점 (localhost:3000)
-│   │       └── routes/       # API 라우트 (decks, cards, split, backup)
+│   │       └── routes/       # API 라우트 (decks, cards, split, backup, validate)
 │   │
 │   └── web/                  # React 프론트엔드
 │       └── src/
@@ -63,6 +80,10 @@ anki-claude-code/
 | POST | /api/split/apply | 분할 적용 |
 | GET | /api/backup | 백업 목록 |
 | POST | /api/backup/:id/rollback | 롤백 |
+| POST | /api/validate/fact-check | 팩트 체크 |
+| POST | /api/validate/freshness | 최신성 검사 |
+| POST | /api/validate/similarity | 유사성 검사 |
+| POST | /api/validate/all | 전체 검증 (병렬) |
 
 ## 분할 전략
 
