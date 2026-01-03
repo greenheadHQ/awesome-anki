@@ -12,8 +12,9 @@
 | 구분 | 상태 | 비고 |
 |------|------|------|
 | CLI 기능 | ✅ 완료 | status, split, analyze, rollback, backups |
-| 웹 API | ✅ 완료 | decks, cards, split, backup, validate 라우트 |
-| 웹 GUI | ✅ 완료 | Phase 1-6 완료 |
+| 웹 API | ✅ 완료 | decks, cards, split, backup, validate, embedding 라우트 |
+| 웹 GUI | ✅ 완료 | Phase 1-6 완료, 임베딩 UI 통합 |
+| 임베딩 | ✅ 완료 | Gemini 임베딩 기반 유사성 검사 |
 
 ---
 
@@ -161,10 +162,10 @@
 - [x] POST /api/embedding/single - 단일 텍스트 임베딩 (디버깅용)
 - [x] /api/validate/similarity에 `useEmbedding` 파라미터 추가
 
-**Step 4: 웹 UI (미구현 - 선택)**
-- [ ] 덱 통계에 임베딩 상태 표시
-- [ ] 임베딩 생성 버튼 (시간 소요 경고)
-- [ ] 검증 옵션에 Jaccard/임베딩 선택
+**Step 4: 웹 UI** ✅
+- [x] 덱 통계에 임베딩 커버리지 표시 (Dashboard)
+- [x] 임베딩 생성 버튼 (Dashboard 빠른 작업)
+- [x] 검증 옵션에 Jaccard/임베딩 선택 (ValidationPanel)
 
 **테스트 결과**
 - 단위 테스트: 25개 모두 통과
@@ -214,21 +215,15 @@
 
 ## 다음 세션에서 할 작업
 
-### 웹 UI 임베딩 기능 통합 (선택)
+### 기타 기능 개선 (낮은 우선순위)
 
-임베딩 백엔드가 완성되었으므로, 필요시 웹 UI에 통합:
+1. **임베딩 생성 진행률 표시**
+   - 현재: 단순 로딩 스피너
+   - 개선: 실시간 진행률 표시 (WebSocket or polling)
 
-1. **덱 통계에 임베딩 상태 표시**
-   - 캐시된 임베딩 수 / 전체 노트 수
-   - 커버리지 퍼센트
-
-2. **임베딩 생성 버튼**
-   - "임베딩 생성" 버튼 추가
-   - 진행 상태 표시 (시간 소요 경고)
-
-3. **검증 옵션에 Jaccard/임베딩 선택**
-   - ValidationPanel에 토글 추가
-   - 임베딩 캐시 없으면 Jaccard 자동 폴백
+2. **임베딩 기반 자동 중복 탐지**
+   - 전체 덱 스캔하여 유사 카드 그룹 자동 탐지
+   - 중복 카드 병합/삭제 제안
 
 ### 기타 (낮은 우선순위)
 
