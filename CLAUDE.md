@@ -47,7 +47,7 @@ anki-claude-code/
 │   │       ├── gemini/       # Gemini API 호출
 │   │       ├── parser/       # 텍스트 파싱 (container, nid, cloze)
 │   │       ├── splitter/     # Hard/Soft Split 로직
-│   │       ├── validator/    # 카드 검증 (fact-check, freshness, similarity)
+│   │       ├── validator/    # 카드 검증 (fact-check, freshness, similarity, context)
 │   │       └── utils/        # HTML 스타일 보존, diff
 │   │
 │   ├── server/               # Hono REST API 서버
@@ -83,6 +83,7 @@ anki-claude-code/
 | POST | /api/validate/fact-check | 팩트 체크 |
 | POST | /api/validate/freshness | 최신성 검사 |
 | POST | /api/validate/similarity | 유사성 검사 |
+| POST | /api/validate/context | 문맥 일관성 검사 |
 | POST | /api/validate/all | 전체 검증 (병렬) |
 
 ## 분할 전략

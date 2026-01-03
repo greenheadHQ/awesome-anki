@@ -216,6 +216,7 @@ interface ClozeItem {
 | POST | /api/validate/fact-check | 카드 내용 팩트 체크 |
 | POST | /api/validate/freshness | 기술 최신성 검사 |
 | POST | /api/validate/similarity | 유사/중복 카드 탐지 |
+| POST | /api/validate/context | nid 링크 연결 카드 간 문맥 일관성 검사 |
 | POST | /api/validate/all | 전체 검증 (병렬 실행) |
 
 ---
@@ -260,6 +261,8 @@ Markdown + KaTeX + Cloze 렌더링
 **검증 필터 옵션**: 전체, 분할 가능, 미검증, 검토 필요
 
 **검증 캐싱**: localStorage + useSyncExternalStore (24시간 TTL)
+
+**검증 항목**: 팩트 체크, 최신성, 유사성, 문맥 일관성
 
 ---
 

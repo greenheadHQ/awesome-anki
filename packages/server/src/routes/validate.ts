@@ -6,10 +6,12 @@ import {
   checkFacts,
   checkFreshness,
   checkSimilarity,
+  checkContext,
   getNoteById,
   getDeckNotes,
   extractTextField,
   type CardForComparison,
+  type CardForContext,
 } from '@anki-splitter/core';
 
 const validate = new Hono();
@@ -145,8 +147,59 @@ validate.post('/similarity', async (c) => {
 });
 
 /**
+ * POST /api/validate/context
+ * 문맥 일관성 검사 (nid 링크로 연결된 카드들과의 일관성)
+ */
+validate.post('/context', async (c) => {
+  try {
+    const { noteId, includeReverseLinks, maxRelatedCards, thorough } = await c.req.json<{
+      noteId: number;
+      includeReverseLinks?: boolean;
+      maxRelatedCards?: number;
+      thorough?: boolean;
+    }>();
+
+    if (!noteId) {
+      return c.json({ error: 'noteId is required' }, 400);
+    }
+
+    // 카드 내용 가져오기
+    const note = await getNoteById(noteId);
+    if (!note) {
+      return c.json({ error: 'Note not found' }, 404);
+    }
+
+    const text = extractTextField(note);
+
+    // 문맥 일관성 검사 수행
+    const targetCard: CardForContext = {
+      noteId,
+      text,
+      tags: note.tags,
+    };
+
+    const result = await checkContext(targetCard, {
+      includeReverseLinks,
+      maxRelatedCards,
+      thorough,
+    });
+
+    return c.json({
+      noteId,
+      result,
+    });
+  } catch (error) {
+    console.error('Context check error:', error);
+    return c.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      500
+    );
+  }
+});
+
+/**
  * POST /api/validate/all
- * 모든 검증 수행 (팩트 체크 + 최신성 + 유사성)
+ * 모든 검증 수행 (팩트 체크 + 최신성 + 유사성 + 문맥)
  */
 validate.post('/all', async (c) => {
   try {
@@ -168,7 +221,7 @@ validate.post('/all', async (c) => {
     const text = extractTextField(note);
 
     // 병렬로 모든 검증 수행
-    const [factCheckResult, freshnessResult, similarityResult] = await Promise.all([
+    const [factCheckResult, freshnessResult, similarityResult, contextResult] = await Promise.all([
       checkFacts(text),
       checkFreshness(text),
       (async () => {
@@ -179,10 +232,18 @@ validate.post('/all', async (c) => {
         }));
         return checkSimilarity({ noteId, text }, allCards);
       })(),
+      (async () => {
+        const targetCard: CardForContext = {
+          noteId,
+          text,
+          tags: note.tags,
+        };
+        return checkContext(targetCard, { includeReverseLinks: true });
+      })(),
     ]);
 
     // 전체 상태 결정
-    const results = [factCheckResult, freshnessResult, similarityResult];
+    const results = [factCheckResult, freshnessResult, similarityResult, contextResult];
     let overallStatus: 'valid' | 'warning' | 'error' | 'unknown' = 'valid';
 
     if (results.some((r) => r.status === 'error')) {
@@ -200,6 +261,7 @@ validate.post('/all', async (c) => {
         factCheck: factCheckResult,
         freshness: freshnessResult,
         similarity: similarityResult,
+        context: contextResult,
       },
       validatedAt: new Date().toISOString(),
     });

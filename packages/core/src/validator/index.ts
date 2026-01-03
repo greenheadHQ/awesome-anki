@@ -19,3 +19,11 @@ export {
   type CardForComparison,
   type SimilarityCheckOptions,
 } from './similarity-checker.js';
+
+// 문맥 일관성 검사
+export {
+  checkContext,
+  analyzeCardGroup,
+  type CardForContext,
+  type ContextCheckOptions,
+} from './context-checker.js';

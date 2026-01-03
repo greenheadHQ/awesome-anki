@@ -126,6 +126,18 @@ export interface SimilarityResult extends ValidationResult {
   };
 }
 
+export interface ContextResult extends ValidationResult {
+  type: 'context';
+  details: {
+    inconsistencies: Array<{
+      description: string;
+      conflictingNoteId?: number;
+      severity: 'low' | 'medium' | 'high';
+    }>;
+    relatedCards: number[];
+  };
+}
+
 export interface AllValidationResult {
   noteId: number;
   overallStatus: ValidationStatus;
@@ -133,6 +145,7 @@ export interface AllValidationResult {
     factCheck: FactCheckResult;
     freshness: FreshnessResult;
     similarity: SimilarityResult;
+    context: ContextResult;
   };
   validatedAt: string;
 }
@@ -215,6 +228,11 @@ export const api = {
       fetchJson<{ noteId: number; result: SimilarityResult }>('/validate/similarity', {
         method: 'POST',
         body: JSON.stringify({ noteId, deckName, threshold }),
+      }),
+    context: (noteId: number, includeReverseLinks = true) =>
+      fetchJson<{ noteId: number; result: ContextResult }>('/validate/context', {
+        method: 'POST',
+        body: JSON.stringify({ noteId, includeReverseLinks }),
       }),
     all: (noteId: number, deckName: string) =>
       fetchJson<AllValidationResult>('/validate/all', {

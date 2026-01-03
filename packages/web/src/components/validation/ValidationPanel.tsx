@@ -18,6 +18,7 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Link2,
 } from 'lucide-react';
 
 interface ValidationPanelProps {
@@ -256,6 +257,60 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
                           <p className="text-muted-foreground mt-1 line-clamp-2">
                             {card.matchedContent}
                           </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 문맥 일관성 검사 */}
+            <div className="border rounded-lg overflow-hidden">
+              <button
+                className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
+                onClick={() => toggleSection('context')}
+              >
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4" />
+                  <span className="font-medium">문맥 일관성</span>
+                  <StatusIcon status={result.results.context.status} />
+                </div>
+                {expandedSections.has('context') ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              {expandedSections.has('context') && (
+                <div className="p-3 border-t bg-muted/30">
+                  <p className="text-sm mb-2">{result.results.context.message}</p>
+                  {result.results.context.details.relatedCards.length > 0 && (
+                    <div className="text-xs text-muted-foreground mb-2">
+                      연결된 카드: {result.results.context.details.relatedCards.length}개
+                    </div>
+                  )}
+                  {result.results.context.details.inconsistencies.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {result.results.context.details.inconsistencies.map((inc, i) => (
+                        <div key={i} className="text-xs p-2 bg-background rounded">
+                          <div className="flex items-start gap-2">
+                            <span className={cn(
+                              'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                              inc.severity === 'high' ? 'bg-red-100 text-red-700' :
+                              inc.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            )}>
+                              {inc.severity === 'high' ? '심각' :
+                               inc.severity === 'medium' ? '주의' : '경미'}
+                            </span>
+                            {inc.conflictingNoteId && (
+                              <span className="font-mono text-muted-foreground">
+                                #{inc.conflictingNoteId}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1">{inc.description}</p>
                         </div>
                       ))}
                     </div>
