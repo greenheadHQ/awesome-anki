@@ -4,11 +4,11 @@
   "description": "Anki Card Manager - Claude Code skill for managing Anki decks/cards",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "status": "tsx src/index.ts status",
-    "split": "tsx src/index.ts split",
-    "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "dev": "bun run src/index.ts",
+    "status": "bun run src/index.ts status",
+    "split": "bun run src/index.ts split",
+    "build": "bun run tsc",
+    "typecheck": "bun run tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",

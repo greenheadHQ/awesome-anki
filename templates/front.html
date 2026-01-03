@@ -1,0 +1,1071 @@
+<div id="front" class="linkRender"><pre>{{cloze:Text}}</pre></div>
+
+<script>
+  var getResources = [
+    getCSS(
+      "_katex.css",
+      "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"
+    ),
+    getCSS(
+      "_highlights.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/tokyo-night-dark.min.css"
+    ),
+    getScript(
+      "_highlight.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"
+    ),
+    getScript(
+      "_katex.min.js",
+      "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"
+    ),
+    getScript(
+      "_auto-render.js",
+      "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"
+    ),
+    getScript(
+      "_markdown-it.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"
+    ),
+    getScript(
+      "_markdown-it-mark.js",
+      "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js"
+    ),
+    getScript(
+      "_markdown-it-container.min.js",
+      "https://cdn.jsdelivr.net/npm/markdown-it-container@3.0.0/dist/markdown-it-container.min.js"
+    ),
+  ];
+
+  Promise.all(getResources)
+    .then(() =>
+      getScript(
+        "_mhchem.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js"
+      )
+    )
+    .then(render)
+    .catch(show);
+
+  function defineEnhancedClozeAddEventListener() {
+    if (typeof window.enhancedClozeEventListener !== "undefined") {
+      for (const listener of window.enhancedClozeEventListener) {
+        const [type, handler] = listener;
+        document.removeEventListener(type, handler);
+      }
+    }
+    window.enhancedClozeEventListener = [];
+
+    window.enhancedClozeAddEventListener = function (type, handler) {
+      document.addEventListener(type, handler);
+      window.enhancedClozeEventListener.push([type, handler]);
+    };
+  }
+
+  function getScript(path, altURL) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.onload = resolve;
+      script.onerror = function () {
+        const script_online = document.createElement("script");
+        script_online.onload = resolve;
+        script_online.onerror = reject;
+        script_online.src = altURL;
+
+        document.querySelector(`script[src="${path}"]`)?.remove();
+        document.head.appendChild(script_online);
+      };
+      script.src = path;
+
+      document.querySelector(`script[src="${path}"]`)?.remove();
+      document.head.appendChild(script);
+    });
+  }
+
+  function getCSS(path, altURL) {
+    return new Promise((resolve, reject) => {
+      const css = document.createElement("link");
+      css.setAttribute("rel", "stylesheet");
+      css.type = "text/css";
+      css.onload = resolve;
+      css.onerror = function () {
+        const css_online = document.createElement("link");
+        css_online.setAttribute("rel", "stylesheet");
+        css_online.type = "text/css";
+        css_online.onload = resolve;
+        css_online.onerror = reject;
+        css_online.href = altURL;
+
+        document.querySelector(`link[href="${path}"]`)?.remove();
+        document.head.appendChild(css_online);
+      };
+      css.href = path;
+
+      document.querySelector(`link[href="${path}"]`)?.remove();
+      document.head.appendChild(css);
+    });
+  }
+
+  function getMarkdownRenderer() {
+    const md = new markdownit({
+      typographer: true,
+      html: true,
+      highlight: function (str, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return hljs.highlight(str, { language: lang }).value;
+          } catch (__) {}
+        }
+        return "";
+      },
+    }).use(markdownItMark);
+
+    const calloutTypes = ["tip", "warning", "error", "note", "link"];
+
+    const getCalloutImoji = (type) => {
+      switch (type) {
+        case "tip":
+          return "💡";
+        case "warning":
+          return "🚧";
+        case "error":
+          return "🚨";
+        case "note":
+          return "📝";
+        case "link":
+          return "🔗";
+        default:
+          return "";
+      }
+    };
+
+    calloutTypes.forEach((type) => {
+      md.use(window.markdownitContainer, type, {
+        validate: function (params) {
+          return params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
+        },
+        render: function (tokens, idx) {
+          const m = tokens[idx].info
+            .trim()
+            .match(new RegExp(`^${type}(\\s+(.*))?$`));
+          if (tokens[idx].nesting === 1) {
+            const title =
+              m && m[2]
+                ? `<strong>${getCalloutImoji(type)} ${md.utils.escapeHtml(
+                    m[2]
+                  )}</strong>`
+                : "";
+            return `<div class="callout ${type}">${title}`;
+          } else {
+            return "</div>\n";
+          }
+        },
+      });
+    });
+
+    // Toggle 컨테이너 추가 (타입별 배경색 지원: tip, warning, error, note)
+    md.use(window.markdownitContainer, "toggle", {
+      validate: function (params) {
+        return params.trim().match(/^toggle(\s+(.*))?$/);
+      },
+      render: function (tokens, idx) {
+        const m = tokens[idx].info.trim().match(/^toggle(\s+(.*))?$/);
+        if (tokens[idx].nesting === 1) {
+          // 타입과 제목 분리
+          const restText = m && m[2] ? m[2].trim() : "";
+          const toggleTypes = ["tip", "warning", "error", "note", "todo"];
+          let toggleType = "";
+          let title = "정보";
+
+          if (restText) {
+            const firstWord = restText.split(/\s+/)[0];
+            if (toggleTypes.includes(firstWord)) {
+              // 첫 단어가 타입인 경우
+              toggleType = firstWord;
+              title = restText.substring(firstWord.length).trim() || "정보";
+            } else {
+              // 타입이 없는 경우, 전체가 제목
+              title = restText;
+            }
+          }
+
+          const typeClass = toggleType ? ` ${toggleType}` : "";
+          title = md.renderInline(title);
+
+          return `<div class="toggle${typeClass}">
+            <div class="toggle-header">
+              <span class="toggle-arrow"></span>
+              <span class="toggle-title">${title}</span>
+            </div>
+            <div class="toggle-content">`;
+        } else {
+          return "</div></div>\n";
+        }
+      },
+    });
+
+    return md;
+  }
+
+  function render() {
+    defineEnhancedClozeAddEventListener();
+    renderMath("front");
+    markdown("front");
+    initializeToggles();
+    show();
+
+    window.enhancedClozeAddEventListener("keydown", handleKeydown);
+
+    const clozeCards = document.getElementsByClassName("cloze");
+
+    for (let i = 0; i < clozeCards.length; i++) {
+      clozeCards[i].style.cursor = "pointer";
+      clozeCards[i].style.backgroundColor = "#85B0FD";
+
+      // […] for ordinary cloze , [...] for cloze in table element
+      if (clozeCards[i].textContent === "[…]" || clozeCards[i].textContent === "[...]") {
+        clozeCards[i].textContent = "[___]";
+      }
+
+      clozeCards[i].addEventListener("click", callback);
+      clozeCards[i].addEventListener("touchend", callback);
+    }
+
+    const inactiveClozeCards =
+      document.getElementsByClassName("cloze-inactive");
+    for (let inactiveClozeCard of inactiveClozeCards) {
+      inactiveClozeCard.style.boxShadow = "inset 0 -2px 0 #FA96AF";
+    }
+  }
+
+  /*
+   * 🎯 Toggle 초기화 함수
+   *
+   * 목적: 모든 Toggle 헤더에 클릭/터치 이벤트 리스너 추가
+   * 동작: 클릭 또는 터치 시 toggle-active 클래스 토글하여 펼침/접힘 상태 변경
+   *
+   * 모바일 환경(iOS/iPadOS) 지원:
+   * - touchend 이벤트로 터치 디바이스에서 정상 작동
+   * - preventDefault()로 기본 동작 방지 및 :hover 상태 제거
+   * - 중복 실행 방지
+   *
+   * PC 환경 개선:
+   * - 클릭 후 blur()로 focus 제거하여 hover 상태 유지 방지
+   */
+  function initializeToggles() {
+    const toggleHeaders = document.querySelectorAll(".toggle-header");
+
+    toggleHeaders.forEach((header) => {
+      let lastToggleTime = 0;
+
+      const toggleHandler = function(e) {
+        // 터치 이벤트에서 기본 동작 방지 (iOS :hover 문제 해결)
+        if (e.type === 'touchend') {
+          e.preventDefault();
+        }
+
+        // 중복 실행 방지: 300ms 이내의 연속 이벤트는 무시
+        const now = Date.now();
+        if (now - lastToggleTime < 300) {
+          return;
+        }
+        lastToggleTime = now;
+
+        const toggleContainer = this.parentElement;
+        toggleContainer.classList.toggle("toggle-active");
+
+        // PC에서 클릭 후 focus 제거하여 hover 상태 유지 방지
+        this.blur();
+      };
+
+      // PC 환경: click 이벤트
+      header.addEventListener("click", toggleHandler);
+
+      // 모바일 환경(iOS/iPadOS): touchend 이벤트
+      // passive: false를 지정하여 preventDefault()가 동작하도록 함
+      header.addEventListener("touchend", toggleHandler, { passive: false });
+    });
+  }
+
+  function renderLink() {
+    document.querySelectorAll(".cloze").forEach((element) => {
+      // You can rename "linkRender" on this line, but leave the "." in front
+      element.innerHTML = element.innerHTML.replace(
+        /\[((?:[^\[]|\\\[)*)\|nid(\d{13})\]/g,
+        (match, title, nid) => {
+          title = title.replace(/\\\[/g, "[");
+          let link;
+          if (
+            document.documentElement.classList.contains("iphone") ||
+            document.documentElement.classList.contains("ipad")
+          ) {
+            link = `anki://x-callback-url/search?query=nid%3a${nid}`;
+          } else {
+             link = `javascript:pycmd(\`AnkiNoteLinker-openNoteInPreviewer\`+\`${nid}\`)`
+          }
+
+          return disableLinks
+            ? `${title}`
+            : `<a href='${link}' class='noteLink' oncontextmenu="event.preventDefault();pycmd(\`AnkiNoteLinker-openNoteInNewEditor\`+\`${nid}\`)">${title}</a>`;
+        }
+      );
+    });
+  };
+
+  /*
+   * 🎮 cloze 클릭/터치 이벤트 처리 함수 (링크 보호 개선)
+   * 
+   * 새로운 접근법: 
+   * - 모든 HTML 태그를 텍스트로 표시하되, 링크는 보호
+   * - 단순하고 확실한 처리
+   */
+  function callback(e) {
+    console.log("========= 개선된 Callback 함수 시작 =========");
+    
+    // A 태그 클릭 시 링크 동작을 우선시하고 cloze 동작 중단
+    if (e.target.nodeName === "A") {
+      console.log("A 태그 클릭, 콜백 종료");
+      return;
+    }
+    
+    console.log("클릭된 요소:", this);
+    console.log("data-cloze:", this.dataset.cloze);
+    
+    const ordinal = this.dataset.ordinal;
+
+    /*
+     * 🎯 cloze 상태 전환 처리
+     */
+    if (ordinal !== "0") {
+      /*
+       * 📖 cloze 펼치기: HTML 속성 보호하며 텍스트 표시
+       */
+      console.log("cloze 펼치기 - 링크 보호 처리");
+      
+      // 현재 ordinal 값을 임시 저장 (나중에 접을 때 사용)
+      this.dataset.tempOrdinal = this.dataset.ordinal;
+      this.dataset.ordinal = "0";  // 펼쳐진 상태로 변경
+      
+      // hint가 없을 때만 최초 한 번 저장 (접힌 상태의 HTML 보존)
+      if (!this.dataset.hint) {
+        this.dataset.hint = this.textContent === "[___]" ? "false" : this.innerHTML;
+      }
+      
+      /*
+       * ✨ 개선된 접근: HTML 속성 보호하며 단계별 안전한 처리
+       */
+      const clozeContent = this.dataset.cloze;
+      console.log("원본 내용:", clozeContent);
+      
+      let result = clozeContent;
+      
+      // 1단계: HTML 태그와 속성을 보호
+      const htmlElements = [];
+      let htmlElementIndex = 0;
+      
+      result = result.replace(/<[^>]+>/g, function(match) {
+        const placeholder = `__CALLBACK_HTML_${htmlElementIndex}__`;
+        htmlElements.push(match);
+        console.log(`콜백 HTML 요소 보호 #${htmlElementIndex}:`, match);
+        htmlElementIndex++;
+        return placeholder;
+      });
+      
+      // 2단계: 보호된 상태에서 백틱 처리
+      // 패턴 1: <`내용`> 형태 (Anki가 백틱을 파싱한 후)
+      result = result.replace(/<`([^`]+)`>/g, function(match, code) {
+        console.log("콜백 - 패턴 1 매칭:", match, "→", code);
+        const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<code>${escapedCode}</code>`;
+      });
+      
+      // 패턴 2: 일반적인 백틱 `내용` 
+      result = result.replace(/`([^`]+)`/g, function(match, code) {
+        console.log("콜백 - 패턴 2 매칭:", match, "→", code);
+        const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<code>${escapedCode}</code>`;
+      });
+      
+      // 3단계: HTML 요소 복원
+      htmlElements.forEach((htmlElement, elementIndex) => {
+        const placeholder = `__CALLBACK_HTML_${elementIndex}__`;
+        result = result.replace(placeholder, htmlElement);
+        console.log(`콜백 HTML 요소 복원 #${elementIndex}:`, htmlElement);
+      });
+      
+      // 4단계: 남은 HTML 태그들 이스케이프 (링크와 마크다운 허용 태그는 제외)
+      // 허용할 마크다운 HTML 태그들: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
+      result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, function(match) {
+        console.log("콜백 - 패턴 3 매칭 (HTML 이스케이프):", match);
+        return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      });
+      
+      console.log("처리 후 내용:", result);
+      this.innerHTML = result;
+      
+      // 시각적 스타일 변경: 배경색 제거, 밑줄 표시
+      this.style.backgroundColor = "transparent";
+      this.style.boxShadow = "inset 0 -2px 0 #85B0FD";
+      
+    } else {
+      /*
+       * 📖 cloze 접기 (펼쳐진 상태 → 접힌 상태)
+       */
+      console.log("cloze 접기");
+      
+      // 임시 저장된 ordinal 값 복원
+      this.dataset.ordinal = this.dataset.tempOrdinal;
+      
+      // 시각적 스타일 변경: 배경색 복원
+      this.style.backgroundColor = "#85B0FD";
+      
+      // 원래 접힌 상태로 복원 (HTML 포함)
+      if (this.dataset.hint === "false") {
+        this.textContent = "[___]";
+      } else {
+        // hint는 HTML을 포함한 원래 상태이므로 innerHTML로 복원
+        this.innerHTML = this.dataset.hint;
+      }
+      console.log("접은 후 내용:", this.textContent);
+    }
+    
+    // 링크 렌더링 재적용
+    renderLink();
+    console.log("========= 개선된 Callback 함수 종료 =========");
+  }
+
+  /*
+   * ⌨️ 키보드 이벤트 처리 함수 (링크 보호 개선)
+   * 
+   * 기능: "J" 키(또는 한글 "ㅓ")를 눌러 첫 번째 접힌 cloze를 펼침
+   * 
+   * 동작 원리:
+   * 1. 모든 cloze 중에서 ordinal !== "0"인 첫 번째 요소 찾기
+   * 2. 해당 요소에 대해 callback과 동일한 로직 적용 (링크 보호 포함)
+   * 3. 코드 블록 내부/외부 구분하여 다르게 처리
+   */
+  function handleKeydown(event) {
+    if (event.key === "j" || event.key === "J" || event.key === "ㅓ") {
+      const clozeCards = document.querySelectorAll(".cloze");
+      let firstClozeCard = null;
+
+      // 접힌 상태의 첫 번째 cloze 찾기
+      for (let clozeCard of clozeCards) {
+        if (clozeCard.dataset.ordinal !== "0") {
+          firstClozeCard = clozeCard;
+          break;
+        }
+      }
+
+      function callback() {
+        // 이미 펼쳐진 상태면 아무것도 하지 않음
+        if (firstClozeCard.dataset.ordinal === "0") return;
+
+        console.log("키보드 - 링크 보호 처리");
+
+        // 상태 전환 처리
+        firstClozeCard.dataset.tempOrdinal = firstClozeCard.dataset.ordinal;
+        firstClozeCard.dataset.ordinal = "0";
+        
+        // hint가 없을 때만 최초 한 번 저장 (키보드 - HTML 보존)
+        if (!firstClozeCard.dataset.hint) {
+          firstClozeCard.dataset.hint = firstClozeCard.textContent === "[___]" ? "false" : firstClozeCard.innerHTML;
+        }
+        
+        /*
+         * ✨ 키보드 - HTML 속성 보호하며 단계별 안전한 처리
+         */
+        const clozeContent = firstClozeCard.dataset.cloze;
+        console.log("키보드 - 원본 내용:", clozeContent);
+        
+        let result = clozeContent;
+        
+        // 1단계: HTML 태그와 속성을 보호
+        const htmlElements = [];
+        let htmlElementIndex = 0;
+        
+        result = result.replace(/<[^>]+>/g, function(match) {
+          const placeholder = `__KEYBOARD_HTML_${htmlElementIndex}__`;
+          htmlElements.push(match);
+          console.log(`키보드 HTML 요소 보호 #${htmlElementIndex}:`, match);
+          htmlElementIndex++;
+          return placeholder;
+        });
+        
+        // 2단계: 보호된 상태에서 백틱 처리
+        // 패턴 1: <`내용`> 형태 (Anki가 백틱을 파싱한 후)
+        result = result.replace(/<`([^`]+)`>/g, function(match, code) {
+          console.log("키보드 - 패턴 1 매칭:", match, "→", code);
+          const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          return `<code>${escapedCode}</code>`;
+        });
+        
+        // 패턴 2: 일반적인 백틱 `내용` 
+        result = result.replace(/`([^`]+)`/g, function(match, code) {
+          console.log("키보드 - 패턴 2 매칭:", match, "→", code);
+          const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          return `<code>${escapedCode}</code>`;
+        });
+        
+        // 3단계: HTML 요소 복원
+        htmlElements.forEach((htmlElement, elementIndex) => {
+          const placeholder = `__KEYBOARD_HTML_${elementIndex}__`;
+          result = result.replace(placeholder, htmlElement);
+          console.log(`키보드 HTML 요소 복원 #${elementIndex}:`, htmlElement);
+        });
+        
+        // 4단계: 남은 HTML 태그들 이스케이프 (링크와 마크다운 허용 태그는 제외)
+        // 허용할 마크다운 HTML 태그들: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
+        result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, function(match) {
+          console.log("키보드 - 패턴 3 매칭 (HTML 이스케이프):", match);
+          return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        });
+        
+        console.log("키보드 - 처리 후 내용:", result);
+        firstClozeCard.innerHTML = result;
+        
+        // 시각적 스타일 변경
+        firstClozeCard.style.backgroundColor = "transparent";
+        firstClozeCard.style.boxShadow = "inset 0 -2px 0 #85B0FD";
+      }
+
+      callback();
+      // 키보드 이벤트에서도 링크 렌더링 적용
+      renderLink();
+    }
+  }
+
+  function show() {
+    document.getElementById("front").style.visibility = "visible";
+  }
+
+  function renderMath(ID) {
+    const element = document.getElementById(ID);
+    let text = element.innerHTML;
+    text = replaceInString(text);
+    element.textContent = text;
+    renderMathInElement(element, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false },
+      ],
+      throwOnError: false,
+    });
+  }
+
+  function markdown(ID) {
+    console.log("========= Markdown 함수 시작 =========");
+    const md = getMarkdownRenderer();
+    const element = document.getElementById(ID);
+    let text = replaceHTMLElementsInString(element.innerHTML);
+    console.log("초기 텍스트:", text);
+    
+    /*
+     * 🎯 STEP 0: 마크다운 파싱 이전 백틱 보호 (새로운 접근법)
+     * 
+     * 백틱을 HTML 엔티티로 변환하여 markdown-it이 건드리지 못하게 함
+     */
+    text = protectBackticks(text);
+    console.log("백틱 보호 완료:", text);
+    
+    /*
+     * 🎯 STEP 1: 코드 블록 내 cloze span 임시 저장 (단순 접근)
+     * 
+     * 너무 복잡하게 모든 cloze를 보호하지 말고, 
+     * 코드 블록 내부의 cloze만 보호하는 기본 방식으로 복귀
+     */
+    const clozeSpans = [];
+    let codeBlockCount = 0;
+    
+    // 마크다운 코드 블록 패턴 매칭: ```[언어명] ... ```
+    text = text.replace(/(```[a-zA-Z0-9_\-]+[\s\S]*?```)/g, function(codeBlock) {
+      console.log(`마크다운 코드 블록 #${++codeBlockCount} 발견:`, codeBlock);
+      
+      // 해당 코드 블록 내부의 cloze span을 찾아서 플레이스홀더로 교체
+      return codeBlock.replace(/<span\s+class\s*=\s*["']cloze["'][^>]*>.*?<\/span>/gi, function(match) {
+        const placeholder = `__CLOZE_SPAN_${clozeSpans.length}__`;
+        clozeSpans.push(match);
+        console.log(`코드 블록 내 cloze 스팬 #${clozeSpans.length} 발견:`, match, `=> 플레이스홀더:`, placeholder);
+        return placeholder;
+      });
+    });
+    
+    console.log("cloze 스팬 교체 후 텍스트:", text);
+    console.log("저장된 cloze 스팬:", clozeSpans);
+    
+    /*
+     * 🎯 STEP 2: 마크다운 변환 수행
+     */
+    text = md.render(text);
+    console.log("마크다운 변환 후 텍스트:", text);
+    
+    /*
+     * 🎯 STEP 3: 일반 span 태그 이스케이프 처리
+     */
+    text = text.replace(/&lt;\/span&gt;/gi, "\\");
+    console.log("span 태그 이스케이프 후 텍스트:", text);
+    
+    /*
+     * 🎯 STEP 4: 저장된 cloze span 복원
+     */
+    let finalText = text;
+    clozeSpans.forEach((span, index) => {
+      const placeholder = `__CLOZE_SPAN_${index}__`;
+      
+      const placeholderPattern = new RegExp(placeholder, 'g');
+      if(finalText.match(placeholderPattern)) {
+        console.log(`cloze 스팬 #${index} 복원:`, span);
+        finalText = finalText.replace(placeholderPattern, span);
+      } else {
+        console.log(`cloze 스팬 #${index} 복원 실패, 패턴을 찾을 수 없음`, span);
+      }
+    });
+    
+    console.log("최종 출력:", finalText);
+    
+          /*
+       * 🎯 STEP 5: DOM에 설정
+       */
+      element.innerHTML = finalText;
+      
+      /*
+       * 🎯 STEP 5.5: 보호된 백틱 코드를 <code> 태그로 변환
+       * 
+       * HTML 엔티티로 보호된 백틱을 찾아서 <code> 태그로 변환
+       */
+      processProtectedBackticks(element);
+      
+      /*
+       * 🎯 STEP 6: 초기 백틱 → 코드 태그 변환 (모든 cloze에 적용)
+     */
+    convertBackticksToCodeTags(element);
+    
+    /*
+     * 🎯 STEP 7: 단순한 HTML 이스케이프 처리
+     * 
+     * DOM 생성 후 특정 HTML 태그만 선별적으로 이스케이프
+     */
+    escapeSpecificHtmlTags(element);
+    
+    console.log("========= Markdown 함수 종료 =========");
+  }
+
+  /*
+   * 🎯 마크다운 파싱 이전 백틱 보호 함수 (개선된 접근법)
+   * 
+   * 목적: 백틱을 HTML 엔티티로 변환하되, HTML 속성 내부는 보호
+   * 중요: 코드 블록(```...```) 내부는 건드리지 않음
+   */
+  function protectBackticks(text) {
+    console.log("===== 백틱 보호 시작 =====");
+    console.log("원본 텍스트:", text);
+    
+    // 1단계: 코드 블록 영역을 먼저 찾아서 보호
+    const codeBlocks = [];
+    let codeBlockIndex = 0;
+    
+    // 코드 블록 패턴을 임시 플레이스홀더로 교체
+    let textWithProtectedCodeBlocks = text.replace(/(```[\s\S]*?```)/g, function(match) {
+      const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
+      codeBlocks.push(match);
+      console.log(`🔒 코드 블록 #${codeBlockIndex} 보호:`, match.substring(0, 50) + "...");
+      codeBlockIndex++;
+      return placeholder;
+    });
+    
+    console.log(`총 ${codeBlocks.length}개의 코드 블록 보호됨`);
+    
+    // 2단계: HTML 태그 전체를 보호
+    const htmlTags = [];
+    let htmlTagIndex = 0;
+    
+    // HTML 태그 패턴을 임시 플레이스홀더로 교체 (속성 포함)
+    let textWithProtectedTags = textWithProtectedCodeBlocks.replace(/<[^>]+>/g, function(match) {
+      const placeholder = `__HTML_TAG_${htmlTagIndex}__`;
+      htmlTags.push(match);
+      console.log(`🔒 HTML 태그 #${htmlTagIndex} 보호:`, match);
+      htmlTagIndex++;
+      return placeholder;
+    });
+    
+    console.log(`총 ${htmlTags.length}개의 HTML 태그 보호됨`);
+    
+    // 3단계: 남은 백틱을 유니코드 문자로 변환
+    let processedText = textWithProtectedTags.replace(/`([^`]+)`/g, function(match, code) {
+      console.log(`🔍 백틱 코드 발견: ${match}`);
+      // 백틱을 특수 유니코드 문자로 치환
+      return `‹${code}›`;
+    });
+    
+    // 4단계: HTML 태그 복원
+    htmlTags.forEach((htmlTag, index) => {
+      const placeholder = `__HTML_TAG_${index}__`;
+      processedText = processedText.replace(placeholder, htmlTag);
+      console.log(`🔓 HTML 태그 #${index} 복원 완료`);
+    });
+    
+    // 5단계: 코드 블록 복원
+    codeBlocks.forEach((codeBlock, index) => {
+      const placeholder = `__CODE_BLOCK_${index}__`;
+      processedText = processedText.replace(placeholder, codeBlock);
+      console.log(`🔓 코드 블록 #${index} 복원 완료`);
+    });
+    
+    console.log("백틱 보호 후:", processedText);
+    console.log("===== 백틱 보호 종료 =====");
+    return processedText;
+  }
+
+  /*
+   * 🎯 보호된 백틱 코드를 <code> 태그로 변환
+   * 
+   * 목적: 유니코드 문자로 보호된 백틱을 찾아서 <code> 태그로 변환
+   */
+  function processProtectedBackticks(container) {
+    console.log("===== 보호된 백틱 처리 시작 =====");
+    
+    // 현재 HTML 텍스트 가져오기
+    let htmlContent = container.innerHTML;
+    console.log("처리 전 HTML:", htmlContent);
+    
+    // 유니코드 문자로 보호된 백틱을 <code> 태그로 변환
+    let processedCount = 0;
+    htmlContent = htmlContent.replace(/‹([^›]+)›/g, function(match, code) {
+      console.log(`🔍 보호된 백틱 발견: ${match}`);
+      
+      // HTML 태그 이스케이프
+      const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const codeTag = `<code>${escapedCode}</code>`;
+      
+      console.log(`  변환: ${match} → ${codeTag}`);
+      processedCount++;
+      
+      return codeTag;
+    });
+    
+    // 수정된 HTML을 다시 설정
+    container.innerHTML = htmlContent;
+    console.log(`처리 완료: ${processedCount}개의 백틱 코드 변환`);
+    console.log("처리 후 HTML:", htmlContent);
+    
+    console.log("===== 보호된 백틱 처리 종료 =====");
+  }
+
+  /*
+   * 🎨 초기 백틱 → 코드 태그 변환 함수 (개선된 버전)
+   * 
+   * 목적: 페이지 로딩 시 모든 cloze의 백틱을 <code> 태그로 변환
+   * 중요: HTML 속성 내부의 백틱은 보호
+   */
+  function convertBackticksToCodeTags(container) {
+    console.log("===== 초기 백틱 → 코드 태그 변환 시작 =====");
+    
+    // 모든 cloze span 찾기
+    const allClozeSpans = container.querySelectorAll('span.cloze');
+    console.log(`백틱 변환 대상: ${allClozeSpans.length}개의 cloze span`);
+    
+    allClozeSpans.forEach((span, index) => {
+      console.log(`\n--- cloze span #${index + 1} 백틱 처리 ---`);
+      
+      const originalHtml = span.innerHTML;
+      console.log("원본 내용:", originalHtml);
+      
+      /*
+       * HTML 속성 보호 처리
+       */
+      let result = originalHtml;
+      
+      // 1단계: HTML 태그와 속성을 보호
+      const htmlElements = [];
+      let htmlElementIndex = 0;
+      
+      result = result.replace(/<[^>]+>/g, function(match) {
+        const placeholder = `__HTML_ELEMENT_${htmlElementIndex}__`;
+        htmlElements.push(match);
+        console.log(`HTML 요소 보호 #${htmlElementIndex}:`, match);
+        htmlElementIndex++;
+        return placeholder;
+      });
+      
+      // 2단계: 보호된 상태에서 백틱 처리
+      // 패턴 1: <`내용`> 형태 (Anki가 백틱을 파싱한 후)
+      result = result.replace(/<`([^`]+)`>/g, function(match, code) {
+        console.log("초기 - 패턴 1 매칭:", match, "→", code);
+        const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<code>${escapedCode}</code>`;
+      });
+      
+      // 패턴 2: 일반적인 백틱 `내용` 
+      result = result.replace(/`([^`]+)`/g, function(match, code) {
+        console.log("초기 - 패턴 2 매칭:", match, "→", code);
+        const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<code>${escapedCode}</code>`;
+      });
+      
+      // 3단계: HTML 요소 복원
+      htmlElements.forEach((htmlElement, elementIndex) => {
+        const placeholder = `__HTML_ELEMENT_${elementIndex}__`;
+        result = result.replace(placeholder, htmlElement);
+        console.log(`HTML 요소 복원 #${elementIndex}:`, htmlElement);
+      });
+      
+      // 4단계: 남은 HTML 태그들 이스케이프 (마크다운 허용 태그는 제외)
+      // 허용할 마크다운 HTML 태그들: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
+      result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, function(match) {
+        console.log("초기 - 패턴 3 매칭 (HTML 이스케이프):", match);
+        return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      });
+      
+      if (result !== originalHtml) {
+        span.innerHTML = result;
+        console.log("초기 백틱 변환 완료:", result);
+      } else {
+        console.log("변환할 백틱 없음");
+      }
+    });
+    
+    console.log("===== 초기 백틱 → 코드 태그 변환 완료 =====");
+  }
+
+  /*
+   * 🔧 단순한 HTML 이스케이프 처리 함수 (링크 보호 개선)
+   * 
+   * 목적: cloze 내부의 특정 HTML 태그만 선별적으로 이스케이프 처리
+   * 중요: 링크(a 태그)는 보호
+   */
+  function escapeSpecificHtmlTags(container) {
+    console.log("===== 링크 보호 HTML 이스케이프 처리 시작 =====");
+    
+    // 이스케이프할 HTML 태그 목록 (구조적인 태그들만, 마크다운 허용 태그와 링크는 제외)
+    // 허용되는 마크다운 HTML 태그: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
+    const tagsToEscape = ['form', 'input', 'button', 'div', 'span', 'tr', 'td', 'th', 
+                          'ul', 'ol', 'li', 'select', 'option', 'textarea'];
+    
+    // 모든 cloze span 찾기
+    const allClozeSpans = container.querySelectorAll('span.cloze');
+    console.log(`총 ${allClozeSpans.length}개의 cloze span 발견`);
+    
+    allClozeSpans.forEach((span, index) => {
+      console.log(`\n--- cloze span #${index + 1} 처리 ---`);
+      
+      // 현재 span이 코드 블록 내부에 있는지 확인
+      let isInCodeBlock = false;
+      let parent = span.parentElement;
+      
+      while (parent) {
+        if (parent.nodeName === "CODE") {
+          isInCodeBlock = true;
+          break;
+        }
+        parent = parent.parentElement;
+      }
+      
+      const originalHtml = span.innerHTML;
+      console.log("원본 내용:", originalHtml);
+      console.log("코드 블록 내부?", isInCodeBlock);
+      
+      if (isInCodeBlock) {
+        /*
+         * 코드 블록 내부: 모든 HTML을 텍스트로 표시
+         */
+        if (originalHtml && !originalHtml.includes('&lt;')) {
+          span.textContent = originalHtml;
+          console.log("코드 블록에서 전체 이스케이프:", span.innerHTML);
+        }
+      } else {
+        /*
+         * 일반 영역: 특정 HTML 태그만 이스케이프 (링크는 보호)
+         */
+        let content = originalHtml;
+        let hasChanges = false;
+        
+        // 각 태그에 대해 이스케이프 처리
+        tagsToEscape.forEach(tag => {
+          // <tag> 형태의 열린 태그
+          const openTagRegex = new RegExp(`<${tag}\\b[^>]*>`, 'gi');
+          if (content.match(openTagRegex)) {
+            content = content.replace(openTagRegex, function(match) {
+              hasChanges = true;
+              return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            });
+          }
+          
+          // </tag> 형태의 닫힌 태그
+          const closeTagRegex = new RegExp(`</${tag}>`, 'gi');
+          if (content.match(closeTagRegex)) {
+            content = content.replace(closeTagRegex, function(match) {
+              hasChanges = true;
+              return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            });
+          }
+        });
+        
+        if (hasChanges) {
+          span.innerHTML = content;
+          console.log("일반 영역에서 선별적 이스케이프:", content);
+        } else {
+          console.log("이스케이프할 태그 없음");
+        }
+      }
+    });
+    
+    console.log("===== 링크 보호 HTML 이스케이프 처리 완료 =====");
+  }
+
+  function replaceInString(str) {
+    str = str.replace(/<[\/]?pre[^>]*>/gi, "");
+    str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
+    str = str.replace(/<div[^>]*>/gi, "\n");
+    str.replace(/<\/div[^>]*>/g, "\n");
+    return replaceHTMLElementsInString(str);
+  }
+
+  function replaceHTMLElementsInString(str) {
+    str = str.replace(/&nbsp;/gi, " ");
+    str = str.replace(/&tab;/gi, "	");
+    str = str.replace(/&gt;/gi, ">");
+    str = str.replace(/&lt;/gi, "<");
+    return str.replace(/&amp;/gi, "&");
+  }
+</script>
+
+<script>
+  // Anki Note Linker를 Mobile 환경에서도 사용하기 위한 fallback 코드
+  var disableLinks = false; // Change to true if you want to disable all link rendering for clients without add-on
+  if (!window.AnkiNoteLinkerIsActive) {
+    const renderLinks = (_) => {
+      document.querySelectorAll(".linkRender").forEach((element) => {
+        // You can rename "linkRender" on this line, but leave the "." in front
+        element.innerHTML = element.innerHTML.replace(
+          /\[((?:[^\[]|\\\[)*)\|nid(\d{13})\]/g,
+          (match, title, nid) => {
+            title = title.replace(/\\\[/g, "[");
+            let link;
+            if (
+              document.documentElement.classList.contains("iphone") ||
+              document.documentElement.classList.contains("ipad")
+            ) {
+              link = `anki://x-callback-url/search?query=nid%3a${nid}`;
+            } else
+              try {
+                window.jsAPI ||= new AnkiDroidJS({
+                  version: "0.0.3",
+                  developer: "github.com/gugutu",
+                });
+                link = `javascript:window.jsAPI.ankiSearchCard(\`nid:${nid}\`)`;
+              } catch (e) {
+                link = `https://ankiuser.net/edit/${nid}' target='_blank`;
+              }
+            return disableLinks
+              ? `${title}`
+              : `<a href='${link}' class='noteLink'>${title}</a>`;
+          }
+        );
+      });
+    };
+    document.readyState !== "loading"
+      ? renderLinks()
+      : document.addEventListener("DOMContentLoaded", renderLinks, {
+          once: true,
+        });
+  }
+</script>
+
+<!-- 
+🎯 ANKI CLOZE + MARKDOWN + 코드 블록 처리 플로우 상세 설명
+
+=== 📋 전체 개요 ===
+이 카드 템플릿은 Anki cloze 기능과 마크다운 파싱을 결합하되,
+코드 블록 내부의 HTML 태그는 실제 DOM 요소가 아닌 텍스트로 표시하는 특별한 처리를 제공합니다.
+
+=== 🔄 주요 처리 플로우 ===
+
+1️⃣ 초기화 (render 함수)
+   ├─ defineEnhancedClozeAddEventListener() : 이벤트 리스너 초기화
+   ├─ renderMath("front") : KaTeX 수학 공식 렌더링
+   ├─ markdown("front") : 마크다운 + cloze 처리 (핵심 로직)
+   ├─ show() : 카드 표시
+   └─ cloze 이벤트 바인딩 : 클릭/터치/키보드 이벤트 연결
+
+2️⃣ 마크다운 처리 (markdown 함수) ★ 핵심 ★
+   ├─ STEP 0: 마크다운 파싱 이전 백틱 코드 전처리 ★ 재활성화 (안전한 플레이스홀더) ★
+   │   ├─ [PROTECTED_CODE_n] 형태로 Anki 필드 문법과 markdown-it의 볼드 해석 모두 방지
+   │   ├─ 코드 블록(```...```) 내부는 제외하여 기존 파싱 로직 보호
+   │   └─ 테이블 및 일반 영역의 백틱만 보호하여 마크다운 파싱 시 구조 깨짐 방지
+   │
+   ├─ STEP 1: 코드 블록 내 cloze span 임시 저장
+   │   ├─ 마크다운 코드 블록 패턴 탐지 : /(```[a-zA-Z0-9_\-]+[\s\S]*?```)/g
+   │   ├─ 코드 블록 내부의 <span class="cloze">...</span> 추출
+   │   └─ 플레이스홀더(__CLOZE_SPAN_X__)로 임시 교체
+   │
+   ├─ STEP 2: 마크다운 변환 수행
+   │   └─ markdown-it 라이브러리로 마크다운 → HTML 변환
+   │
+   ├─ STEP 3: 일반 span 태그 이스케이프 처리
+   │   └─ &lt;/span&gt; → \ 교체
+   │
+   ├─ STEP 4: 저장된 cloze span 복원
+   │   └─ 플레이스홀더를 원래 cloze span으로 교체 (이스케이프 없이)
+   │
+   ├─ STEP 5: DOM에 설정
+   │   └─ element.innerHTML = finalText
+   │
+   ├─ STEP 5.5: 보호된 백틱 코드를 <code> 태그로 변환
+   │   └─ 전처리로 보호된 모든 백틱을 안전하게 복원
+   │
+   ├─ STEP 6: 초기 백틱 → 코드 태그 변환 (모든 cloze에 적용)
+   │   └─ convertBackticksToCodeTags() 호출
+   │
+   └─ STEP 7: 단순한 HTML 이스케이프 처리
+       └─ escapeSpecificHtmlTags() 호출
+
+3️⃣ 코드 블록 HTML 이스케이프 (escapeHtmlInCodeBlocks 함수)
+   ├─ code[class*="language-"] 요소들 탐색
+   ├─ 각 코드 블록 내의 span.cloze 요소들 찾기
+   ├─ 이미 이스케이프된 내용인지 확인 (&lt;, &gt; 포함 여부)
+   └─ span.textContent = originalHtml (브라우저 자동 이스케이프)
+
+4️⃣ 사용자 상호작용 처리
+   ├─ 클릭 이벤트 (callback 함수)
+   │   ├─ 코드 블록 내부 위치 확인
+   │   ├─ cloze 상태 전환 (접기/펼치기)
+   │   ├─ 코드 블록 내부: textContent로 텍스트 표시
+   │   └─ 일반 영역: innerHTML + 마크다운 파싱
+   │
+   └─ 키보드 이벤트 (handleKeydown 함수)
+       └─ "J" 키로 첫 번째 접힌 cloze 펼치기 (클릭과 동일 로직)
+
+=== 🎯 핵심 기술적 해결책 ===
+
+❓ 문제: 마크다운 파서가 코드 블록 내 cloze span을 깨뜨림
+✅ 해결: 플레이스홀더 패턴으로 임시 보호 후 복원
+
+❓ 문제: 코드 블록 내 HTML 태그가 실제 DOM으로 렌더링됨
+✅ 해결: textContent 설정으로 브라우저 자동 이스케이프 활용
+
+❓ 문제: data-cloze, data-hint 속성이 이중 이스케이프됨
+✅ 해결: innerHTML이 아닌 화면 표시 내용만 이스케이프
+
+❓ 문제: 키보드 "J" 키가 코드 블록에서 다르게 동작
+✅ 해결: 키보드 이벤트에도 동일한 코드 블록 감지 로직 적용
+
+❓ 문제: __PROTECTED_CODE_n__ 플레이스홀더가 markdown-it에 의해 **볼드 문법**으로 해석됨
+✅ 해결: [PROTECTED_CODE_n] 형태의 안전한 플레이스홀더로 변경하여 Anki 필드 문법과 마크다운 파서의 간섭 모두 방지
+
+=== 🔍 디버깅 정보 ===
+콘솔 로그를 통해 다음 정보를 추적할 수 있습니다:
+- 마크다운 함수 시작/종료
+- 초기 텍스트 내용
+- 발견된 코드 블록 개수 및 내용
+- cloze 스팬 추출 및 복원 과정
+- 최종 HTML 출력
+- 클릭/키보드 이벤트 처리 과정
+- 코드 블록 내부/외부 위치 판별 결과
+
+=== 📚 의존성 라이브러리 ===
+- KaTeX: 수학 공식 렌더링
+- highlight.js: 코드 구문 강조
+- markdown-it: 마크다운 파싱
+- markdown-it-mark: ==텍스트== 마크 지원
+- markdown-it-container: 커스텀 컨테이너 지원 (tip, warning 등)
+
+ -->

@@ -1,0 +1,375 @@
+/* .card에 text-align: left; 값은 ankimobile에서도 left 정렬위해 내가 추가한 값이다 */
+.card {
+  font-family: arial;
+  font-size: 20px;
+  color: black;
+  background-color: white;
+  text-align: left;
+  word-break: keep-all;
+}
+table, th, td {
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+
+pre code {
+  background-color: #1a1b26;
+  display: block;
+  padding: 20px;
+  overflow: auto;
+  color: #9aa5ce;
+}
+
+/* 이하의 속성들은 내가 직접 작성한 것들이다 */
+code {
+	background-color: #edf1f2;
+	border-radius: 5px;
+	font-size: 16px;
+	padding: 0 5px;
+}
+
+.nightMode code {
+  color: black;
+}
+
+/* md.render 메서드 사용할 때, code 태그를 p태그로 자동으로 감싸기 때문에, p 태그의 width, height를 제거하기 위해 사용 */
+p {
+  display: inline;
+}
+
+/* 2025.05.31 새롭게 추 */
+h4, h5, h6 {
+  margin: 0;
+}
+
+
+/* front.html, back.html에 있던 <style> 코드를 css 파일로 이전 */
+p {
+  margin: 20px 0 0 0;
+}
+p + ul,
+p + ol {
+  margin-top: 0px;
+}
+ol + ul {
+  transform: translateY(-20px);
+}
+.callout {
+  border-radius: 5px;
+  padding: 10px 20px 10px 20px;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  row-gap: 20px;
+  overflow-x: scroll;
+}
+.callout > ul,
+.callout > ol {
+  padding-left: 15px;
+  margin: 0;
+  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+}
+.callout > pre {
+  margin: 0;
+}
+.callout > p {
+  margin: 0;
+  line-height: 135%;
+  font-size: 18px;
+}
+.callout > img {
+  object-fit: contain;
+  align-self: flex-start;
+}
+.callout.tip {
+  background-color: #e0f7fa;
+  border-left: 5px solid #00acc1;
+  color: #193c47;
+}
+.callout.warning {
+  background-color: #fff3e0;
+  border-left: 5px solid #ffb300;
+  color: #4d3800;
+}
+.callout.error {
+  background-color: #ffebee;
+  border-left: 5px solid #e53935;
+  color: #712c30;
+}
+.callout.note {
+  background-color: #e8f5e9;
+  border-left: 5px solid #43a047;
+  color: #013100;
+}
+.callout.link {
+  background-color: #f9f9f9;
+  border-left: 5px solid #ccd0d5;
+  color: #15171a;
+}
+
+code span.cloze:not([data-ordinal="0"]) {
+  color: white;
+}
+
+/* Toggle 스타일 */
+.toggle {
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  margin: 10px 0;
+  overflow: hidden;
+  background-color: #fafafa;
+  border-left: 5px solid #ccd0d5;
+}
+
+/* Toggle 타입별 배경색 (callout과 동일한 색상 사용, 이모지 없음) */
+.toggle.tip {
+  background-color: #e0f7fa;
+  border-left: 5px solid #00acc1;
+  border-color: #b2ebf2;
+}
+
+.toggle.warning {
+  background-color: #fff3e0;
+  border-left: 5px solid #ffb300;
+  border-color: #ffe0b2;
+}
+
+.toggle.error {
+  background-color: #ffebee;
+  border-left: 5px solid #e53935;
+  border-color: #ffcdd2;
+}
+
+.toggle.note {
+  background-color: #e8f5e9;
+  border-left: 5px solid #43a047;
+  border-color: #c8e6c9;
+}
+
+.toggle.todo {
+  background-color: #f3e5f5;
+  border-left: 5px solid #9c27b0;
+  border-color: #e1bee7;
+}
+
+.toggle-header {
+  padding: 12px 15px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background-color 0.2s;
+  /* iOS 터치 후 하이라이트 제거 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* :hover는 마우스가 있는 디바이스에서만 적용 (터치 디바이스 제외) */
+@media (hover: hover) {
+  /* 기본 Toggle hover */
+  .toggle-header:hover {
+    background-color: #f0f0f0;
+  }
+
+  .toggle.toggle-active .toggle-header:hover {
+    background-color: #f0f0f0;
+  }
+
+  /* 타입별 hover 색상 */
+  .toggle.tip .toggle-header:hover {
+    background-color: #b2ebf2;
+  }
+
+  .toggle.warning .toggle-header:hover {
+    background-color: #ffe0b2;
+  }
+
+  .toggle.error .toggle-header:hover {
+    background-color: #ffcdd2;
+  }
+
+  .toggle.note .toggle-header:hover {
+    background-color: #c8e6c9;
+  }
+
+  .toggle.todo .toggle-header:hover {
+    background-color: #e1bee7;
+  }
+
+  /* Night Mode hover */
+  .nightMode .toggle-header:hover {
+    background-color: #333;
+  }
+
+  .nightMode .toggle.tip .toggle-header:hover {
+    background-color: #00838f;
+  }
+
+  .nightMode .toggle.warning .toggle-header:hover {
+    background-color: #ff8f00;
+  }
+
+  .nightMode .toggle.error .toggle-header:hover {
+    background-color: #c62828;
+  }
+
+  .nightMode .toggle.note .toggle-header:hover {
+    background-color: #2e7d32;
+  }
+
+  .nightMode .toggle.todo .toggle-header:hover {
+    background-color: #7b1fa2;
+  }
+}
+
+.toggle.toggle-active .toggle-header {
+  background-color: #ededed;
+}
+
+/* 타입별 active 상태 배경색 */
+.toggle.tip.toggle-active .toggle-header {
+  background-color: #b2ebf2;
+}
+
+.toggle.warning.toggle-active .toggle-header {
+  background-color: #ffe0b2;
+}
+
+.toggle.error.toggle-active .toggle-header {
+  background-color: #ffcdd2;
+}
+
+.toggle.note.toggle-active .toggle-header {
+  background-color: #c8e6c9;
+}
+
+.toggle.todo.toggle-active .toggle-header {
+  background-color: #e1bee7;
+}
+
+/* 클릭 후 focus outline 제거 (hover 상태 유지 방지) */
+.toggle-header:focus {
+  outline: none;
+}
+
+.toggle-arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  /* 오른쪽을 가리키는 삼각형 (▶) */
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid #666;
+  transition: transform 0.3s ease;
+  /* 화살표 위치 미세 조정 */
+  margin-right: 2px;
+}
+
+.toggle.toggle-active .toggle-arrow {
+  /* 90도 회전하여 아래쪽 화살표 (▼)로 변경 */
+  transform: rotate(90deg);
+}
+
+/* Night Mode에서 화살표 색상 */
+.nightMode .toggle-arrow {
+  border-left-color: #aaa;
+}
+
+.toggle-title {
+  font-weight: 500;
+  color: #333;
+  font-size: 18px;
+}
+
+.toggle-content {
+  display: none;
+  padding: 15px;
+  padding-top: 5px;
+  line-height: 1.4;
+  animation: slideDown 0.3s ease;
+}
+
+.toggle-content ul {
+  padding-left: 22px;
+  margin-block: 0px;
+}
+
+.toggle.toggle-active .toggle-content {
+  display: block;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Night Mode 지원 */
+.nightMode .toggle {
+  background-color: #2a2a2a;
+  border-color: #444;
+  border-left: 5px solid #555;
+}
+
+/* Night Mode에서 타입별 배경색 (어두운 버전) */
+.nightMode .toggle.tip {
+  background-color: #1a3a3d;
+  border-color: #00838f;
+}
+
+.nightMode .toggle.warning {
+  background-color: #3d2f1a;
+  border-color: #ff8f00;
+}
+
+.nightMode .toggle.error {
+  background-color: #3d1a1a;
+  border-color: #c62828;
+}
+
+.nightMode .toggle.note {
+  background-color: #1a3d1a;
+  border-color: #2e7d32;
+}
+
+.nightMode .toggle.todo {
+  background-color: #2d1a3d;
+  border-color: #7b1fa2;
+}
+
+.nightMode .toggle-title {
+  color: #e0e0e0;
+}
+
+.nightMode .toggle-arrow {
+  color: #aaa;
+}
+
+/* Night Mode에서 타입별 active 상태 배경색 */
+.nightMode .toggle.tip.toggle-active .toggle-header {
+  background-color: #00838f;
+}
+
+.nightMode .toggle.warning.toggle-active .toggle-header {
+  background-color: #ff8f00;
+}
+
+.nightMode .toggle.error.toggle-active .toggle-header {
+  background-color: #c62828;
+}
+
+.nightMode .toggle.note.toggle-active .toggle-header {
+  background-color: #2e7d32;
+}
+
+.nightMode .toggle.todo.toggle-active .toggle-header {
+  background-color: #7b1fa2;
+}

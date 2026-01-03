@@ -1,0 +1,1079 @@
+<div id="back" class="linkRender"><pre>{{cloze:Text}}</pre></div>
+<br />
+<hr />
+<div id="extra" class="linkRender"><pre>{{Back Extra}}</pre></div>
+
+
+<script>
+  var getResources = [
+    getCSS(
+      "_katex.css",
+      "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"
+    ),
+    getCSS(
+      "_highlights.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/tokyo-night-dark.min.css"
+    ),
+    getScript(
+      "_highlight.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"
+    ),
+    getScript(
+      "_katex.min.js",
+      "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"
+    ),
+    getScript(
+      "_auto-render.js",
+      "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/auto-render-cdn.js"
+    ),
+    getScript(
+      "_markdown-it.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js"
+    ),
+    getScript(
+      "_markdown-it-mark.js",
+      "https://cdn.jsdelivr.net/gh/Jwrede/Anki-KaTeX-Markdown/_markdown-it-mark.js"
+    ),
+    getScript(
+      "_markdown-it-container.min.js",
+      "https://cdn.jsdelivr.net/npm/markdown-it-container@3.0.0/dist/markdown-it-container.min.js"
+    ),
+  ];
+
+  Promise.all(getResources)
+    .then(() =>
+      getScript(
+        "_mhchem.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/mhchem.min.js"
+      )
+    )
+    .then(render)
+    .catch(show);
+
+  function getScript(path, altURL) {
+    return new Promise((resolve, reject) => {
+      let script = document.createElement("script");
+      script.onload = resolve;
+      script.onerror = function () {
+        let script_online = document.createElement("script");
+        script_online.onload = resolve;
+        script_online.onerror = reject;
+        script_online.src = altURL;
+
+        document.querySelector(`script[src="${path}"]`)?.remove();
+        document.head.appendChild(script_online);
+      };
+      script.src = path;
+
+      document.querySelector(`script[src="${path}"]`)?.remove();
+      document.head.appendChild(script);
+    });
+  }
+
+  function getCSS(path, altURL) {
+    return new Promise((resolve, reject) => {
+      const css = document.createElement("link");
+      css.setAttribute("rel", "stylesheet");
+      css.type = "text/css";
+      css.onload = resolve;
+      css.onerror = function () {
+        const css_online = document.createElement("link");
+        css_online.setAttribute("rel", "stylesheet");
+        css_online.type = "text/css";
+        css_online.onload = resolve;
+        css_online.onerror = reject;
+        css_online.href = altURL;
+
+        document.querySelector(`link[href="${path}"]`)?.remove();
+        document.head.appendChild(css_online);
+      };
+      css.href = path;
+
+      document.querySelector(`link[href="${path}"]`)?.remove();
+      document.head.appendChild(css);
+    });
+  }
+
+  function getMarkdownRenderer() {
+    const md = new markdownit({
+      typographer: true,
+      html: true,
+      highlight: function (str, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return hljs.highlight(str, { language: lang }).value;
+          } catch (__) {}
+        }
+        return "";
+      },
+    }).use(markdownItMark);
+
+    const calloutTypes = ['tip', 'warning', 'error', 'note', 'link'];
+
+    const getCalloutImoji = type => {
+      switch (type) {
+        case 'tip':
+          return '💡';
+        case 'warning':
+          return '🚧';
+        case 'error':
+          return '🚨';
+        case 'note':
+          return '📝';
+        case 'link':
+          return '🔗';
+        default:
+          return '';
+      }
+    };
+
+    calloutTypes.forEach(type => {
+      md.use(window.markdownitContainer, type, {
+        validate: function (params) {
+          return params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
+        },
+        render: function (tokens, idx) {
+          const m = tokens[idx].info.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
+          if (tokens[idx].nesting === 1) {
+            const title = m && m[2] ? `<strong>${getCalloutImoji(type)} ${md.utils.escapeHtml(m[2])}</strong>` : '';
+            return `<div class="callout ${type}">${title}`;
+          } else {
+            return '</div>\n';
+          }
+        }
+      });
+    });
+
+    // Toggle 컨테이너 추가 (타입별 배경색 지원: tip, warning, error, note)
+    md.use(window.markdownitContainer, 'toggle', {
+      validate: function (params) {
+        return params.trim().match(/^toggle(\s+(.*))?$/);
+      },
+      render: function (tokens, idx) {
+        const m = tokens[idx].info.trim().match(/^toggle(\s+(.*))?$/);
+        if (tokens[idx].nesting === 1) {
+          // 타입과 제목 분리
+          const restText = m && m[2] ? m[2].trim() : '';
+          const toggleTypes = ['tip', 'warning', 'error', 'note', 'todo'];
+          let toggleType = '';
+          let title = '정보';
+
+          if (restText) {
+            const firstWord = restText.split(/\s+/)[0];
+            if (toggleTypes.includes(firstWord)) {
+              // 첫 단어가 타입인 경우
+              toggleType = firstWord;
+              title = restText.substring(firstWord.length).trim() || '정보';
+            } else {
+              // 타입이 없는 경우, 전체가 제목
+              title = restText;
+            }
+          }
+
+          const typeClass = toggleType ? ` ${toggleType}` : '';
+          title = md.renderInline(title);
+
+          return `<div class="toggle${typeClass}">
+            <div class="toggle-header">
+              <span class="toggle-arrow"></span>
+              <span class="toggle-title">${title}</span>
+            </div>
+            <div class="toggle-content">`;
+        } else {
+          return '</div></div>\n';
+        }
+      }
+    });
+
+    return md;
+  }
+
+
+  function render() {
+    // 🎯 STEP 1: AnkiNoteLinker 파싱을 HTML 이스케이프 처리 전에 실행
+    if (!window.AnkiNoteLinkerIsActive) {
+      renderLinksBeforeEscape();
+    }
+
+    renderMath("back");
+    markdown("back");
+    renderMath("extra");
+    markdown("extra");
+    initializeToggles();
+    show();
+
+    // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+    // render 메서드 내부에 아래 코드 정의
+    var clozeCards = document.getElementsByClassName("cloze");
+    for (var i = 0; i < clozeCards.length; i++) {
+      clozeCards[i].style.boxShadow = "inset 0 -2.3px 0 #85B0FD";
+    }
+
+    var inactiveClozeCards =
+      document.getElementsByClassName("cloze-inactive");
+    for (let inactiveClozeCard of inactiveClozeCards) {
+      inactiveClozeCard.style.boxShadow = "inset 0 -2.3px 0 #FA96AF";
+    }
+    // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+  }
+
+  /*
+   * 🎯 Toggle 초기화 함수
+   *
+   * 목적: 모든 Toggle 헤더에 클릭/터치 이벤트 리스너 추가
+   * 동작: 클릭 또는 터치 시 toggle-active 클래스 토글하여 펼침/접힘 상태 변경
+   *
+   * 모바일 환경(iOS/iPadOS) 지원:
+   * - touchend 이벤트로 터치 디바이스에서 정상 작동
+   * - preventDefault()로 기본 동작 방지 및 :hover 상태 제거
+   * - 중복 실행 방지
+   *
+   * PC 환경 개선:
+   * - 클릭 후 blur()로 focus 제거하여 hover 상태 유지 방지
+   */
+  function initializeToggles() {
+    const toggleHeaders = document.querySelectorAll(".toggle-header");
+
+    toggleHeaders.forEach((header) => {
+      let lastToggleTime = 0;
+
+      const toggleHandler = function(e) {
+        // 터치 이벤트에서 기본 동작 방지 (iOS :hover 문제 해결)
+        if (e.type === 'touchend') {
+          e.preventDefault();
+        }
+
+        // 중복 실행 방지: 300ms 이내의 연속 이벤트는 무시
+        const now = Date.now();
+        if (now - lastToggleTime < 300) {
+          return;
+        }
+        lastToggleTime = now;
+
+        const toggleContainer = this.parentElement;
+        toggleContainer.classList.toggle("toggle-active");
+
+        // PC에서 클릭 후 focus 제거하여 hover 상태 유지 방지
+        this.blur();
+      };
+
+      // PC 환경: click 이벤트
+      header.addEventListener("click", toggleHandler);
+
+      // 모바일 환경(iOS/iPadOS): touchend 이벤트
+      // passive: false를 지정하여 preventDefault()가 동작하도록 함
+      header.addEventListener("touchend", toggleHandler, { passive: false });
+    });
+  }
+
+  /*
+   * 🎯 HTML 이스케이프 처리 전에 AnkiNoteLinker 파싱을 수행하는 함수
+   * 
+   * 목적: 코드 블록 내에서도 AnkiNoteLinker가 정상적으로 동작하도록 함
+   * 
+   * 중요: 이 함수는 markdown() 함수가 HTML을 이스케이프하기 전에 실행되어야 함
+   */
+  function renderLinksBeforeEscape() {
+    console.log("===== BACK - AnkiNoteLinker 사전 파싱 시작 =====");
+    
+    document.querySelectorAll('.linkRender').forEach(element => {
+      console.log("BACK - 링크 파싱 대상 요소:", element.id);
+      
+      const originalContent = element.innerHTML;
+      console.log("BACK - 원본 내용:", originalContent);
+      
+      const processedContent = originalContent.replace(
+        /\[((?:[^\[]|\\\[)*)\|nid(\d{13})\]/g,
+        (match, title, nid) => {
+          console.log(`BACK - AnkiNoteLinker 패턴 발견: ${match}`);
+          
+          title = title.replace(/\\\[/g, '[');
+          let link;
+          
+          if (document.documentElement.classList.contains('iphone') || 
+              document.documentElement.classList.contains('ipad')) {
+            link = `anki://x-callback-url/search?query=nid%3a${nid}`;
+          } else {
+            try {
+              window.jsAPI ||= new AnkiDroidJS({ version: "0.0.3", developer: "github.com/gugutu" });
+              link = `javascript:window.jsAPI.ankiSearchCard(\`nid:${nid}\`)`;
+            } catch (e) {
+              link = `https://ankiuser.net/edit/${nid}' target='_blank`;
+            }
+          }
+          
+          const result = disableLinks ? `${title}` : `<a href='${link}' class='noteLink'>${title}</a>`;
+          console.log(`BACK - 변환 결과: ${match} → ${result}`);
+          
+          return result;
+        }
+      );
+      
+      if (processedContent !== originalContent) {
+        element.innerHTML = processedContent;
+        console.log("BACK - AnkiNoteLinker 파싱 완료");
+      } else {
+        console.log("BACK - 파싱할 링크 없음");
+      }
+    });
+    
+    console.log("===== BACK - AnkiNoteLinker 사전 파싱 완료 =====");
+  }
+
+  function show() {
+    document.getElementById("back").style.visibility = "visible";
+    document.getElementById("extra").style.visibility = "visible";
+  }
+
+  function renderMath(ID) {
+    let text = document.getElementById(ID).innerHTML;
+    text = replaceInString(text);
+    document.getElementById(ID).textContent = text;
+    renderMathInElement(document.getElementById(ID), {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "$", right: "$", display: false},
+      ],
+      throwOnError: false,
+    });
+  }
+
+  function markdown(ID) {
+    /*
+     * 🎯 ANKI CLOZE + MARKDOWN + 코드 블록 처리 플로우 상세 설명 (BACK 카드)
+     *
+     * === 📋 전체 개요 ===
+     * 이 BACK 카드 템플릿은 front.html과 동일한 마크다운 + cloze 처리 로직을 사용하되,
+     * 모든 cloze가 이미 펼쳐진 상태로 표시되므로 클릭/키보드 이벤트 처리는 없습니다.
+     *
+     * === 🔄 주요 처리 플로우 ===
+     *
+     * 1️⃣ 초기화 (render 함수)
+     *    ├─ renderMath("back") : KaTeX 수학 공식 렌더링 (back 영역)
+     *    ├─ markdown("back") : 마크다운 + cloze 처리 (핵심 로직)
+     *    ├─ renderMath("extra") : KaTeX 수학 공식 렌더링 (extra 영역)
+     *    ├─ markdown("extra") : 마크다운 + cloze 처리 (extra 영역)
+     *    ├─ show() : 카드 표시
+     *    └─ cloze 스타일링 : 이미 펼쳐진 cloze의 시각적 스타일 적용
+     *
+     * 2️⃣ 마크다운 처리 (markdown 함수) ★ front.html과 동일 ★
+     *    ├─ STEP 1: 코드 블록 내 cloze span 임시 저장
+     *    │   ├─ 마크다운 코드 블록 패턴 탐지 : /(```[a-zA-Z0-9_\-]+[\s\S]*?```)/g
+     *    │   ├─ 코드 블록 내부의 <span class="cloze">...</span> 추출
+     *    │   └─ 플레이스홀더(__CLOZE_SPAN_X__)로 임시 교체
+     *    │
+     *    ├─ STEP 2: 마크다운 변환 수행
+     *    │   └─ markdown-it 라이브러리로 마크다운 → HTML 변환
+     *    │
+     *    ├─ STEP 3: 일반 span 태그 이스케이프 처리
+     *    │   └─ &lt;/span&gt; → \ 교체
+     *    │
+     *    ├─ STEP 4: 저장된 cloze span 복원
+     *    │   └─ 플레이스홀더를 원래 cloze span으로 교체 (이스케이프 없이)
+     *    │
+     *    ├─ STEP 5: DOM에 설정
+     *    │   └─ element.innerHTML = finalText
+     *    │
+     *    └─ STEP 6: 코드 블록 내 HTML 이스케이프
+     *        └─ escapeHtmlInCodeBlocks() 호출
+     *
+     * 3️⃣ 코드 블록 HTML 이스케이프 (escapeHtmlInCodeBlocks 함수)
+     *    ├─ code[class*="language-"] 요소들 탐색
+     *    ├─ 각 코드 블록 내의 span.cloze 요소들 찾기
+     *    ├─ 이미 이스케이프된 내용인지 확인 (&lt;, &gt; 포함 여부)
+     *    └─ span.textContent = originalHtml (브라우저 자동 이스케이프)
+     *
+     * === 🎯 BACK 카드 특징 ===
+     *
+     * ✅ 모든 cloze가 펼쳐진 상태: Anki에서 자동으로 모든 cloze 내용이 표시됨
+     * ✅ 코드 블록 내 HTML 이스케이프: front와 동일하게 HTML 태그가 텍스트로 표시됨
+     * ✅ 마크다운 파싱: 일반 영역의 마크다운은 정상적으로 렌더링됨
+     * ❌ 상호작용 없음: 클릭/키보드 이벤트 처리 불필요
+     *
+     * === 🔍 처리 예시 ===
+     *
+     * 📝 일반 영역 cloze:
+     *    입력: **bold text** in cloze
+     *    출력: <b>bold text</b> in cloze (마크다운 파싱됨)
+     *
+     * 💻 코드 블록 내 cloze:
+     *    입력: <li>list item</li>
+     *    출력: &lt;li&gt;list item&lt;/li&gt; (HTML 태그가 텍스트로 표시)
+     *
+     * === 📚 의존성 라이브러리 ===
+     * - KaTeX: 수학 공식 렌더링
+     * - highlight.js: 코드 구문 강조  
+     * - markdown-it: 마크다운 파싱
+     * - markdown-it-mark: ==텍스트== 마크 지원
+     * - markdown-it-container: 커스텀 컨테이너 지원 (tip, warning 등)
+     */
+    const md = getMarkdownRenderer();
+    const element = document.getElementById(ID);
+    let text = replaceHTMLElementsInString(element.innerHTML);
+    console.log("BACK - 초기 텍스트:", text);
+    
+    /*
+     * 🎯 STEP 0: 마크다운 파싱 이전 백틱 보호 ★ front.html과 동일 ★
+     * 
+     * 백틱을 유니코드 문자로 변환하여 markdown-it이 건드리지 못하게 함
+     */
+    text = protectBackticks(text);
+    console.log("BACK - 백틱 보호 완료:", text);
+    
+    /*
+     * 🎯 STEP 1: 마크다운 코드 블록 내 cloze span 임시 저장
+     * 
+     * 문제: 마크다운 파서가 코드 블록(```js ... ```) 내부의 HTML을 처리할 때 
+     *       cloze span 태그가 깨질 수 있음
+     * 
+     * 해결: 마크다운 파싱 전에 코드 블록 내의 cloze span을 플레이스홀더로 교체하여 보호
+     *       마크다운 파싱 후 다시 복원
+     */
+    const clozeSpans = [];  // 임시 저장할 cloze span 배열
+    let codeBlockCount = 0; // 코드 블록 개수 카운터 (디버깅용)
+    
+    // 마크다운 코드 블록 패턴 매칭: ```[언어명] ... ```
+    // [a-zA-Z0-9_\-]+ : 언어명 (js, python, html 등)
+    text = text.replace(/(```[a-zA-Z0-9_\-]+[\s\S]*?```)/g, function(codeBlock) {
+      codeBlockCount++;
+      
+      // 해당 코드 블록 내부의 cloze span을 찾아서 플레이스홀더로 교체
+      return codeBlock.replace(/<span\s+class\s*=\s*["']cloze["'].*?<\/span>/gi, function(match) {
+        const placeholder = `__CLOZE_SPAN_${clozeSpans.length}__`;
+        clozeSpans.push(match);  // 원본 span 저장
+        return placeholder;  // 플레이스홀더로 교체
+      });
+    });
+    
+    /*
+     * 🎯 STEP 2: 마크다운 변환 수행
+     * 
+     * 이제 코드 블록 내의 cloze span이 플레이스홀더로 보호되었으므로
+     * 안전하게 마크다운 파싱을 수행할 수 있음
+     */
+    text = md.render(text);
+    
+    /*
+     * 🎯 STEP 3: 일반 span 태그 이스케이프 처리
+     * 
+     * 마크다운 변환 과정에서 일부 span 태그가 &lt;/span&gt; 형태로 
+     * 이스케이프될 수 있으므로 이를 백슬래시로 교체
+     */
+    text = text.replace(/&lt;\/span&gt;/gi, "\\");
+    
+    /*
+     * 🎯 STEP 4: 저장된 cloze span 복원
+     * 
+     * 플레이스홀더를 원래의 cloze span으로 다시 교체
+     * 이때 HTML 이스케이프 처리 없이 그대로 복원하여 
+     * Anki가 cloze 기능을 정상적으로 처리할 수 있도록 함
+     */
+    let finalText = text;
+    clozeSpans.forEach((span, index) => {
+      const placeholder = `__CLOZE_SPAN_${index}__`;
+      
+      // 플레이스홀더가 텍스트에 존재하는지 확인 후 복원
+      const placeholderPattern = new RegExp(placeholder, 'g');
+      if(finalText.match(placeholderPattern)) {
+        finalText = finalText.replace(placeholderPattern, span);
+      }
+    });
+    
+    /*
+     * 🎯 STEP 5: DOM에 설정
+     * 
+     * 최종 처리된 HTML을 DOM 요소에 적용
+     */
+    element.innerHTML = finalText;
+    
+    /*
+     * 🎯 STEP 5.5: 보호된 백틱 코드를 <code> 태그로 변환 ★ front.html과 동일 ★
+     * 
+     * 유니코드 문자로 보호된 백틱을 찾아서 <code> 태그로 변환
+     */
+    processProtectedBackticks(element);
+    
+    /*
+     * 🎯 STEP 6: 초기 백틱 → 코드 태그 변환 (모든 cloze에 적용)
+     * 
+     * front.html과 동일한 처리 - 테이블 내부 등에서 백틱이 코드 태그로 변환되지 않는 문제 해결
+     */
+    convertBackticksToCodeTags(element);
+    
+    /*
+     * 🎯 STEP 7: 단순한 HTML 이스케이프 처리
+     * 
+     * front.html과 동일한 처리 - 특정 HTML 태그만 선별적으로 이스케이프
+     */
+    escapeSpecificHtmlTags(element);
+    
+    /*
+     * 🎯 STEP 8: 코드 블록 내 cloze span의 HTML 이스케이프 처리
+     * 
+     * DOM이 생성된 후, 코드 블록 내부의 cloze span에 포함된 
+     * HTML 태그들을 텍스트로 표시되도록 이스케이프 처리
+     * 
+     * 예: <li></li> → &lt;li&gt;&lt;/li&gt;
+     */
+    escapeHtmlInCodeBlocks(element);
+  }
+
+  /*
+   * 🎯 마크다운 파싱 이전 백틱 보호 함수 (BACK 카드용 - 개선된 접근법)
+   * 
+   * 목적: 백틱을 유니코드 문자로 변환하되, HTML 속성 내부는 보호
+   * 중요: 코드 블록(```...```) 내부는 건드리지 않음
+   * front.html과 동일한 로직 적용
+   */
+  function protectBackticks(text) {
+    console.log("===== BACK - 백틱 보호 시작 =====");
+    console.log("BACK - 원본 텍스트:", text);
+    
+    // 1단계: 코드 블록 영역을 먼저 찾아서 보호
+    const codeBlocks = [];
+    let codeBlockIndex = 0;
+    
+    // 코드 블록 패턴을 임시 플레이스홀더로 교체
+    let textWithProtectedCodeBlocks = text.replace(/(```[\s\S]*?```)/g, function(match) {
+      const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
+      codeBlocks.push(match);
+      console.log(`🔒 BACK - 코드 블록 #${codeBlockIndex} 보호:`, match.substring(0, 50) + "...");
+      codeBlockIndex++;
+      return placeholder;
+    });
+    
+    console.log(`BACK - 총 ${codeBlocks.length}개의 코드 블록 보호됨`);
+    
+    // 2단계: HTML 태그 전체를 보호
+    const htmlTags = [];
+    let htmlTagIndex = 0;
+    
+    // HTML 태그 패턴을 임시 플레이스홀더로 교체 (속성 포함)
+    let textWithProtectedTags = textWithProtectedCodeBlocks.replace(/<[^>]+>/g, function(match) {
+      const placeholder = `__HTML_TAG_${htmlTagIndex}__`;
+      htmlTags.push(match);
+      console.log(`🔒 BACK - HTML 태그 #${htmlTagIndex} 보호:`, match);
+      htmlTagIndex++;
+      return placeholder;
+    });
+    
+    console.log(`BACK - 총 ${htmlTags.length}개의 HTML 태그 보호됨`);
+    
+    // 3단계: 남은 백틱을 유니코드 문자로 변환
+    let processedText = textWithProtectedTags.replace(/`([^`]+)`/g, function(match, code) {
+      console.log(`🔍 BACK - 백틱 코드 발견: ${match}`);
+      // 백틱을 특수 유니코드 문자로 치환
+      return `‹${code}›`;
+    });
+    
+    // 4단계: HTML 태그 복원
+    htmlTags.forEach((htmlTag, index) => {
+      const placeholder = `__HTML_TAG_${index}__`;
+      processedText = processedText.replace(placeholder, htmlTag);
+      console.log(`🔓 BACK - HTML 태그 #${index} 복원 완료`);
+    });
+    
+    // 5단계: 코드 블록 복원
+    codeBlocks.forEach((codeBlock, index) => {
+      const placeholder = `__CODE_BLOCK_${index}__`;
+      processedText = processedText.replace(placeholder, codeBlock);
+      console.log(`🔓 BACK - 코드 블록 #${index} 복원 완료`);
+    });
+    
+    console.log("BACK - 백틱 보호 후:", processedText);
+    console.log("===== BACK - 백틱 보호 종료 =====");
+    return processedText;
+  }
+
+  /*
+   * 🎯 보호된 백틱 코드를 <code> 태그로 변환 (BACK 카드용)
+   * 
+   * 목적: 유니코드 문자로 보호된 백틱을 찾아서 <code> 태그로 변환
+   * front.html과 동일한 로직
+   */
+  function processProtectedBackticks(container) {
+    console.log("===== BACK - 보호된 백틱 처리 시작 =====");
+    
+    // 현재 HTML 텍스트 가져오기
+    let htmlContent = container.innerHTML;
+    console.log("BACK - 처리 전 HTML:", htmlContent);
+    
+    // 유니코드 문자로 보호된 백틱을 <code> 태그로 변환
+    let processedCount = 0;
+    htmlContent = htmlContent.replace(/‹([^›]+)›/g, function(match, code) {
+      console.log(`🔍 BACK - 보호된 백틱 발견: ${match}`);
+      
+      // HTML 태그 이스케이프
+      const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const codeTag = `<code>${escapedCode}</code>`;
+      
+      console.log(`  변환: ${match} → ${codeTag}`);
+      processedCount++;
+      
+      return codeTag;
+    });
+    
+    // 수정된 HTML을 다시 설정
+    container.innerHTML = htmlContent;
+    console.log(`BACK - 처리 완료: ${processedCount}개의 백틱 코드 변환`);
+    console.log("BACK - 처리 후 HTML:", htmlContent);
+    
+    console.log("===== BACK - 보호된 백틱 처리 종료 =====");
+  }
+
+  /*
+   * 🔧 단순한 HTML 이스케이프 처리 함수 (BACK 카드용 - AnkiNoteLinker 보호 개선)
+   * 
+   * 목적: cloze 내부의 특정 HTML 태그만 선별적으로 이스케이프 처리
+   * 중요: 링크(a 태그)와 AnkiNoteLinker는 보호
+   * front.html과 동일한 로직 적용
+   */
+  function escapeSpecificHtmlTags(container) {
+    console.log("===== BACK - AnkiNoteLinker 보호 HTML 이스케이프 처리 시작 =====");
+    
+    // 이스케이프할 HTML 태그 목록 (구조적인 태그들만, 마크다운 허용 태그와 링크는 제외)
+    // 허용되는 마크다운 HTML 태그: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
+    const tagsToEscape = ['form', 'input', 'button', 'div', 'span', 'tr', 'td', 'th', 
+                          'ul', 'ol', 'li', 'select', 'option', 'textarea'];
+    
+    // 모든 cloze span 찾기
+    const allClozeSpans = container.querySelectorAll('span.cloze');
+    console.log(`BACK - 총 ${allClozeSpans.length}개의 cloze span 발견`);
+    
+    allClozeSpans.forEach((span, index) => {
+      console.log(`\n--- BACK - cloze span #${index + 1} 처리 ---`);
+      
+      // 현재 span이 코드 블록 내부에 있는지 확인
+      let isInCodeBlock = false;
+      let parent = span.parentElement;
+      
+      while (parent) {
+        if (parent.nodeName === "CODE") {
+          isInCodeBlock = true;
+          break;
+        }
+        parent = parent.parentElement;
+      }
+      
+      const originalHtml = span.innerHTML;
+      console.log("BACK - 원본 내용:", originalHtml);
+      console.log("BACK - 코드 블록 내부?", isInCodeBlock);
+      
+      // AnkiNoteLinker가 있는지 확인
+      const hasAnkiNoteLinker = originalHtml.includes('class="noteLink"') || 
+                                originalHtml.includes('AnkiNoteLinker');
+      console.log("BACK - AnkiNoteLinker 포함?", hasAnkiNoteLinker);
+      
+      if (isInCodeBlock && !hasAnkiNoteLinker) {
+        /*
+         * 코드 블록 내부이지만 AnkiNoteLinker가 없는 경우: 모든 HTML을 텍스트로 표시
+         */
+        if (originalHtml && !originalHtml.includes('&lt;')) {
+          span.textContent = originalHtml;
+          console.log("BACK - 코드 블록에서 전체 이스케이프:", span.innerHTML);
+        }
+      } else if (isInCodeBlock && hasAnkiNoteLinker) {
+        /*
+         * 코드 블록 내부이지만 AnkiNoteLinker가 있는 경우: AnkiNoteLinker만 보호하고 나머지는 이스케이프
+         */
+        console.log("BACK - 코드 블록 내 AnkiNoteLinker 보호 모드");
+        
+        // AnkiNoteLinker 링크를 임시로 보호
+        const protectedLinks = [];
+        let protectedContent = originalHtml;
+        
+        // noteLink 클래스를 가진 <a> 태그를 찾아서 보호
+        protectedContent = protectedContent.replace(/<a[^>]*class="noteLink"[^>]*>.*?<\/a>/gi, function(match) {
+          const placeholder = `__ANKI_NOTE_LINK_${protectedLinks.length}__`;
+          protectedLinks.push(match);
+          console.log(`BACK - AnkiNoteLinker 보호 #${protectedLinks.length}:`, match);
+          return placeholder;
+        });
+        
+        // 나머지 HTML 태그들을 이스케이프 처리
+        if (protectedContent && !protectedContent.includes('&lt;')) {
+          // textContent로 설정하여 HTML 이스케이프
+          const tempDiv = document.createElement('div');
+          tempDiv.textContent = protectedContent;
+          protectedContent = tempDiv.innerHTML;
+        }
+        
+        // 보호된 AnkiNoteLinker 복원
+        protectedLinks.forEach((link, linkIndex) => {
+          const placeholder = `__ANKI_NOTE_LINK_${linkIndex}__`;
+          protectedContent = protectedContent.replace(placeholder, link);
+          console.log(`BACK - AnkiNoteLinker 복원 #${linkIndex + 1}`);
+        });
+        
+        span.innerHTML = protectedContent;
+        console.log("BACK - 코드 블록에서 AnkiNoteLinker 보호 처리 완료:", protectedContent);
+        
+      } else {
+        /*
+         * 일반 영역: 특정 HTML 태그만 이스케이프 (링크는 보호)
+         */
+        let content = originalHtml;
+        let hasChanges = false;
+        
+        // 각 태그에 대해 이스케이프 처리
+        tagsToEscape.forEach(tag => {
+          // <tag> 형태의 열린 태그
+          const openTagRegex = new RegExp(`<${tag}\\b[^>]*>`, 'gi');
+          if (content.match(openTagRegex)) {
+            content = content.replace(openTagRegex, function(match) {
+              hasChanges = true;
+              return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            });
+          }
+          
+          // </tag> 형태의 닫힌 태그
+          const closeTagRegex = new RegExp(`</${tag}>`, 'gi');
+          if (content.match(closeTagRegex)) {
+            content = content.replace(closeTagRegex, function(match) {
+              hasChanges = true;
+              return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            });
+          }
+        });
+        
+        if (hasChanges) {
+          span.innerHTML = content;
+          console.log("BACK - 일반 영역에서 선별적 이스케이프:", content);
+        } else {
+          console.log("BACK - 이스케이프할 태그 없음");
+        }
+      }
+    });
+    
+    console.log("===== BACK - AnkiNoteLinker 보호 HTML 이스케이프 처리 완료 =====");
+  }
+
+  /*
+   * 🎨 초기 백틱 → 코드 태그 변환 함수 (BACK 카드용 - 개선된 버전)
+   * 
+   * 목적: 페이지 로딩 시 모든 cloze의 백틱을 <code> 태그로 변환
+   * 중요: HTML 속성 내부의 백틱은 보호
+   * front.html과 동일한 로직 적용
+   */
+  function convertBackticksToCodeTags(container) {
+    console.log("===== BACK - 초기 백틱 → 코드 태그 변환 시작 =====");
+    
+    // 모든 cloze span 찾기
+    const allClozeSpans = container.querySelectorAll('span.cloze');
+    console.log(`BACK - 백틱 변환 대상: ${allClozeSpans.length}개의 cloze span`);
+    
+    allClozeSpans.forEach((span, index) => {
+      console.log(`\n--- BACK - cloze span #${index + 1} 백틱 처리 ---`);
+      
+      const originalHtml = span.innerHTML;
+      console.log("BACK - 원본 내용:", originalHtml);
+      
+      /*
+       * HTML 속성 보호 처리
+       */
+      let result = originalHtml;
+      
+      // 1단계: HTML 태그와 속성을 보호
+      const htmlElements = [];
+      let htmlElementIndex = 0;
+      
+      result = result.replace(/<[^>]+>/g, function(match) {
+        const placeholder = `__BACK_HTML_ELEMENT_${htmlElementIndex}__`;
+        htmlElements.push(match);
+        console.log(`BACK - HTML 요소 보호 #${htmlElementIndex}:`, match);
+        htmlElementIndex++;
+        return placeholder;
+      });
+      
+      // 2단계: 보호된 상태에서 백틱 처리
+      // 패턴 1: <`내용`> 형태 (Anki가 백틱을 파싱한 후)
+      result = result.replace(/<`([^`]+)`>/g, function(match, code) {
+        console.log("BACK - 초기 - 패턴 1 매칭:", match, "→", code);
+        const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<code>${escapedCode}</code>`;
+      });
+      
+      // 패턴 2: 일반적인 백틱 `내용` 
+      result = result.replace(/`([^`]+)`/g, function(match, code) {
+        console.log("BACK - 초기 - 패턴 2 매칭:", match, "→", code);
+        const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<code>${escapedCode}</code>`;
+      });
+      
+      // 3단계: HTML 요소 복원
+      htmlElements.forEach((htmlElement, elementIndex) => {
+        const placeholder = `__BACK_HTML_ELEMENT_${elementIndex}__`;
+        result = result.replace(placeholder, htmlElement);
+        console.log(`BACK - HTML 요소 복원 #${elementIndex}:`, htmlElement);
+      });
+      
+      // 4단계: 남은 HTML 태그들 이스케이프 (링크와 마크다운 허용 태그는 제외)
+      // 허용할 마크다운 HTML 태그들: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
+      result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, function(match) {
+        console.log("BACK - 초기 - 패턴 3 매칭 (HTML 이스케이프):", match);
+        return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      });
+      
+      if (result !== originalHtml) {
+        span.innerHTML = result;
+        console.log("BACK - 초기 백틱 변환 완료:", result);
+      } else {
+        console.log("BACK - 변환할 백틱 없음");
+      }
+    });
+    
+    console.log("===== BACK - 초기 백틱 → 코드 태그 변환 완료 =====");
+  }
+
+  /*
+   * 🔧 코드 블록 내 cloze span의 HTML을 이스케이프 처리하는 함수 (AnkiNoteLinker 보호)
+   * 
+   * 목적: 코드 블록 내에서 HTML 태그가 실제 DOM 요소로 렌더링되지 않고
+   *       텍스트로 표시되도록 함 (단, AnkiNoteLinker는 보호)
+   * 
+   * 처리 범위: class 속성에 "language-"로 시작하는 값을 가진 code 요소 내부
+   * 
+   * 주의사항: 
+   * - data-cloze, data-hint 속성은 건드리지 않음 (Anki가 처리)
+   * - 화면에 보이는 내용(innerHTML)만 이스케이프 처리
+   * - 이미 이스케이프된 내용은 중복 처리하지 않음
+   * - AnkiNoteLinker는 보호하여 정상 동작하도록 함
+   * 
+   * BACK 카드에서는 모든 cloze가 이미 펼쳐진 상태이므로 
+   * 코드 블록 내의 HTML 태그들이 텍스트로 표시되어야 함
+   */
+  function escapeHtmlInCodeBlocks(container) {
+    console.log("===== BACK - 코드 블록 내 AnkiNoteLinker 보호 이스케이프 시작 =====");
+    
+    // language-로 시작하는 클래스를 가진 모든 code 요소 찾기
+    // 예: class="language-js", class="language-python" 등
+    const codeBlocks = container.querySelectorAll('code[class*="language-"]');
+    console.log(`BACK - 총 ${codeBlocks.length}개의 코드 블록 발견`);
+    
+    codeBlocks.forEach((codeBlock, blockIndex) => {
+      console.log(`\n--- BACK - 코드 블록 #${blockIndex + 1} 처리 ---`);
+      
+      // 해당 코드 블록 내의 모든 cloze span 찾기
+      const clozeSpans = codeBlock.querySelectorAll('span.cloze');
+      console.log(`BACK - 코드 블록 내 cloze span: ${clozeSpans.length}개`);
+      
+      clozeSpans.forEach((span, spanIndex) => {
+        console.log(`\n--- BACK - span #${spanIndex + 1} 처리 ---`);
+        
+        /*
+         * 이미 이스케이프되었는지 확인하는 함수
+         * &lt; 또는 &gt;가 포함되어 있으면 이미 이스케이프된 것으로 판단
+         */
+        function isAlreadyEscaped(text) {
+          return text.includes('&lt;') || text.includes('&gt;');
+        }
+        
+        /*
+         * data-cloze와 data-hint 속성은 건드리지 않음
+         * 이유: Anki가 이미 적절히 처리하고 있고, 
+         *       여기서 수정하면 이중 이스케이프 문제 발생 가능
+         * 
+         * 오직 화면에 보이는 내용(innerHTML)만 이스케이프 처리
+         */
+        const originalHtml = span.innerHTML;
+        console.log("BACK - 원본 HTML:", originalHtml);
+        
+        // AnkiNoteLinker가 있는지 확인
+        const hasAnkiNoteLinker = originalHtml.includes('class="noteLink"') || 
+                                  originalHtml.includes('AnkiNoteLinker');
+        console.log("BACK - AnkiNoteLinker 포함?", hasAnkiNoteLinker);
+        
+        if (!isAlreadyEscaped(originalHtml)) {
+          if (hasAnkiNoteLinker) {
+            /*
+             * AnkiNoteLinker가 있는 경우: AnkiNoteLinker만 보호하고 나머지는 이스케이프
+             */
+            console.log("BACK - AnkiNoteLinker 보호 모드");
+            
+            // AnkiNoteLinker 링크를 임시로 보호
+            const protectedLinks = [];
+            let protectedContent = originalHtml;
+            
+            // noteLink 클래스를 가진 <a> 태그를 찾아서 보호
+            protectedContent = protectedContent.replace(/<a[^>]*class="noteLink"[^>]*>.*?<\/a>/gi, function(match) {
+              const placeholder = `__CODE_BLOCK_ANKI_LINK_${protectedLinks.length}__`;
+              protectedLinks.push(match);
+              console.log(`BACK - AnkiNoteLinker 보호 #${protectedLinks.length}:`, match);
+              return placeholder;
+            });
+            
+            // 나머지 HTML 태그들을 이스케이프 처리
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = protectedContent;
+            protectedContent = tempDiv.innerHTML;
+            
+            // 보호된 AnkiNoteLinker 복원
+            protectedLinks.forEach((link, linkIndex) => {
+              const placeholder = `__CODE_BLOCK_ANKI_LINK_${linkIndex}__`;
+              protectedContent = protectedContent.replace(placeholder, link);
+              console.log(`BACK - AnkiNoteLinker 복원 #${linkIndex + 1}`);
+            });
+            
+            span.innerHTML = protectedContent;
+            console.log("BACK - AnkiNoteLinker 보호 처리 완료:", protectedContent);
+            
+          } else {
+            /*
+             * AnkiNoteLinker가 없는 경우: 일반적인 HTML 이스케이프 처리
+             */
+            // textContent로 설정하면 브라우저가 자동으로 HTML을 이스케이프함
+            // 예: <li></li> → &lt;li&gt;&lt;/li&gt;
+            span.textContent = originalHtml;
+            console.log("BACK - 일반 HTML 이스케이프 처리 완료:", span.innerHTML);
+          }
+        } else {
+          console.log("BACK - 이미 이스케이프된 내용, 건너뛰기");
+        }
+      });
+    });
+    
+    console.log("===== BACK - 코드 블록 내 AnkiNoteLinker 보호 이스케이프 완료 =====");
+  }
+
+  function replaceInString(str) {
+    str = str.replace(/<[\/]?pre[^>]*>/gi, "");
+    str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
+    str = str.replace(/<div[^>]*>/gi, "\n");
+    // Thanks Graham A!
+    // str = str.replace(/<[\/]?span[^>]*>/gi, "")
+    str.replace(/<\/div[^>]*>/g, "\n");
+    return replaceHTMLElementsInString(str);
+  }
+
+  function replaceHTMLElementsInString(str) {
+    str = str.replace(/&nbsp;/gi, " ");
+    str = str.replace(/&tab;/gi, "	");
+    str = str.replace(/&gt;/gi, ">");
+    str = str.replace(/&lt;/gi, "<");
+    return str.replace(/&amp;/gi, "&");
+  }
+</script>
+
+<script>
+    // Anki Note Linker를 Mobile 환경에서도 사용하기 위한 fallback 코드
+    var disableLinks = false; // Change to true if you want to disable all link rendering for clients without add-on
+    if (!window.AnkiNoteLinkerIsActive) {
+        const renderLinks = _ => {
+            document.querySelectorAll('.linkRender').forEach(element => { // You can rename "linkRender" on this line, but leave the "." in front
+                element.innerHTML = element.innerHTML.replace(
+                    /\[((?:[^\[]|\\\[)*)\|nid(\d{13})\]/g,
+                    (match, title, nid) => {
+                        title = title.replace(/\\\[/g, '[');
+                        let link;
+                        if (document.documentElement.classList.contains('iphone') || document.documentElement.classList.contains('ipad')) {
+                            link = `anki://x-callback-url/search?query=nid%3a${nid}`;
+                        } else try {
+                            window.jsAPI ||= new AnkiDroidJS({ version: "0.0.3", developer: "github.com/gugutu" });
+                            link = `javascript:window.jsAPI.ankiSearchCard(\`nid:${nid}\`)`;
+                        } catch (e) {
+                            link = `https://ankiuser.net/edit/${nid}' target='_blank`;
+                        }
+                        return disableLinks ? `${title}` : `<a href='${link}' class='noteLink'>${title}</a>`;
+                    }
+                );
+            });
+        };
+        document.readyState !== 'loading' ? renderLinks() : document.addEventListener('DOMContentLoaded', renderLinks, { once: true });
+    }
+</script>
+
+<!-- 
+🎯 ANKI CLOZE + MARKDOWN + 코드 블록 처리 플로우 상세 설명 (BACK 카드 - AnkiNoteLinker 지원)
+
+=== 📋 전체 개요 ===
+이 BACK 카드 템플릿은 front.html과 동일한 마크다운 + cloze 처리 로직을 사용하되,
+모든 cloze가 이미 펼쳐진 상태로 표시되므로 클릭/키보드 이벤트 처리는 없습니다.
+★ AnkiNoteLinker 지원: 코드 블록 내부에서도 AnkiNoteLinker가 정상 동작합니다.
+
+=== 🔄 주요 처리 플로우 ===
+
+1️⃣ 초기화 (render 함수)
+   ├─ renderLinksBeforeEscape() : AnkiNoteLinker 사전 파싱 ★ 새로 추가 ★
+   ├─ renderMath("back") : KaTeX 수학 공식 렌더링 (back 영역)
+   ├─ markdown("back") : 마크다운 + cloze 처리 (핵심 로직)
+   ├─ renderMath("extra") : KaTeX 수학 공식 렌더링 (extra 영역)
+   ├─ markdown("extra") : 마크다운 + cloze 처리 (extra 영역)
+   ├─ show() : 카드 표시
+   └─ cloze 스타일링 : 이미 펼쳐진 cloze의 시각적 스타일 적용
+
+2️⃣ 마크다운 처리 (markdown 함수) ★ front.html과 동일 ★
+   ├─ STEP 0: 마크다운 파싱 이전 백틱 코드 전처리 ★ front.html과 동일 ★
+   │   ├─ [PROTECTED_CODE_n] 형태로 Anki 필드 문법과 markdown-it의 볼드 해석 모두 방지
+   │   ├─ 코드 블록(```...```) 내부는 제외하여 기존 파싱 로직 보호
+   │   └─ 테이블 및 일반 영역의 백틱만 보호하여 마크다운 파싱 시 구조 깨짐 방지
+   │
+   ├─ STEP 1: 코드 블록 내 cloze span 임시 저장
+   │   ├─ 마크다운 코드 블록 패턴 탐지 : /(```[a-zA-Z0-9_\-]+[\s\S]*?```)/g
+   │   ├─ 코드 블록 내부의 <span class="cloze">...</span> 추출
+   │   └─ 플레이스홀더(__CLOZE_SPAN_X__)로 임시 교체
+   │
+   ├─ STEP 2: 마크다운 변환 수행
+   │   └─ markdown-it 라이브러리로 마크다운 → HTML 변환
+   │
+   ├─ STEP 3: 일반 span 태그 이스케이프 처리
+   │   └─ &lt;/span&gt; → \ 교체
+   │
+   ├─ STEP 4: 저장된 cloze span 복원
+   │   └─ 플레이스홀더를 원래 cloze span으로 교체 (이스케이프 없이)
+   │
+   ├─ STEP 5: DOM에 설정
+   │   └─ element.innerHTML = finalText
+   │
+   ├─ STEP 5.5: 백틱 코드 복원 ★ front.html과 동일 ★
+   │   └─ 전처리로 보호된 모든 백틱을 안전하게 복원
+   │
+   ├─ STEP 6: 초기 백틱 → 코드 태그 변환 (모든 cloze에 적용)
+   │   └─ convertBackticksToCodeTags() 호출
+   │
+   ├─ STEP 7: 단순한 HTML 이스케이프 처리 (AnkiNoteLinker 보호)
+   │   └─ escapeSpecificHtmlTags() 호출
+   │
+   └─ STEP 8: 코드 블록 내 HTML 이스케이프 (AnkiNoteLinker 보호)
+       └─ escapeHtmlInCodeBlocks() 호출
+
+3️⃣ AnkiNoteLinker 사전 파싱 (renderLinksBeforeEscape 함수) ★ 새로 추가 ★
+   ├─ HTML 이스케이프 처리 전에 AnkiNoteLinker 패턴 파싱
+   ├─ [제목|nidXXXXXXXXXXXXX] → <a href="..." class="noteLink">제목</a> 변환
+   └─ 코드 블록 내부에서도 AnkiNoteLinker가 정상 동작 보장
+
+4️⃣ 코드 블록 HTML 이스케이프 (escapeHtmlInCodeBlocks 함수) ★ AnkiNoteLinker 보호 강화 ★
+   ├─ code[class*="language-"] 요소들 탐색
+   ├─ 각 코드 블록 내의 span.cloze 요소들 찾기
+   ├─ AnkiNoteLinker 존재 여부 확인 (class="noteLink" 검사)
+   ├─ AnkiNoteLinker가 있는 경우: 링크만 보호하고 나머지 HTML 이스케이프
+   └─ AnkiNoteLinker가 없는 경우: 일반적인 HTML 이스케이프 처리
+
+=== 🎯 BACK 카드 특징 ===
+
+✅ 모든 cloze가 펼쳐진 상태: Anki에서 자동으로 모든 cloze 내용이 표시됨
+✅ 코드 블록 내 HTML 이스케이프: front와 동일하게 HTML 태그가 텍스트로 표시됨
+✅ 마크다운 파싱: 일반 영역의 마크다운은 정상적으로 렌더링됨
+❌ 상호작용 없음: 클릭/키보드 이벤트 처리 불필요
+
+=== 🔍 처리 예시 ===
+
+📝 일반 영역 cloze:
+   입력: **bold text** in cloze
+   출력: <b>bold text</b> in cloze (마크다운 파싱됨)
+
+💻 코드 블록 내 cloze (일반 HTML):
+   입력: <li>list item</li>
+   출력: &lt;li&gt;list item&lt;/li&gt; (HTML 태그가 텍스트로 표시)
+
+🔗 코드 블록 내 cloze (AnkiNoteLinker):
+   입력: [유효|nid1749360987838]
+   출력: <a href="..." class="noteLink">유효</a> (클릭 가능한 링크)
+
+=== 📚 의존성 라이브러리 ===
+- KaTeX: 수학 공식 렌더링
+- highlight.js: 코드 구문 강조  
+- markdown-it: 마크다운 파싱
+- markdown-it-mark: ==텍스트== 마크 지원
+- markdown-it-container: 커스텀 컨테이너 지원 (tip, warning 등)
+
+ -->
