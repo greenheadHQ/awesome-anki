@@ -230,6 +230,24 @@ interface ClozeItem {
 | DELETE | /api/embedding/cache/:deckName | 임베딩 캐시 삭제 |
 | POST | /api/embedding/single | 단일 텍스트 임베딩 (디버깅) |
 
+### Prompts (프롬프트 버전 관리)
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | /api/prompts/versions | 버전 목록 |
+| GET | /api/prompts/versions/:id | 버전 상세 |
+| POST | /api/prompts/versions | 새 버전 생성 |
+| PUT | /api/prompts/versions/:id | 버전 업데이트 |
+| DELETE | /api/prompts/versions/:id | 버전 삭제 |
+| POST | /api/prompts/versions/:id/activate | 버전 활성화 |
+| GET | /api/prompts/active | 현재 활성 버전 |
+| GET | /api/prompts/history | 분할 히스토리 (페이지네이션) |
+| POST | /api/prompts/history | 히스토리 추가 |
+| GET | /api/prompts/versions/:id/failure-patterns | 실패 패턴 분석 |
+| GET | /api/prompts/experiments | A/B 테스트 목록 |
+| GET | /api/prompts/experiments/:id | A/B 테스트 상세 |
+| POST | /api/prompts/experiments | A/B 테스트 생성 |
+| POST | /api/prompts/experiments/:id/complete | A/B 테스트 완료 |
+
 ---
 
 ## 웹 GUI 컴포넌트

@@ -126,5 +126,43 @@ export * from './validator/index.js';
 // Embedding exports
 export * from './embedding/index.js';
 
-// Prompt Version exports
-export * from './prompt-version/index.js';
+// Prompt Version exports (명시적 export - getVersion 충돌 방지)
+export {
+  // Types
+  type FewShotExample,
+  type PromptConfig,
+  type PromptMetrics,
+  type ModificationPatterns,
+  type PromptVersion,
+  type SplitHistoryEntry,
+  type Experiment,
+  type ActiveVersionInfo,
+  // Constants
+  DEFAULT_PROMPT_CONFIG,
+  DEFAULT_METRICS,
+  DEFAULT_MODIFICATION_PATTERNS,
+} from './prompt-version/types.js';
+
+export {
+  // Version management (renamed to avoid conflict with anki/client.ts getVersion)
+  listVersions as listPromptVersions,
+  getVersion as getPromptVersion,
+  saveVersion as savePromptVersion,
+  deleteVersion as deletePromptVersion,
+  createVersion as createPromptVersion,
+  // Active version
+  getActiveVersion,
+  setActiveVersion,
+  getActivePrompts,
+  // History
+  addHistoryEntry,
+  getHistory,
+  getHistoryByVersion,
+  // Experiments
+  createExperiment,
+  listExperiments,
+  getExperiment,
+  completeExperiment,
+  // Analysis
+  analyzeFailurePatterns,
+} from './prompt-version/storage.js';

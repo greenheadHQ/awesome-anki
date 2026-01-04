@@ -243,6 +243,7 @@
 - [ ] API 에러 핸들링 통일
 - [ ] 로딩 상태 스켈레톤 UI 추가
 - [ ] **output/prompts gitignore 예외 추가** - 프롬프트 버전 파일(`v1.0.0.json` 등)이 `output/` gitignore로 인해 추적되지 않음. `.gitignore`에 `!output/prompts/` 예외 추가 필요
+- [ ] **bun:test 타입 선언 문제** - `packages/core/src/__tests__/*.ts` 파일에서 `bun:test` 모듈을 찾을 수 없음. tsconfig.json에 `"types": ["bun-types"]` 추가 또는 테스트 파일을 별도 tsconfig로 분리 필요
 
 ### 테스트
 - [x] 임베딩 모듈 단위 테스트 (25개 통과)
@@ -331,7 +332,7 @@
 | 1 | 프롬프트 개선 | ✅ 완료 | `prompts.ts` 전면 개편 |
 | 1.3 | Cloze Enhancer | ✅ 완료 | `cloze-enhancer.ts` 신규 생성 |
 | 2 | 버전 관리 인프라 | ✅ 완료 | `prompt-version/` 모듈 |
-| 3 | API 확장 | ⏳ 대기 | `/api/prompts/*` 라우트 |
+| 3 | API 확장 | ✅ 완료 | `/api/prompts/*` 라우트 |
 | 4 | 웹 UI | ⏳ 대기 | PromptManager, 모바일 시뮬레이터 |
 | 5 | Recursive Splitting | ⏳ 대기 | 학습 중 틀린 카드 추가 분할 제안 |
 
@@ -410,18 +411,38 @@
 - ✅ 중첩 맥락 태그 `[DNS > Record > A]`
 - ✅ Self-Correction 루프 (길이 초과 시 재작성)
 - ✅ 버전 관리 인프라 (저장소, 히스토리, 실험)
-- ⏳ A/B 테스트 UI, 품질 추적 대시보드 (Phase 3-4)
+- ✅ API 확장 (프롬프트 버전, 히스토리, 실험)
+- ⏳ A/B 테스트 UI, 품질 추적 대시보드 (Phase 4)
 
-### 다음 작업 (Phase 3: API 확장)
-- [ ] `packages/server/src/routes/prompts.ts` 신규 생성
+**Phase 3: API 확장** ✅
+- [x] `packages/server/src/routes/prompts.ts` 신규 생성
   - GET `/api/prompts/versions` - 버전 목록
   - GET `/api/prompts/versions/:id` - 버전 상세
   - POST `/api/prompts/versions` - 새 버전 생성
+  - PUT `/api/prompts/versions/:id` - 버전 업데이트
+  - DELETE `/api/prompts/versions/:id` - 버전 삭제
   - POST `/api/prompts/versions/:id/activate` - 활성화
+  - GET `/api/prompts/active` - 현재 활성 버전
   - GET `/api/prompts/history` - 분할 히스토리
+  - POST `/api/prompts/history` - 히스토리 추가
   - GET `/api/prompts/versions/:id/failure-patterns` - 실패 패턴 분석
-  - POST `/api/prompts/experiment` - A/B 테스트 시작
-- [ ] 기존 Split API 확장 (`promptVersionId`, `userAction`, `modificationDetails`)
+  - GET `/api/prompts/experiments` - 실험 목록
+  - GET `/api/prompts/experiments/:id` - 실험 상세
+  - POST `/api/prompts/experiments` - A/B 테스트 시작
+  - POST `/api/prompts/experiments/:id/complete` - 실험 완료
+- [x] `packages/server/src/index.ts`에 prompts 라우트 등록
+- [x] `packages/core/src/index.ts` 명시적 export (getVersion 충돌 해결)
+  - `listVersions` → `listPromptVersions`
+  - `getVersion` → `getPromptVersion`
+  - `saveVersion` → `savePromptVersion`
+  - `deleteVersion` → `deletePromptVersion`
+  - `createVersion` → `createPromptVersion`
+
+### 다음 작업 (Phase 4: 웹 UI)
+- [ ] PromptManager 페이지 (버전 목록, 상세, 생성, 수정)
+- [ ] 모바일 시뮬레이터 (카드 렌더링 미리보기)
+- [ ] 실험 대시보드 (A/B 테스트 결과 시각화)
+- [ ] 품질 추적 대시보드 (메트릭, 실패 패턴)
 
 ---
 
