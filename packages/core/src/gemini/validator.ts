@@ -8,11 +8,22 @@ import { z } from 'zod';
 const SplitCardSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
+  cardType: z.enum(['cloze', 'basic']).optional().default('cloze'),
+  charCount: z.number().int().min(0).optional(),
+  contextTag: z.string().optional(),
   inheritImages: z.array(z.string()).default([]),
   inheritTags: z.array(z.string()).default([]),
   preservedLinks: z.array(z.string()).default([]),
   backLinks: z.array(z.string()).default([]),
 });
+
+// 품질 체크 스키마
+const QualityChecksSchema = z.object({
+  allCardsUnder80Chars: z.boolean(),
+  allClozeHaveHints: z.boolean(),
+  noEnumerations: z.boolean(),
+  allContextTagsPresent: z.boolean(),
+}).optional().nullable();
 
 // 분할 응답 스키마
 const SplitResponseSchema = z.object({
@@ -22,6 +33,7 @@ const SplitResponseSchema = z.object({
   splitCards: z.array(SplitCardSchema),
   splitReason: z.string(),
   splitType: z.enum(['hard', 'soft', 'none']),
+  qualityChecks: QualityChecksSchema,
 });
 
 // 분석 응답 스키마

@@ -1,6 +1,6 @@
 # TODO - 프로젝트 진행 상황
 
-> 마지막 업데이트: 2026-01-03
+> 마지막 업데이트: 2026-01-04
 >
 > 기술 상세는 [FEATURES.md](./FEATURES.md) 참고
 > 문제 해결 기록은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) 참고
@@ -312,10 +312,11 @@
 
 ---
 
-## 📌 다음 대형 작업: 프롬프트 버전 관리 시스템
+## 📌 프롬프트 버전 관리 시스템 (진행 중)
 
 > **계획 파일**: `~/.claude/plans/merry-gathering-petal.md`
 > **작성일**: 2026-01-04
+> **마지막 업데이트**: 2026-01-04
 
 ### 배경
 - CS 학습용 Anki 카드가 너무 길어서 모바일 학습 어려움
@@ -323,21 +324,74 @@
 - SuperMemo's Twenty Rules 기반 진정한 Atomic Card 필요
 
 ### 구현 단계
-| Phase | 작업 | 예상 소요 |
-|-------|------|----------|
-| 0 | Claude Skill 생성 (`/skill-creator`) | 30분 |
-| 1 | 프롬프트 개선 (SYSTEM_PROMPT) | 1-2일 |
-| 2 | 버전 관리 인프라 | 1-2일 |
-| 3 | API 확장 + 실패 패턴 분석 | 2-3일 |
-| 4 | 웹 UI + 모바일 시뮬레이터 | 2-3일 |
-| 5 | Recursive Splitting | 1일 |
+| Phase | 작업 | 상태 | 비고 |
+|-------|------|------|------|
+| 0 | Claude Skill 생성 | ✅ 완료 | `~/.claude/skills/anki-card-creator/SKILL.md` |
+| 1 | 프롬프트 개선 | ✅ 완료 | `prompts.ts` 전면 개편 |
+| 1.3 | Cloze Enhancer | ✅ 완료 | `cloze-enhancer.ts` 신규 생성 |
+| 2 | 버전 관리 인프라 | ⏳ 대기 | `output/prompts/` 디렉토리 |
+| 3 | API 확장 | ⏳ 대기 | `/api/prompts/*` 라우트 |
+| 4 | 웹 UI | ⏳ 대기 | PromptManager, 모바일 시뮬레이터 |
+| 5 | Recursive Splitting | ⏳ 대기 | 학습 중 틀린 카드 추가 분할 제안 |
 
-### 핵심 변경
-- Cloze 40~60자, Basic Front 20~30자, Back ~20자
-- Yes/No Cloze 힌트 필수
-- 중첩 맥락 태그 `[DNS > Record > A]`
-- Self-Correction 루프 (길이 초과 시 재작성)
-- A/B 테스트, 품질 추적, 롤백
+### 이번 세션 완료 (2026-01-04)
+
+**Phase 0: Claude Skill 생성** ✅
+- [x] `/skill-creator` 스킬로 `anki-card-creator` 스킬 생성
+- [x] SuperMemo's Twenty Rules 기반 카드 생성 규칙 정의
+- [x] 스킬 파일: `~/.claude/skills/anki-card-creator/SKILL.md`
+- [x] 배포용 패키지: `anki-card-creator.skill`
+
+**Phase 1: 프롬프트 개선** ✅
+- [x] `SYSTEM_PROMPT` 전면 개편 (SuperMemo's Twenty Rules 기반)
+- [x] 카드 길이 기준 명시: Cloze 40~60자, Basic Front 20~30자
+- [x] 필수 원칙 6가지 추가:
+  - Minimum Information
+  - One Answer Only
+  - No Yes/No (힌트 필수)
+  - Context-Free (중첩 태그)
+  - No Enumerations
+  - No Example Trap
+- [x] Self-Correction 루프 추가
+- [x] 부정형 질문 방지 규칙
+- [x] Few-shot 예제 (좋은 예시 3개, 나쁜 예시 3개)
+- [x] `buildSplitPrompt` 개선 (cardType, charCount, contextTag, qualityChecks)
+- [x] `buildAnalysisPrompt` 개선 (상세 분석 기준)
+
+**Phase 1.3: Cloze Enhancer** ✅
+- [x] `cloze-enhancer.ts` 신규 생성
+- [x] 이진 패턴 자동 감지 (25개 패턴)
+  - 존재/상태: 있다/없다, 가능/불가능, 필요/불필요
+  - 방향성: 증가/감소, 상향/하향, 빠르다/느리다
+  - 연결/동기화: 동기/비동기, 블로킹/논블로킹, 연결/비연결
+  - 상태: 상태/무상태, 영구/임시, 휘발성/비휘발성
+  - 계층: 물리/논리, 하드웨어/소프트웨어
+  - 평가: 장점/단점, 성공/실패, 허용/금지
+- [x] 힌트 자동 추가 함수
+- [x] 카드 글자 수 계산 (Cloze 마크업 제외)
+- [x] 카드 타입 자동 감지 (cloze vs basic)
+- [x] 카드 품질 검사 함수
+- [x] `validator.ts` 스키마 확장 (cardType, charCount, contextTag, qualityChecks)
+
+**생성/수정된 파일**
+- `~/.claude/skills/anki-card-creator/SKILL.md` (신규)
+- `packages/core/src/gemini/prompts.ts` (전면 개편)
+- `packages/core/src/gemini/cloze-enhancer.ts` (신규)
+- `packages/core/src/gemini/validator.ts` (스키마 확장)
+- `packages/core/src/gemini/index.ts` (export 추가)
+
+### 핵심 변경 (구현 완료)
+- ✅ Cloze 40~60자, Basic Front 20~30자, Back ~20자
+- ✅ Yes/No Cloze 힌트 필수 (자동 감지)
+- ✅ 중첩 맥락 태그 `[DNS > Record > A]`
+- ✅ Self-Correction 루프 (길이 초과 시 재작성)
+- ⏳ A/B 테스트, 품질 추적, 롤백 (Phase 2-3)
+
+### 다음 작업 (Phase 2)
+- [ ] `output/prompts/` 디렉토리 구조 생성
+- [ ] PromptVersion 타입 정의 (`prompt-version/types.ts`)
+- [ ] 프롬프트 버전 저장소 (`prompt-version/storage.ts`)
+- [ ] API 라우트 추가 (`/api/prompts/*`)
 
 ---
 
