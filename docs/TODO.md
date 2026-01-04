@@ -493,6 +493,13 @@
   - A/B 테스트 방법
   - 메트릭 해석 가이드
 
+### Deprecated 예정
+
+- [ ] **온보딩 투어 제거** - `react-joyride` 기반 온보딩 기능 불필요
+  - `packages/web/src/hooks/useOnboarding.ts`
+  - `packages/web/src/components/onboarding/OnboardingTour.tsx`
+  - Dashboard "가이드 다시 보기" 버튼
+
 ### 다음 작업 (Phase 5: Recursive Splitting)
 
 - [ ] 학습 통계 기반 "어려운 카드" 탐지
