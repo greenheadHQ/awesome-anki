@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CardBrowser } from './pages/CardBrowser';
 import { SplitWorkspace } from './pages/SplitWorkspace';
 import { BackupManager } from './pages/BackupManager';
+import { PromptManager } from './pages/PromptManager';
 import { Help } from './pages/Help';
 
 const queryClient = new QueryClient({
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="split" element={<SplitWorkspace />} />
             <Route path="browse" element={<CardBrowser />} />
             <Route path="backups" element={<BackupManager />} />
+            <Route path="prompts" element={<PromptManager />} />
             <Route path="help" element={<Help />} />
           </Route>
         </Routes>

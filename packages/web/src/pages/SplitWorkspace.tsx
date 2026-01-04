@@ -11,6 +11,7 @@ import { DiffViewer, SplitPreviewCard } from '../components/card/DiffViewer';
 import { useDecks } from '../hooks/useDecks';
 import { useCards, useCardDetail } from '../hooks/useCards';
 import { useSplitPreview, useSplitApply, getCachedSplitPreview } from '../hooks/useSplit';
+import { usePromptVersions, useAddPromptHistory } from '../hooks/usePrompts';
 import { queryKeys } from '../lib/query-keys';
 import { cn } from '../lib/utils';
 import type { SplitPreviewResult } from '../lib/api';
@@ -23,6 +24,7 @@ import {
   Sparkles,
   Zap,
   Shield,
+  FileText,
 } from 'lucide-react';
 import { ValidationPanel } from '../components/validation/ValidationPanel';
 
@@ -41,6 +43,7 @@ export function SplitWorkspace() {
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
   const [splitType, setSplitType] = useState<'hard' | 'soft'>('hard');
   const [showValidation, setShowValidation] = useState(false);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const { data: decksData } = useDecks();
@@ -48,6 +51,10 @@ export function SplitWorkspace() {
     limit: 500,
     filter: 'all',
   });
+
+  // 프롬프트 버전 관련
+  const { data: promptVersionsData, isLoading: isLoadingVersions } = usePromptVersions();
+  const addHistory = useAddPromptHistory();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(
@@ -76,6 +83,16 @@ export function SplitWorkspace() {
       setSelectedDeck(decksData.decks[0]);
     }
   }, [decksData, selectedDeck]);
+
+  // 활성 버전 자동 선택
+  useEffect(() => {
+    if (promptVersionsData?.activeVersionId && !selectedVersionId) {
+      setSelectedVersionId(promptVersionsData.activeVersionId);
+    } else if (promptVersionsData?.versions?.length && !selectedVersionId) {
+      // 활성 버전이 없으면 첫 번째 버전 선택
+      setSelectedVersionId(promptVersionsData.versions[0].id);
+    }
+  }, [promptVersionsData, selectedVersionId]);
 
   // 카드 선택 시 캐시 확인 후 필요한 경우만 API 호출
   useEffect(() => {
@@ -114,7 +131,7 @@ export function SplitWorkspace() {
   ) as SplitCandidate[];
 
   const handleApply = () => {
-    if (!selectedCard || !selectedDeck) return;
+    if (!selectedCard || !selectedDeck || !previewData?.splitCards) return;
 
     splitApply.mutate(
       {
@@ -124,6 +141,21 @@ export function SplitWorkspace() {
       },
       {
         onSuccess: () => {
+          // 히스토리 자동 기록
+          if (selectedVersionId && previewData?.splitCards) {
+            addHistory.mutate({
+              promptVersionId: selectedVersionId,
+              noteId: selectedCard.noteId,
+              deckName: selectedDeck,
+              originalContent: cardDetail?.text || selectedCard.text,
+              splitCards: previewData.splitCards.map((card) => ({
+                title: card.title,
+                content: card.content,
+              })),
+              userAction: 'approved',
+              qualityChecks: null, // TODO: 실제 품질 검사 결과 연동
+            });
+          }
           // 성공 후 목록에서 제거하고 다음 카드 선택
           const nextCard = candidates.find((c) => c.noteId !== selectedCard.noteId);
           setSelectedCard(nextCard || null);
@@ -164,7 +196,30 @@ export function SplitWorkspace() {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          {/* 프롬프트 버전 선택 */}
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <select
+              value={selectedVersionId || ''}
+              onChange={(e) => setSelectedVersionId(e.target.value)}
+              disabled={isLoadingVersions}
+              className="px-3 py-1.5 border rounded-md bg-background text-sm min-w-[140px]"
+            >
+              {isLoadingVersions ? (
+                <option>로딩 중...</option>
+              ) : promptVersionsData?.versions?.length === 0 ? (
+                <option value="">버전 없음</option>
+              ) : (
+                promptVersionsData?.versions?.map((version) => (
+                  <option key={version.id} value={version.id}>
+                    {version.name}
+                    {version.id === promptVersionsData.activeVersionId && ' ✓'}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
           <span className="text-sm text-muted-foreground">
             {candidates.length}개 분할 후보
           </span>

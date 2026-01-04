@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
-import { LayoutDashboard, Scissors, FolderOpen, History, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Scissors, FolderOpen, History, FileText, HelpCircle } from 'lucide-react';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', tourId: 'nav-dashboard' },
   { to: '/split', icon: Scissors, label: 'Split', tourId: 'nav-split' },
   { to: '/browse', icon: FolderOpen, label: 'Browse', tourId: 'nav-browse' },
   { to: '/backups', icon: History, label: 'Backups', tourId: 'nav-backups' },
+  { to: '/prompts', icon: FileText, label: 'Prompts', tourId: 'nav-prompts' },
   { to: '/help', icon: HelpCircle, label: 'Help', tourId: 'nav-help' },
 ];
 

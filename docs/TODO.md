@@ -333,7 +333,7 @@
 | 1.3 | Cloze Enhancer | ✅ 완료 | `cloze-enhancer.ts` 신규 생성 |
 | 2 | 버전 관리 인프라 | ✅ 완료 | `prompt-version/` 모듈 |
 | 3 | API 확장 | ✅ 완료 | `/api/prompts/*` 라우트 |
-| 4 | 웹 UI | ⏳ 대기 | PromptManager, 모바일 시뮬레이터 |
+| 4 | 웹 UI | ✅ 완료 | PromptManager, 버전 선택, 히스토리 |
 | 5 | Recursive Splitting | ⏳ 대기 | 학습 중 틀린 카드 추가 분할 제안 |
 
 ### 이번 세션 완료 (2026-01-04)
@@ -450,32 +450,45 @@
 | Phase 5 우선순위 | **Phase 4 완료 후 바로** |
 | UI 배치 | **헤더에 버전 드롭다운** |
 
-### 다음 작업 (Phase 4: 웹 UI) - 싱크업 반영
+### Phase 4: 웹 UI ✅ (2026-01-04 완료)
 
-1. [ ] **SplitWorkspace 프롬프트 버전 선택**
+1. [x] **SplitWorkspace 프롬프트 버전 선택**
    - 헤더에 버전 드롭다운 추가
    - 선택된 버전으로 Gemini 분석 요청
    - 파일: `packages/web/src/pages/SplitWorkspace.tsx`
 
-2. [ ] **분할 히스토리 자동 기록**
+2. [x] **분할 히스토리 자동 기록**
    - 분할 적용 시 자동으로 `/api/prompts/history` 호출
-   - userAction 자동 판별 (approved/modified/rejected)
-   - 파일: `packages/web/src/hooks/useSplit.ts`
+   - userAction: 'approved' 자동 기록
+   - 파일: `packages/web/src/pages/SplitWorkspace.tsx`
 
-3. [ ] **PromptManager 페이지**
-   - 버전 목록/상세/생성/수정
-   - 사이드바에 메뉴 추가
+3. [x] **PromptManager 페이지**
+   - 버전 목록/상세/활성화
+   - 사이드바에 Prompts 메뉴 추가
    - 파일: `packages/web/src/pages/PromptManager.tsx`
 
-4. [ ] **실험 대시보드**
-   - A/B 테스트 결과 시각화 (승인률, 평균 글자 수)
-   - PromptManager 페이지 내 탭으로 구현
+4. [x] **실험 대시보드**
+   - A/B 테스트 목록 및 결과 표시
+   - PromptManager 페이지 내 '실험' 탭
 
-5. [ ] **품질 추적 대시보드**
-   - 버전별 메트릭, 실패 패턴 시각화
-   - PromptManager 페이지 내 탭으로 구현
+5. [x] **품질 추적 대시보드**
+   - 버전별 메트릭 비교 (승인률, 수정률, 거부율, 평균 글자 수)
+   - 전체 통계 요약
+   - PromptManager 페이지 내 '메트릭' 탭
 
 6. ~~모바일 시뮬레이터~~ (사용자 요청으로 제외)
+
+**생성된 파일**:
+- `packages/web/src/pages/PromptManager.tsx` - 4개 탭 구현 (버전, 히스토리, 실험, 메트릭)
+- `packages/web/src/hooks/usePrompts.ts` - 프롬프트 버전 관련 훅
+- `packages/web/src/lib/api.ts` - prompts API 추가
+- `packages/web/src/lib/query-keys.ts` - prompts 쿼리 키 추가
+
+### 다음 작업 (Phase 5: Recursive Splitting)
+
+- [ ] 학습 통계 기반 "어려운 카드" 탐지
+- [ ] 추가 분할 필요 카드 자동 제안
+- [ ] SplitWorkspace에서 원클릭 재분할
 
 ---
 

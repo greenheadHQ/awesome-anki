@@ -19,5 +19,15 @@ export const queryKeys = {
     detail: (id: string) => ['backups', id] as const,
   },
 
+  prompts: {
+    versions: ['prompts', 'versions'] as const,
+    version: (id: string) => ['prompts', 'versions', id] as const,
+    active: ['prompts', 'active'] as const,
+    history: (opts?: { page?: number; versionId?: string }) =>
+      ['prompts', 'history', opts] as const,
+    experiments: ['prompts', 'experiments'] as const,
+    experiment: (id: string) => ['prompts', 'experiments', id] as const,
+  },
+
   health: ['health'] as const,
 };

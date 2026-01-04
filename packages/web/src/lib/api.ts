@@ -150,6 +150,96 @@ export interface EmbeddingGenerateResult {
   lastUpdated: string;
 }
 
+// Prompt Version types
+export interface PromptVersion {
+  id: string;
+  name: string;
+  description: string;
+  systemPrompt: string;
+  splitPromptTemplate: string;
+  analysisPromptTemplate: string;
+  examples: Array<{
+    input: string;
+    output: string;
+    explanation: string;
+  }>;
+  config: {
+    maxClozeChars: number;
+    maxBasicFrontChars: number;
+    maxBasicBackChars: number;
+    minClozeChars: number;
+    requireContextTag: boolean;
+    requireHintForBinary: boolean;
+  };
+  status: 'draft' | 'active' | 'archived';
+  metrics: {
+    totalSplits: number;
+    approvalRate: number;
+    modificationRate: number;
+    rejectionRate: number;
+    avgCharCount: number;
+    avgCardsPerSplit: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActiveVersionInfo {
+  versionId: string;
+  activatedAt: string;
+}
+
+export interface SplitHistoryEntry {
+  id: string;
+  promptVersionId: string;
+  noteId: number;
+  deckName: string;
+  originalContent: string;
+  originalCharCount: number;
+  splitCards: Array<{
+    title: string;
+    content: string;
+    charCount?: number;
+    cardType?: 'cloze' | 'basic';
+  }>;
+  userAction: 'approved' | 'modified' | 'rejected';
+  modificationDetails?: {
+    lengthReduced: boolean;
+    contextAdded: boolean;
+    clozeChanged: boolean;
+    cardsMerged: boolean;
+    cardsSplit: boolean;
+    hintAdded: boolean;
+  };
+  timestamp: string;
+}
+
+export interface Experiment {
+  id: string;
+  name: string;
+  controlVersionId: string;
+  treatmentVersionId: string;
+  startedAt: string;
+  completedAt?: string;
+  status: 'running' | 'completed';
+  controlResults: {
+    splitCount: number;
+    approvalRate: number;
+    modificationRate: number;
+    rejectionRate: number;
+    avgCharCount: number;
+  };
+  treatmentResults: {
+    splitCount: number;
+    approvalRate: number;
+    modificationRate: number;
+    rejectionRate: number;
+    avgCharCount: number;
+  };
+  conclusion?: string;
+  winnerVersionId?: string;
+}
+
 export interface ContextResult extends ValidationResult {
   type: 'context';
   details: {
@@ -283,5 +373,93 @@ export const api = {
         `/embedding/cache/${encodeURIComponent(deckName)}`,
         { method: 'DELETE' }
       ),
+  },
+
+  prompts: {
+    versions: () =>
+      fetchJson<{
+        versions: PromptVersion[];
+        activeVersionId: string | null;
+      }>('/prompts/versions'),
+    version: (id: string) => fetchJson<PromptVersion>(`/prompts/versions/${id}`),
+    active: () =>
+      fetchJson<{
+        activeVersion: PromptVersion | null;
+        systemPrompt: string;
+        splitPromptTemplate: string;
+        analysisPromptTemplate: string;
+      }>('/prompts/active'),
+    activate: (versionId: string) =>
+      fetchJson<{ versionId: string; activatedAt: string }>(
+        `/prompts/versions/${versionId}/activate`,
+        { method: 'POST' }
+      ),
+    history: (opts?: { page?: number; limit?: number; versionId?: string }) => {
+      const params = new URLSearchParams();
+      if (opts?.page) params.set('page', String(opts.page));
+      if (opts?.limit) params.set('limit', String(opts.limit));
+      if (opts?.versionId) params.set('versionId', opts.versionId);
+      const query = params.toString();
+      return fetchJson<{
+        entries: SplitHistoryEntry[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>(`/prompts/history${query ? `?${query}` : ''}`);
+    },
+    addHistory: (data: {
+      promptVersionId: string;
+      noteId: number;
+      deckName: string;
+      originalContent: string;
+      splitCards: Array<{
+        title: string;
+        content: string;
+        charCount?: number;
+        cardType?: 'cloze' | 'basic';
+      }>;
+      userAction: 'approved' | 'modified' | 'rejected';
+      modificationDetails?: {
+        lengthReduced: boolean;
+        contextAdded: boolean;
+        clozeChanged: boolean;
+        cardsMerged: boolean;
+        cardsSplit: boolean;
+        hintAdded: boolean;
+      };
+      qualityChecks: {
+        allCardsUnder80Chars: boolean;
+        allClozeHaveHints: boolean;
+        noEnumerations: boolean;
+        allContextTagsPresent: boolean;
+      } | null;
+    }) =>
+      fetchJson<SplitHistoryEntry>('/prompts/history', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    experiments: () =>
+      fetchJson<{ experiments: Experiment[]; total: number }>('/prompts/experiments'),
+    experiment: (id: string) =>
+      fetchJson<{
+        experiment: Experiment;
+        controlVersion: PromptVersion | null;
+        treatmentVersion: PromptVersion | null;
+      }>(`/prompts/experiments/${id}`),
+    createExperiment: (data: {
+      name: string;
+      controlVersionId: string;
+      treatmentVersionId: string;
+    }) =>
+      fetchJson<Experiment>('/prompts/experiments', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    completeExperiment: (id: string, data: { conclusion: string; winnerVersionId?: string }) =>
+      fetchJson<Experiment>(`/prompts/experiments/${id}/complete`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   },
 };
