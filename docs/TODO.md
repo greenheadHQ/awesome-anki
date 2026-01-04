@@ -438,11 +438,44 @@
   - `deleteVersion` → `deletePromptVersion`
   - `createVersion` → `createPromptVersion`
 
-### 다음 작업 (Phase 4: 웹 UI)
-- [ ] PromptManager 페이지 (버전 목록, 상세, 생성, 수정)
-- [ ] 모바일 시뮬레이터 (카드 렌더링 미리보기)
-- [ ] 실험 대시보드 (A/B 테스트 결과 시각화)
-- [ ] 품질 추적 대시보드 (메트릭, 실패 패턴)
+### 중간 싱크업 결과 (2026-01-04)
+
+| 질문 | 답변 |
+|------|------|
+| 사용 시나리오 | 둘 다 중요하지만, **기존 카드 분할 위주** 우선 |
+| 버전 선택 | **SplitWorkspace에서 선택 가능** (A/B 테스트 지원) |
+| 히스토리 기록 | **자동 기록** (분할 적용/취소 시) |
+| 모바일 시뮬레이터 | ❌ **불필요** |
+| A/B 테스트 방식 | **수동 선택 비교** (실험 대시보드에서 결과 비교) |
+| Phase 5 우선순위 | **Phase 4 완료 후 바로** |
+| UI 배치 | **헤더에 버전 드롭다운** |
+
+### 다음 작업 (Phase 4: 웹 UI) - 싱크업 반영
+
+1. [ ] **SplitWorkspace 프롬프트 버전 선택**
+   - 헤더에 버전 드롭다운 추가
+   - 선택된 버전으로 Gemini 분석 요청
+   - 파일: `packages/web/src/pages/SplitWorkspace.tsx`
+
+2. [ ] **분할 히스토리 자동 기록**
+   - 분할 적용 시 자동으로 `/api/prompts/history` 호출
+   - userAction 자동 판별 (approved/modified/rejected)
+   - 파일: `packages/web/src/hooks/useSplit.ts`
+
+3. [ ] **PromptManager 페이지**
+   - 버전 목록/상세/생성/수정
+   - 사이드바에 메뉴 추가
+   - 파일: `packages/web/src/pages/PromptManager.tsx`
+
+4. [ ] **실험 대시보드**
+   - A/B 테스트 결과 시각화 (승인률, 평균 글자 수)
+   - PromptManager 페이지 내 탭으로 구현
+
+5. [ ] **품질 추적 대시보드**
+   - 버전별 메트릭, 실패 패턴 시각화
+   - PromptManager 페이지 내 탭으로 구현
+
+6. ~~모바일 시뮬레이터~~ (사용자 요청으로 제외)
 
 ---
 
