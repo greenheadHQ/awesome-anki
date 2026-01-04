@@ -242,6 +242,7 @@
 - [ ] ContentRenderer의 컨테이너 파싱 로직을 core 패키지로 이동
 - [ ] API 에러 핸들링 통일
 - [ ] 로딩 상태 스켈레톤 UI 추가
+- [ ] **output/prompts gitignore 예외 추가** - 프롬프트 버전 파일(`v1.0.0.json` 등)이 `output/` gitignore로 인해 추적되지 않음. `.gitignore`에 `!output/prompts/` 예외 추가 필요
 
 ### 테스트
 - [x] 임베딩 모듈 단위 테스트 (25개 통과)
@@ -329,7 +330,7 @@
 | 0 | Claude Skill 생성 | ✅ 완료 | `~/.claude/skills/anki-card-creator/SKILL.md` |
 | 1 | 프롬프트 개선 | ✅ 완료 | `prompts.ts` 전면 개편 |
 | 1.3 | Cloze Enhancer | ✅ 완료 | `cloze-enhancer.ts` 신규 생성 |
-| 2 | 버전 관리 인프라 | ⏳ 대기 | `output/prompts/` 디렉토리 |
+| 2 | 버전 관리 인프라 | ✅ 완료 | `prompt-version/` 모듈 |
 | 3 | API 확장 | ⏳ 대기 | `/api/prompts/*` 라우트 |
 | 4 | 웹 UI | ⏳ 대기 | PromptManager, 모바일 시뮬레이터 |
 | 5 | Recursive Splitting | ⏳ 대기 | 학습 중 틀린 카드 추가 분할 제안 |
@@ -380,18 +381,47 @@
 - `packages/core/src/gemini/validator.ts` (스키마 확장)
 - `packages/core/src/gemini/index.ts` (export 추가)
 
+**Phase 2: 버전 관리 인프라** ✅
+- [x] `output/prompts/` 디렉토리 구조 생성 (versions, history, experiments)
+- [x] `prompt-version/types.ts` - 11개 타입 정의
+  - `PromptVersion` - 프롬프트 버전 메타데이터
+  - `PromptConfig` - 카드 길이/규칙 설정
+  - `PromptMetrics` - 승인률, 평균 글자 수 등 메트릭
+  - `ModificationPatterns` - 실패 패턴 분석용
+  - `SplitHistoryEntry` - 분할 히스토리
+  - `Experiment` - A/B 테스트
+  - `ActiveVersionInfo` - 활성 버전 정보
+  - `FewShotExample` - Few-shot 예제
+  - 기본값 상수 (`DEFAULT_PROMPT_CONFIG`, `DEFAULT_METRICS`, `DEFAULT_MODIFICATION_PATTERNS`)
+- [x] `prompt-version/storage.ts` - 저장소 로직
+  - 버전 CRUD (`listVersions`, `getVersion`, `saveVersion`, `deleteVersion`, `createVersion`)
+  - 활성 버전 관리 (`getActiveVersion`, `setActiveVersion`, `getActivePrompts`)
+  - 히스토리 관리 (`addHistoryEntry`, `getHistory`, `getHistoryByVersion`)
+  - 메트릭 자동 업데이트 (`updateVersionMetrics`)
+  - A/B 테스트 (`createExperiment`, `listExperiments`, `getExperiment`, `completeExperiment`)
+  - 실패 패턴 분석 (`analyzeFailurePatterns`)
+- [x] `prompt-version/index.ts` - 모듈 export
+- [x] `packages/core/src/index.ts` - cloze-enhancer, prompt-version export 추가
+- [x] 초기 버전 `v1.0.0.json` 생성 (output/prompts/versions/)
+
 ### 핵심 변경 (구현 완료)
 - ✅ Cloze 40~60자, Basic Front 20~30자, Back ~20자
 - ✅ Yes/No Cloze 힌트 필수 (자동 감지)
 - ✅ 중첩 맥락 태그 `[DNS > Record > A]`
 - ✅ Self-Correction 루프 (길이 초과 시 재작성)
-- ⏳ A/B 테스트, 품질 추적, 롤백 (Phase 2-3)
+- ✅ 버전 관리 인프라 (저장소, 히스토리, 실험)
+- ⏳ A/B 테스트 UI, 품질 추적 대시보드 (Phase 3-4)
 
-### 다음 작업 (Phase 2)
-- [ ] `output/prompts/` 디렉토리 구조 생성
-- [ ] PromptVersion 타입 정의 (`prompt-version/types.ts`)
-- [ ] 프롬프트 버전 저장소 (`prompt-version/storage.ts`)
-- [ ] API 라우트 추가 (`/api/prompts/*`)
+### 다음 작업 (Phase 3: API 확장)
+- [ ] `packages/server/src/routes/prompts.ts` 신규 생성
+  - GET `/api/prompts/versions` - 버전 목록
+  - GET `/api/prompts/versions/:id` - 버전 상세
+  - POST `/api/prompts/versions` - 새 버전 생성
+  - POST `/api/prompts/versions/:id/activate` - 활성화
+  - GET `/api/prompts/history` - 분할 히스토리
+  - GET `/api/prompts/versions/:id/failure-patterns` - 실패 패턴 분석
+  - POST `/api/prompts/experiment` - A/B 테스트 시작
+- [ ] 기존 Split API 확장 (`promptVersionId`, `userAction`, `modificationDetails`)
 
 ---
 

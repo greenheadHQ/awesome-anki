@@ -27,13 +27,14 @@ anki-claude-code/
 ├── packages/
 │   ├── core/           # 핵심 로직 (CLI + 웹 공용)
 │   │   └── src/
-│   │       ├── anki/       # AnkiConnect API 래퍼
-│   │       ├── gemini/     # Gemini API 호출 (분할)
-│   │       ├── embedding/  # Gemini 임베딩 API (유사도)
-│   │       ├── parser/     # 텍스트 파싱
-│   │       ├── splitter/   # 분할 로직
-│   │       ├── validator/  # 카드 검증 (fact-check, freshness, similarity, context)
-│   │       └── utils/      # 유틸리티
+│   │       ├── anki/           # AnkiConnect API 래퍼
+│   │       ├── gemini/         # Gemini API 호출 (분할, cloze-enhancer)
+│   │       ├── embedding/      # Gemini 임베딩 API (유사도)
+│   │       ├── parser/         # 텍스트 파싱
+│   │       ├── splitter/       # 분할 로직
+│   │       ├── validator/      # 카드 검증 (fact-check, freshness, similarity, context)
+│   │       ├── prompt-version/ # 프롬프트 버전 관리
+│   │       └── utils/          # 유틸리티
 │   │
 │   ├── server/         # Hono REST API
 │   │   └── src/
@@ -285,34 +286,165 @@ Markdown + KaTeX + Cloze 렌더링
 
 ## Gemini 프롬프트 설계
 
-### 시스템 프롬프트 (페르소나)
-```
-당신은 **인지 심리학 기반 지식 구조화 전문가**입니다.
-컴퓨터 과학(CS) 복잡한 개념을 '원자적 단위(Atomic Units)'로 분할합니다.
+> SuperMemo's Twenty Rules 기반으로 전면 개편 (2026-01-04)
 
-핵심 원칙:
-1. 한 카드 = 한 개념
-2. 구체적 질문
-3. 컨텍스트 유지
-```
+### 시스템 프롬프트 핵심 원칙
+
+**카드 길이 기준**:
+| 타입 | 구성 | 기준 | 최대 |
+|------|------|------|------|
+| Cloze | 전체 | 40~60자 | 80자 |
+| Basic | Front (Q:) | 20~30자 | 40자 |
+| Basic | Back (A:) | ~20자 | 30자 |
+
+**필수 원칙 (MUST)**:
+1. **Minimum Information**: 카드당 한 가지 사실만
+2. **One Answer Only**: 하나의 답만 허용
+3. **No Yes/No**: 힌트 필수 (`{{c1::값::옵션1 | 옵션2}}`)
+4. **Context-Free**: 중첩 맥락 태그 필수 (`[DNS > Record > A]`)
+5. **No Enumerations**: 개별 카드로 분리
+6. **No Example Trap**: 역방향 질문 ("X의 예시?" ❌)
+
+**Self-Correction 루프**:
+1. 생성 후 글자 수 검토
+2. 상한선 초과 시 재작성
+3. 그래도 초과 시 추가 분할
 
 ### 분할 응답 형식
 ```typescript
 interface SplitResponse {
   shouldSplit: boolean;
-  originalNoteId: number;
+  originalNoteId: string;
   mainCardIndex: number;
   splitCards: Array<{
     title: string;
     content: string;
+    cardType?: 'cloze' | 'basic';      // NEW
+    charCount?: number;                 // NEW
+    contextTag?: string;                // NEW (예: "[DNS > Record > A]")
     inheritImages: string[];
     inheritTags: string[];
     preservedLinks: string[];
     backLinks: string[];
   }>;
   splitReason: string;
-  splitType: 'hard' | 'soft';
+  splitType: 'hard' | 'soft' | 'none';
+  qualityChecks?: {                     // NEW
+    allCardsUnder80Chars: boolean;
+    allClozeHaveHints: boolean;
+    noEnumerations: boolean;
+    allContextTagsPresent: boolean;
+  };
 }
+```
+
+---
+
+## Cloze Enhancer 모듈 (gemini/cloze-enhancer.ts)
+
+이진 패턴을 자동 감지하여 Yes/No Cloze에 힌트를 추가
+
+### 지원 패턴 (25개)
+
+| 카테고리 | 패턴 예시 | 힌트 |
+|----------|----------|------|
+| 존재/상태 | 있다/없다, 가능/불가능 | `있다 \| 없다` |
+| 방향성 | 증가/감소, 상향/하향 | `증가 ↑ \| 감소 ↓` |
+| 연결/동기화 | 동기/비동기, 블로킹/논블로킹 | `Sync \| Async` |
+| 상태 | 상태/무상태, 영구/임시 | `Stateful \| Stateless` |
+| 계층 | 물리/논리, 하드웨어/소프트웨어 | `Physical \| Logical` |
+| 평가 | 장점/단점, 성공/실패 | `Pros ✓ \| Cons ✗` |
+
+### 주요 함수
+
+```typescript
+// 텍스트 분석 및 힌트 추가
+const analysis = analyzeClozes(cardText);
+// 결과: { original, enhanced, enhancedCount, clozeMatches[] }
+
+// 카드 품질 검사
+const quality = checkCardQuality(cardText);
+// 결과: { charCount, isUnder80Chars, hasHint, needsHint, hasContextTag, cardType, issues[] }
+
+// 이진 패턴 감지
+const pattern = detectBinaryPattern("연결 지향적");
+// 결과: { pattern, hint: "연결 지향 | 비연결", category: "connection" }
+```
+
+---
+
+## 프롬프트 버전 관리 (prompt-version/)
+
+프롬프트 버전 관리, A/B 테스트, 품질 추적 시스템
+
+### 데이터 구조
+
+```typescript
+interface PromptVersion {
+  id: string;                    // "v1.0.0"
+  name: string;                  // "SuperMemo 기반 최적화"
+  systemPrompt: string;
+  splitPromptTemplate: string;
+  examples: FewShotExample[];
+  config: PromptConfig;          // 카드 길이/규칙 설정
+  status: 'draft' | 'active' | 'archived';
+  metrics: PromptMetrics;        // 승인률, 평균 글자 수 등
+  modificationPatterns: ModificationPatterns;  // 실패 패턴 분석
+}
+
+interface SplitHistoryEntry {
+  promptVersionId: string;
+  noteId: number;
+  originalContent: string;
+  splitCards: SplitCard[];
+  userAction: 'approved' | 'modified' | 'rejected';
+  modificationDetails?: {...};   // 글자 수 줄임, 맥락 추가 등
+}
+
+interface Experiment {
+  controlVersionId: string;
+  treatmentVersionId: string;
+  controlResults: { splitCount, approvalRate, avgCharCount };
+  treatmentResults: { splitCount, approvalRate, avgCharCount };
+  conclusion?: string;
+  winnerVersionId?: string;
+}
+```
+
+### 저장 구조
+
+```
+output/prompts/
+├── versions/           # 버전 파일
+│   └── v1.0.0.json
+├── history/            # 분할 히스토리 (날짜별)
+│   └── history-2026-01-04.json
+├── experiments/        # A/B 테스트
+│   └── exp-{timestamp}.json
+└── active-version.json # 현재 활성 버전
+```
+
+### 주요 기능
+
+```typescript
+// 버전 관리
+await listVersions();
+await getVersion('v1.0.0');
+await createVersion({ name, systemPrompt, ... });
+await setActiveVersion('v1.0.0');
+
+// 히스토리
+await addHistoryEntry({ promptVersionId, noteId, ... });
+await getHistory(startDate, endDate);
+await getHistoryByVersion('v1.0.0');
+
+// 실패 패턴 분석
+const { patterns, insights } = await analyzeFailurePatterns('v1.0.0');
+// insights: ["글자 수 초과가 65%: 프롬프트에서 상한선 강조 필요", ...]
+
+// A/B 테스트
+await createExperiment('테스트명', 'v1.0.0', 'v1.1.0');
+await completeExperiment('exp-id', '결론', 'v1.1.0');
 ```
 
 ---
