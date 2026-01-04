@@ -484,6 +484,15 @@
 - `packages/web/src/lib/api.ts` - prompts API 추가
 - `packages/web/src/lib/query-keys.ts` - prompts 쿼리 키 추가
 
+### 후속 작업 (도움말 업데이트)
+
+- [ ] **HelpTooltip 추가**: PromptManager, SplitWorkspace 버전 선택에 도움말 아이콘 추가
+- [ ] **Help 페이지 업데이트**: 프롬프트 버전 관리 기능 설명 섹션 추가
+  - 버전 관리 개념 설명
+  - PromptManager 사용법
+  - A/B 테스트 방법
+  - 메트릭 해석 가이드
+
 ### 다음 작업 (Phase 5: Recursive Splitting)
 
 - [ ] 학습 통계 기반 "어려운 카드" 탐지
