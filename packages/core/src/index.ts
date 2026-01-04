@@ -77,6 +77,22 @@ export {
   type AnalysisResponse,
 } from './gemini/validator.js';
 
+export {
+  BINARY_PATTERNS,
+  extractClozeValue,
+  hasHint,
+  detectBinaryPattern,
+  addHintToCloze,
+  analyzeClozes,
+  enhanceCardsWithHints,
+  countCardChars,
+  detectCardType,
+  checkCardQuality,
+  type BinaryPattern,
+  type ClozeAnalysis,
+  type CardQualityCheck,
+} from './gemini/cloze-enhancer.js';
+
 // Parser exports
 export * from './parser/index.js';
 
@@ -109,3 +125,6 @@ export * from './validator/index.js';
 
 // Embedding exports
 export * from './embedding/index.js';
+
+// Prompt Version exports
+export * from './prompt-version/index.js';
