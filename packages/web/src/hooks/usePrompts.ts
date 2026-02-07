@@ -1,9 +1,9 @@
 /**
  * usePrompts - 프롬프트 버전 관리 훅
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
-import { queryKeys } from '../lib/query-keys';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../lib/api";
+import { queryKeys } from "../lib/query-keys";
 
 /**
  * 프롬프트 버전 목록 조회
@@ -20,7 +20,7 @@ export function usePromptVersions() {
  */
 export function usePromptVersion(versionId: string | null) {
   return useQuery({
-    queryKey: queryKeys.prompts.version(versionId || ''),
+    queryKey: queryKeys.prompts.version(versionId || ""),
     queryFn: () => api.prompts.version(versionId!),
     enabled: !!versionId,
   });
@@ -53,7 +53,11 @@ export function useActivatePrompt() {
 /**
  * 분할 히스토리 조회
  */
-export function usePromptHistory(opts?: { page?: number; limit?: number; versionId?: string }) {
+export function usePromptHistory(opts?: {
+  page?: number;
+  limit?: number;
+  versionId?: string;
+}) {
   return useQuery({
     queryKey: queryKeys.prompts.history(opts),
     queryFn: () => api.prompts.history(opts),
@@ -89,7 +93,7 @@ export function useExperiments() {
  */
 export function useExperiment(experimentId: string | null) {
   return useQuery({
-    queryKey: queryKeys.prompts.experiment(experimentId || ''),
+    queryKey: queryKeys.prompts.experiment(experimentId || ""),
     queryFn: () => api.prompts.experiment(experimentId!),
     enabled: !!experimentId,
   });
@@ -103,7 +107,9 @@ export function useCreateExperiment() {
   return useMutation({
     mutationFn: api.prompts.createExperiment,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.experiments });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prompts.experiments,
+      });
     },
   });
 }
@@ -114,10 +120,17 @@ export function useCreateExperiment() {
 export function useCompleteExperiment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { conclusion: string; winnerVersionId?: string } }) =>
-      api.prompts.completeExperiment(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { conclusion: string; winnerVersionId?: string };
+    }) => api.prompts.completeExperiment(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.experiments });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prompts.experiments,
+      });
     },
   });
 }

@@ -6,16 +6,22 @@
  * - Toggle: ::: toggle [type] [title]
  */
 
-export type ContainerType = 'tip' | 'warning' | 'error' | 'note' | 'link' | 'toggle';
+export type ContainerType =
+  | "tip"
+  | "warning"
+  | "error"
+  | "note"
+  | "link"
+  | "toggle";
 
 export interface ContainerBlock {
   type: ContainerType;
-  toggleType?: string;  // toggle의 경우: tip, warning, error, note, todo
-  title?: string;       // toggle의 제목
+  toggleType?: string; // toggle의 경우: tip, warning, error, note, todo
+  title?: string; // toggle의 제목
   content: string;
   startLine: number;
   endLine: number;
-  raw: string;          // 원본 텍스트 (:::...:::)
+  raw: string; // 원본 텍스트 (:::...:::)
 }
 
 interface ParserState {
@@ -25,7 +31,8 @@ interface ParserState {
 }
 
 // ::: 시작 패턴
-const CONTAINER_START_REGEX = /^:::\s*(tip|warning|error|note|link|toggle)(?:\s+(.*))?$/;
+const CONTAINER_START_REGEX =
+  /^:::\s*(tip|warning|error|note|link|toggle)(?:\s+(.*))?$/;
 // ::: 종료 패턴
 const CONTAINER_END_REGEX = /^:::$/;
 
@@ -34,8 +41,8 @@ const CONTAINER_END_REGEX = /^:::$/;
  */
 export function parseContainers(content: string): ContainerBlock[] {
   // HTML <br> 태그를 줄바꿈으로 변환하여 처리
-  const normalizedContent = content.replace(/<br\s*\/?>/gi, '\n');
-  const lines = normalizedContent.split('\n');
+  const normalizedContent = content.replace(/<br\s*\/?>/gi, "\n");
+  const lines = normalizedContent.split("\n");
 
   const state: ParserState = {
     depth: 0,
@@ -61,14 +68,14 @@ export function parseContainers(content: string): ContainerBlock[] {
       };
 
       // toggle인 경우 추가 파싱
-      if (type === 'toggle' && rest) {
+      if (type === "toggle" && rest) {
         const parts = rest.trim().split(/\s+/);
         if (parts.length > 0) {
           // 첫 번째 단어가 알려진 타입인지 확인
-          const knownTypes = ['tip', 'warning', 'error', 'note', 'todo'];
+          const knownTypes = ["tip", "warning", "error", "note", "todo"];
           if (knownTypes.includes(parts[0])) {
             block.toggleType = parts[0];
-            block.title = parts.slice(1).join(' ') || undefined;
+            block.title = parts.slice(1).join(" ") || undefined;
           } else {
             // 타입이 아니면 전체를 제목으로
             block.title = rest.trim();
@@ -90,7 +97,7 @@ export function parseContainers(content: string): ContainerBlock[] {
 
       if (block && blockContent) {
         const endLine = state.lineNumber;
-        const rawContent = blockContent.join('\n');
+        const rawContent = blockContent.join("\n");
 
         result.push({
           type: block.type!,
@@ -99,7 +106,7 @@ export function parseContainers(content: string): ContainerBlock[] {
           content: rawContent,
           startLine: block.startLine!,
           endLine,
-          raw: `:::${block.type}${block.toggleType ? ' ' + block.toggleType : ''}${block.title ? ' ' + block.title : ''}\n${rawContent}\n:::`,
+          raw: `:::${block.type}${block.toggleType ? " " + block.toggleType : ""}${block.title ? " " + block.title : ""}\n${rawContent}\n:::`,
         });
       }
       continue;
@@ -118,14 +125,14 @@ export function parseContainers(content: string): ContainerBlock[] {
  * 컨테이너 블록이 todo 상태인지 확인
  */
 export function isTodoContainer(block: ContainerBlock): boolean {
-  return block.type === 'toggle' && block.toggleType === 'todo';
+  return block.type === "toggle" && block.toggleType === "todo";
 }
 
 /**
  * 컨테이너 블록이 link 타입인지 확인
  */
 export function isLinkContainer(block: ContainerBlock): boolean {
-  return block.type === 'link';
+  return block.type === "link";
 }
 
 /**
@@ -140,7 +147,7 @@ export function extractContainersFromHtml(html: string): {
   // 컨테이너 외부 텍스트 추출
   let plainText = html;
   for (const container of containers) {
-    plainText = plainText.replace(container.raw, '');
+    plainText = plainText.replace(container.raw, "");
   }
 
   return { containers, plainText };

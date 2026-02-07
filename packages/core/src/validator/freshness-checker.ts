@@ -2,10 +2,10 @@
  * 최신성 검사 - 기술 변화로 인한 outdated 내용 감지
  */
 
-import { GoogleGenAI } from '@google/genai';
-import type { FreshnessResult, OutdatedItem } from './types.js';
+import { GoogleGenAI } from "@google/genai";
+import type { FreshnessResult, OutdatedItem } from "./types.js";
 
-const MODEL_NAME = 'gemini-2.0-flash';
+const MODEL_NAME = "gemini-2.0-flash";
 
 let genAI: GoogleGenAI | null = null;
 
@@ -13,7 +13,7 @@ function getClient(): GoogleGenAI {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
+      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다.");
     }
     genAI = new GoogleGenAI({ apiKey });
   }
@@ -62,19 +62,20 @@ export interface FreshnessCheckOptions {
  */
 export async function checkFreshness(
   cardContent: string,
-  options: FreshnessCheckOptions = {}
+  options: FreshnessCheckOptions = {},
 ): Promise<FreshnessResult> {
   const client = getClient();
 
   // Cloze 마크업 제거
   const cleanContent = cardContent
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, '$1')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/:::\s*\w+[^\n]*\n?/g, '')
-    .replace(/^:::\s*$/gm, '')
+    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/:::\s*\w+[^\n]*\n?/g, "")
+    .replace(/^:::\s*$/gm, "")
     .trim();
 
-  const currentDate = options.checkDate || new Date().toISOString().split('T')[0];
+  const currentDate =
+    options.checkDate || new Date().toISOString().split("T")[0];
 
   const prompt = `
 ${FRESHNESS_CHECK_PROMPT}
@@ -90,50 +91,56 @@ ${cleanContent}
       model: MODEL_NAME,
       contents: prompt,
       config: {
-        responseMimeType: 'application/json',
+        responseMimeType: "application/json",
         maxOutputTokens: 2048,
       },
     });
 
     const text = response.text;
     if (!text) {
-      throw new Error('Gemini 응답이 비어있습니다.');
+      throw new Error("Gemini 응답이 비어있습니다.");
     }
 
     const parsed = JSON.parse(text);
 
     // 결과 변환
-    const outdatedItems: OutdatedItem[] = (parsed.outdatedItems || []).map((item: any) => ({
-      content: item.content || '',
-      reason: item.reason || '',
-      currentInfo: item.currentInfo,
-      severity: item.severity || 'low',
-    }));
+    const outdatedItems: OutdatedItem[] = (parsed.outdatedItems || []).map(
+      (item: any) => ({
+        content: item.content || "",
+        reason: item.reason || "",
+        currentInfo: item.currentInfo,
+        severity: item.severity || "low",
+      }),
+    );
 
     const freshness = parsed.freshness ?? (parsed.isFresh ? 100 : 50);
 
     // 상태 결정
-    let status: FreshnessResult['status'] = 'valid';
-    const highSeverityCount = outdatedItems.filter(i => i.severity === 'high').length;
-    const mediumSeverityCount = outdatedItems.filter(i => i.severity === 'medium').length;
+    let status: FreshnessResult["status"] = "valid";
+    const highSeverityCount = outdatedItems.filter(
+      (i) => i.severity === "high",
+    ).length;
+    const mediumSeverityCount = outdatedItems.filter(
+      (i) => i.severity === "medium",
+    ).length;
 
     if (highSeverityCount > 0) {
-      status = 'error';
+      status = "error";
     } else if (mediumSeverityCount > 0 || freshness < 70) {
-      status = 'warning';
+      status = "warning";
     }
 
     // 권장 액션 결정
     let recommendedAction: string | undefined;
-    if (status === 'error') {
-      recommendedAction = '카드 내용을 최신 정보로 업데이트하세요.';
-    } else if (status === 'warning') {
-      recommendedAction = '일부 내용 검토가 필요합니다.';
+    if (status === "error") {
+      recommendedAction = "카드 내용을 최신 정보로 업데이트하세요.";
+    } else if (status === "warning") {
+      recommendedAction = "일부 내용 검토가 필요합니다.";
     }
 
     return {
       status,
-      type: 'freshness',
+      type: "freshness",
       message: parsed.summary || getStatusMessage(status, outdatedItems.length),
       confidence: freshness,
       details: {
@@ -144,11 +151,11 @@ ${cleanContent}
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('최신성 검사 실패:', error);
+    console.error("최신성 검사 실패:", error);
     return {
-      status: 'unknown',
-      type: 'freshness',
-      message: '최신성 검사를 수행할 수 없습니다.',
+      status: "unknown",
+      type: "freshness",
+      message: "최신성 검사를 수행할 수 없습니다.",
       confidence: 0,
       details: {
         outdatedItems: [],
@@ -160,13 +167,13 @@ ${cleanContent}
 
 function getStatusMessage(status: string, outdatedCount: number): string {
   switch (status) {
-    case 'valid':
-      return '내용이 최신 상태입니다.';
-    case 'warning':
+    case "valid":
+      return "내용이 최신 상태입니다.";
+    case "warning":
       return `${outdatedCount}개 항목 검토 필요`;
-    case 'error':
+    case "error":
       return `${outdatedCount}개 항목 업데이트 필요`;
     default:
-      return '검사 불가';
+      return "검사 불가";
   }
 }

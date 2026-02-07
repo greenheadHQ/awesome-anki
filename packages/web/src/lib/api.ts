@@ -1,8 +1,8 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
     ...options,
   });
   if (!res.ok) {
@@ -35,7 +35,7 @@ export interface CardSummary {
     uniqueNumbers: number;
   };
   isSplitable: boolean;
-  splitType: 'hard' | 'soft' | null;
+  splitType: "hard" | "soft" | null;
 }
 
 export interface CardDetail extends CardSummary {
@@ -52,7 +52,7 @@ export interface CardDetail extends CardSummary {
 
 export interface SplitPreview {
   noteId: number;
-  splitType: 'hard' | 'soft' | 'none';
+  splitType: "hard" | "soft" | "none";
   originalText?: string;
   splitCards?: Array<{
     title: string;
@@ -70,11 +70,11 @@ export interface BackupEntry {
   deckName: string;
   originalNoteId: number;
   createdNoteIds: number[];
-  splitType: 'hard' | 'soft';
+  splitType: "hard" | "soft";
 }
 
 // Validation types
-export type ValidationStatus = 'valid' | 'warning' | 'error' | 'unknown';
+export type ValidationStatus = "valid" | "warning" | "error" | "unknown";
 
 export interface ValidationResult {
   status: ValidationStatus;
@@ -86,7 +86,7 @@ export interface ValidationResult {
 }
 
 export interface FactCheckResult extends ValidationResult {
-  type: 'fact-check';
+  type: "fact-check";
   details: {
     claims: Array<{
       claim: string;
@@ -101,13 +101,13 @@ export interface FactCheckResult extends ValidationResult {
 }
 
 export interface FreshnessResult extends ValidationResult {
-  type: 'freshness';
+  type: "freshness";
   details: {
     outdatedItems: Array<{
       content: string;
       reason: string;
       currentInfo?: string;
-      severity: 'low' | 'medium' | 'high';
+      severity: "low" | "medium" | "high";
     }>;
     lastKnownUpdate?: string;
     recommendedAction?: string;
@@ -115,7 +115,7 @@ export interface FreshnessResult extends ValidationResult {
 }
 
 export interface SimilarityResult extends ValidationResult {
-  type: 'similarity';
+  type: "similarity";
   details: {
     similarCards: Array<{
       noteId: number;
@@ -123,7 +123,7 @@ export interface SimilarityResult extends ValidationResult {
       matchedContent: string;
     }>;
     isDuplicate: boolean;
-    method?: 'jaccard' | 'embedding';
+    method?: "jaccard" | "embedding";
   };
 }
 
@@ -171,7 +171,7 @@ export interface PromptVersion {
     requireContextTag: boolean;
     requireHintForBinary: boolean;
   };
-  status: 'draft' | 'active' | 'archived';
+  status: "draft" | "active" | "archived";
   metrics: {
     totalSplits: number;
     approvalRate: number;
@@ -200,9 +200,9 @@ export interface SplitHistoryEntry {
     title: string;
     content: string;
     charCount?: number;
-    cardType?: 'cloze' | 'basic';
+    cardType?: "cloze" | "basic";
   }>;
-  userAction: 'approved' | 'modified' | 'rejected';
+  userAction: "approved" | "modified" | "rejected";
   modificationDetails?: {
     lengthReduced: boolean;
     contextAdded: boolean;
@@ -221,7 +221,7 @@ export interface Experiment {
   treatmentVersionId: string;
   startedAt: string;
   completedAt?: string;
-  status: 'running' | 'completed';
+  status: "running" | "completed";
   controlResults: {
     splitCount: number;
     approvalRate: number;
@@ -241,12 +241,12 @@ export interface Experiment {
 }
 
 export interface ContextResult extends ValidationResult {
-  type: 'context';
+  type: "context";
   details: {
     inconsistencies: Array<{
       description: string;
       conflictingNoteId?: number;
-      severity: 'low' | 'medium' | 'high';
+      severity: "low" | "medium" | "high";
     }>;
     relatedCards: number[];
   };
@@ -267,17 +267,20 @@ export interface AllValidationResult {
 // API Functions
 export const api = {
   decks: {
-    list: () => fetchJson<{ decks: string[] }>('/decks'),
+    list: () => fetchJson<{ decks: string[] }>("/decks"),
     stats: (name: string) =>
       fetchJson<DeckStats>(`/decks/${encodeURIComponent(name)}/stats`),
   },
 
   cards: {
-    getByDeck: (deck: string, opts?: { page?: number; limit?: number; filter?: string }) => {
+    getByDeck: (
+      deck: string,
+      opts?: { page?: number; limit?: number; filter?: string },
+    ) => {
       const params = new URLSearchParams();
-      if (opts?.page) params.set('page', String(opts.page));
-      if (opts?.limit) params.set('limit', String(opts.limit));
-      if (opts?.filter) params.set('filter', opts.filter);
+      if (opts?.page) params.set("page", String(opts.page));
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.filter) params.set("filter", opts.filter);
       const query = params.toString();
       return fetchJson<{
         cards: CardSummary[];
@@ -285,15 +288,15 @@ export const api = {
         page: number;
         limit: number;
         totalPages: number;
-      }>(`/cards/deck/${encodeURIComponent(deck)}${query ? `?${query}` : ''}`);
+      }>(`/cards/deck/${encodeURIComponent(deck)}${query ? `?${query}` : ""}`);
     },
     getById: (noteId: number) => fetchJson<CardDetail>(`/cards/${noteId}`),
   },
 
   split: {
     preview: (noteId: number, useGemini = false) =>
-      fetchJson<SplitPreview>('/split/preview', {
-        method: 'POST',
+      fetchJson<SplitPreview>("/split/preview", {
+        method: "POST",
         body: JSON.stringify({ noteId, useGemini }),
       }),
     apply: (data: {
@@ -307,71 +310,89 @@ export const api = {
         backupId: string;
         mainNoteId: number;
         newNoteIds: number[];
-      }>('/split/apply', {
-        method: 'POST',
+      }>("/split/apply", {
+        method: "POST",
         body: JSON.stringify(data),
       }),
   },
 
   backup: {
-    list: () => fetchJson<{ backups: BackupEntry[]; total: number }>('/backup'),
-    latest: () => fetchJson<{ backupId: string | null }>('/backup/latest'),
+    list: () => fetchJson<{ backups: BackupEntry[]; total: number }>("/backup"),
+    latest: () => fetchJson<{ backupId: string | null }>("/backup/latest"),
     rollback: (backupId: string) =>
       fetchJson<{
         success: boolean;
         restoredNoteId?: number;
         deletedNoteIds?: number[];
         error?: string;
-      }>(`/backup/${backupId}/rollback`, { method: 'POST' }),
+      }>(`/backup/${backupId}/rollback`, { method: "POST" }),
   },
 
-  health: () => fetchJson<{ status: string; timestamp: string }>('/health'),
+  health: () => fetchJson<{ status: string; timestamp: string }>("/health"),
 
   validate: {
     factCheck: (noteId: number, thorough = false) =>
-      fetchJson<{ noteId: number; result: FactCheckResult }>('/validate/fact-check', {
-        method: 'POST',
-        body: JSON.stringify({ noteId, thorough }),
-      }),
+      fetchJson<{ noteId: number; result: FactCheckResult }>(
+        "/validate/fact-check",
+        {
+          method: "POST",
+          body: JSON.stringify({ noteId, thorough }),
+        },
+      ),
     freshness: (noteId: number) =>
-      fetchJson<{ noteId: number; result: FreshnessResult }>('/validate/freshness', {
-        method: 'POST',
-        body: JSON.stringify({ noteId }),
-      }),
-    similarity: (noteId: number, deckName: string, opts?: { threshold?: number; useEmbedding?: boolean }) =>
-      fetchJson<{ noteId: number; result: SimilarityResult }>('/validate/similarity', {
-        method: 'POST',
-        body: JSON.stringify({
-          noteId,
-          deckName,
-          threshold: opts?.threshold,
-          useEmbedding: opts?.useEmbedding,
-        }),
-      }),
+      fetchJson<{ noteId: number; result: FreshnessResult }>(
+        "/validate/freshness",
+        {
+          method: "POST",
+          body: JSON.stringify({ noteId }),
+        },
+      ),
+    similarity: (
+      noteId: number,
+      deckName: string,
+      opts?: { threshold?: number; useEmbedding?: boolean },
+    ) =>
+      fetchJson<{ noteId: number; result: SimilarityResult }>(
+        "/validate/similarity",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            noteId,
+            deckName,
+            threshold: opts?.threshold,
+            useEmbedding: opts?.useEmbedding,
+          }),
+        },
+      ),
     context: (noteId: number, includeReverseLinks = true) =>
-      fetchJson<{ noteId: number; result: ContextResult }>('/validate/context', {
-        method: 'POST',
-        body: JSON.stringify({ noteId, includeReverseLinks }),
-      }),
+      fetchJson<{ noteId: number; result: ContextResult }>(
+        "/validate/context",
+        {
+          method: "POST",
+          body: JSON.stringify({ noteId, includeReverseLinks }),
+        },
+      ),
     all: (noteId: number, deckName: string) =>
-      fetchJson<AllValidationResult>('/validate/all', {
-        method: 'POST',
+      fetchJson<AllValidationResult>("/validate/all", {
+        method: "POST",
         body: JSON.stringify({ noteId, deckName }),
       }),
   },
 
   embedding: {
     status: (deckName: string) =>
-      fetchJson<EmbeddingStatus>(`/embedding/status/${encodeURIComponent(deckName)}`),
+      fetchJson<EmbeddingStatus>(
+        `/embedding/status/${encodeURIComponent(deckName)}`,
+      ),
     generate: (deckName: string, forceRegenerate = false) =>
-      fetchJson<EmbeddingGenerateResult>('/embedding/generate', {
-        method: 'POST',
+      fetchJson<EmbeddingGenerateResult>("/embedding/generate", {
+        method: "POST",
         body: JSON.stringify({ deckName, forceRegenerate }),
       }),
     deleteCache: (deckName: string) =>
       fetchJson<{ deckName: string; deleted: boolean; message: string }>(
         `/embedding/cache/${encodeURIComponent(deckName)}`,
-        { method: 'DELETE' }
+        { method: "DELETE" },
       ),
   },
 
@@ -380,25 +401,26 @@ export const api = {
       fetchJson<{
         versions: PromptVersion[];
         activeVersionId: string | null;
-      }>('/prompts/versions'),
-    version: (id: string) => fetchJson<PromptVersion>(`/prompts/versions/${id}`),
+      }>("/prompts/versions"),
+    version: (id: string) =>
+      fetchJson<PromptVersion>(`/prompts/versions/${id}`),
     active: () =>
       fetchJson<{
         activeVersion: PromptVersion | null;
         systemPrompt: string;
         splitPromptTemplate: string;
         analysisPromptTemplate: string;
-      }>('/prompts/active'),
+      }>("/prompts/active"),
     activate: (versionId: string) =>
       fetchJson<{ versionId: string; activatedAt: string }>(
         `/prompts/versions/${versionId}/activate`,
-        { method: 'POST' }
+        { method: "POST" },
       ),
     history: (opts?: { page?: number; limit?: number; versionId?: string }) => {
       const params = new URLSearchParams();
-      if (opts?.page) params.set('page', String(opts.page));
-      if (opts?.limit) params.set('limit', String(opts.limit));
-      if (opts?.versionId) params.set('versionId', opts.versionId);
+      if (opts?.page) params.set("page", String(opts.page));
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.versionId) params.set("versionId", opts.versionId);
       const query = params.toString();
       return fetchJson<{
         entries: SplitHistoryEntry[];
@@ -406,7 +428,7 @@ export const api = {
         page: number;
         limit: number;
         totalPages: number;
-      }>(`/prompts/history${query ? `?${query}` : ''}`);
+      }>(`/prompts/history${query ? `?${query}` : ""}`);
     },
     addHistory: (data: {
       promptVersionId: string;
@@ -417,9 +439,9 @@ export const api = {
         title: string;
         content: string;
         charCount?: number;
-        cardType?: 'cloze' | 'basic';
+        cardType?: "cloze" | "basic";
       }>;
-      userAction: 'approved' | 'modified' | 'rejected';
+      userAction: "approved" | "modified" | "rejected";
       modificationDetails?: {
         lengthReduced: boolean;
         contextAdded: boolean;
@@ -435,12 +457,14 @@ export const api = {
         allContextTagsPresent: boolean;
       } | null;
     }) =>
-      fetchJson<SplitHistoryEntry>('/prompts/history', {
-        method: 'POST',
+      fetchJson<SplitHistoryEntry>("/prompts/history", {
+        method: "POST",
         body: JSON.stringify(data),
       }),
     experiments: () =>
-      fetchJson<{ experiments: Experiment[]; total: number }>('/prompts/experiments'),
+      fetchJson<{ experiments: Experiment[]; total: number }>(
+        "/prompts/experiments",
+      ),
     experiment: (id: string) =>
       fetchJson<{
         experiment: Experiment;
@@ -452,13 +476,16 @@ export const api = {
       controlVersionId: string;
       treatmentVersionId: string;
     }) =>
-      fetchJson<Experiment>('/prompts/experiments', {
-        method: 'POST',
+      fetchJson<Experiment>("/prompts/experiments", {
+        method: "POST",
         body: JSON.stringify(data),
       }),
-    completeExperiment: (id: string, data: { conclusion: string; winnerVersionId?: string }) =>
+    completeExperiment: (
+      id: string,
+      data: { conclusion: string; winnerVersionId?: string },
+    ) =>
       fetchJson<Experiment>(`/prompts/experiments/${id}/complete`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(data),
       }),
   },

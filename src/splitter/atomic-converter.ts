@@ -6,9 +6,12 @@
  * - Soft Split (LLM): 구분자 없지만 밀도 높은 경우 Gemini 제안
  */
 
-import { isTodoContainer, parseContainers } from '../parser/container-parser.js';
-import { parseClozes, resetClozesToC1 } from '../parser/cloze-parser.js';
-import { parseNidLinks, createBackLink } from '../parser/nid-parser.js';
+import { parseClozes, resetClozesToC1 } from "../parser/cloze-parser.js";
+import {
+  isTodoContainer,
+  parseContainers,
+} from "../parser/container-parser.js";
+import { createBackLink, parseNidLinks } from "../parser/nid-parser.js";
 
 export interface AtomicCard {
   title: string;
@@ -27,7 +30,7 @@ export interface SplitAnalysis {
 }
 
 export interface HardSplitPoint {
-  type: 'header' | 'divider';
+  type: "header" | "divider";
   line: number;
   content: string;
 }
@@ -44,8 +47,8 @@ const IMAGE_PATTERN = /<img\s+src="([^"]+)"/g;
  */
 export function analyzeForSplit(htmlContent: string): SplitAnalysis {
   // HTML <br>을 줄바꿈으로 변환
-  const normalized = htmlContent.replace(/<br\s*\/?>/gi, '\n');
-  const lines = normalized.split('\n');
+  const normalized = htmlContent.replace(/<br\s*\/?>/gi, "\n");
+  const lines = normalized.split("\n");
 
   const hardSplitPoints: HardSplitPoint[] = [];
   let hasTodoBlock = false;
@@ -64,13 +67,13 @@ export function analyzeForSplit(htmlContent: string): SplitAnalysis {
 
     if (HEADER_PATTERN.test(line)) {
       hardSplitPoints.push({
-        type: 'header',
+        type: "header",
         line: i,
         content: line,
       });
     } else if (DIVIDER_PATTERN.test(line)) {
       hardSplitPoints.push({
-        type: 'divider',
+        type: "divider",
         line: i,
         content: line,
       });
@@ -85,7 +88,10 @@ export function analyzeForSplit(htmlContent: string): SplitAnalysis {
     hardSplitPoints,
     hasTodoBlock,
     clozeCount: clozes.length,
-    estimatedCards: Math.max(1, hardSplitPoints.filter((p) => p.type === 'header').length),
+    estimatedCards: Math.max(
+      1,
+      hardSplitPoints.filter((p) => p.type === "header").length,
+    ),
   };
 }
 
@@ -94,7 +100,7 @@ export function analyzeForSplit(htmlContent: string): SplitAnalysis {
  */
 export function performHardSplit(
   htmlContent: string,
-  originalNoteId: number
+  originalNoteId: number,
 ): AtomicCard[] | null {
   const analysis = analyzeForSplit(htmlContent);
 
@@ -102,12 +108,12 @@ export function performHardSplit(
     return null;
   }
 
-  const normalized = htmlContent.replace(/<br\s*\/?>/gi, '\n');
-  const lines = normalized.split('\n');
+  const normalized = htmlContent.replace(/<br\s*\/?>/gi, "\n");
+  const lines = normalized.split("\n");
 
   const cards: AtomicCard[] = [];
   let currentSection: string[] = [];
-  let currentTitle = '';
+  let currentTitle = "";
   let isFirst = true;
 
   for (let i = 0; i < lines.length; i++) {
@@ -118,9 +124,11 @@ export function performHardSplit(
     if (HEADER_PATTERN.test(trimmed)) {
       // 이전 섹션 저장
       if (currentSection.length > 0) {
-        const content = currentSection.join('<br>');
+        const content = currentSection.join("<br>");
         if (hasMeaningfulContent(content)) {
-          cards.push(createAtomicCard(content, currentTitle, isFirst, originalNoteId));
+          cards.push(
+            createAtomicCard(content, currentTitle, isFirst, originalNoteId),
+          );
           isFirst = false;
         }
       }
@@ -135,9 +143,11 @@ export function performHardSplit(
 
   // 마지막 섹션 저장
   if (currentSection.length > 0) {
-    const content = currentSection.join('<br>');
+    const content = currentSection.join("<br>");
     if (hasMeaningfulContent(content)) {
-      cards.push(createAtomicCard(content, currentTitle, isFirst, originalNoteId));
+      cards.push(
+        createAtomicCard(content, currentTitle, isFirst, originalNoteId),
+      );
     }
   }
 
@@ -151,7 +161,7 @@ function createAtomicCard(
   content: string,
   title: string,
   isMainCard: boolean,
-  originalNoteId: number
+  originalNoteId: number,
 ): AtomicCard {
   // 이미지 추출
   const images: string[] = [];
@@ -170,7 +180,7 @@ function createAtomicCard(
   // 메인 카드가 아니면 역링크 추가
   let finalContent = normalizedContent;
   if (!isMainCard) {
-    const backLink = createBackLink('원본 카드', originalNoteId.toString());
+    const backLink = createBackLink("원본 카드", originalNoteId.toString());
     finalContent = `${normalizedContent}<br><br>::: link 관련 카드<br>${backLink}<br>:::`;
   }
 
@@ -199,7 +209,7 @@ function extractTitle(content: string): string {
     return textMatch[1].trim().slice(0, 50);
   }
 
-  return '분할된 카드';
+  return "분할된 카드";
 }
 
 /**
@@ -207,7 +217,7 @@ function extractTitle(content: string): string {
  */
 function hasMeaningfulContent(content: string): boolean {
   // HTML 태그 제거
-  const textOnly = content.replace(/<[^>]+>/g, '').trim();
+  const textOnly = content.replace(/<[^>]+>/g, "").trim();
   // 최소 20자 이상이어야 함
   return textOnly.length >= 20;
 }
@@ -221,7 +231,7 @@ export function extractTodoBlocks(htmlContent: string): {
 } {
   const containers = parseContainers(htmlContent);
   const todoBlocks: string[] = [];
-  let mainContent = htmlContent;
+  const mainContent = htmlContent;
 
   for (const container of containers) {
     if (isTodoContainer(container)) {

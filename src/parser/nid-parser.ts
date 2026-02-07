@@ -8,9 +8,9 @@
 export interface NidLink {
   title: string;
   nid: string;
-  raw: string;        // 원본 텍스트
+  raw: string; // 원본 텍스트
   startIndex: number; // 문자열 내 시작 위치
-  endIndex: number;   // 문자열 내 끝 위치
+  endIndex: number; // 문자열 내 끝 위치
 }
 
 // nid 링크 패턴: [제목|nid13자리숫자]
@@ -65,15 +65,22 @@ export function createNidLink(title: string, nid: string): string {
 /**
  * 역링크 생성 (분할 카드에서 원본 카드로의 링크)
  */
-export function createBackLink(originalTitle: string, originalNid: string): string {
+export function createBackLink(
+  originalTitle: string,
+  originalNid: string,
+): string {
   return createNidLink(`원문: ${originalTitle}`, originalNid);
 }
 
 /**
  * nid를 새 nid로 교체
  */
-export function replaceNid(content: string, oldNid: string, newNid: string): string {
-  const pattern = new RegExp(`\\|nid${oldNid}\\]`, 'g');
+export function replaceNid(
+  content: string,
+  oldNid: string,
+  newNid: string,
+): string {
+  const pattern = new RegExp(`\\|nid${oldNid}\\]`, "g");
   return content.replace(pattern, `|nid${newNid}]`);
 }
 

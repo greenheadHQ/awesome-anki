@@ -267,7 +267,10 @@ body {
 }
 
 /* Prose 커스텀 */
-.prose h1, .prose h2, .prose h3, .prose h4 {
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
 }
@@ -303,12 +306,24 @@ body {
   line-height: 1.3;
 }
 
-.content-rendered h1 { font-size: 1.6em; }
-.content-rendered h2 { font-size: 1.4em; }
-.content-rendered h3 { font-size: 1.2em; }
-.content-rendered h4 { font-size: 1.1em; }
-.content-rendered h5 { font-size: 1em; }
-.content-rendered h6 { font-size: 0.9em; }
+.content-rendered h1 {
+  font-size: 1.6em;
+}
+.content-rendered h2 {
+  font-size: 1.4em;
+}
+.content-rendered h3 {
+  font-size: 1.2em;
+}
+.content-rendered h4 {
+  font-size: 1.1em;
+}
+.content-rendered h5 {
+  font-size: 1em;
+}
+.content-rendered h6 {
+  font-size: 0.9em;
+}
 
 /* Bullet point 스타일 - 점(•) 표시 */
 .content-rendered ul {
@@ -378,7 +393,7 @@ body {
   background-color: rgba(0, 0, 0, 0.05);
   padding: 0.2em 0.4em;
   border-radius: 3px;
-  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-family: "Menlo", "Monaco", "Courier New", monospace;
   font-size: 0.9em;
 }
 
@@ -428,43 +443,87 @@ body {
 
 /* Radix UI 애니메이션 */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes zoomIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes zoomOut {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.95); }
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 
 @keyframes slideInFromTop {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInFromBottom {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInFromLeft {
-  from { opacity: 0; transform: translateX(-4px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInFromRight {
-  from { opacity: 0; transform: translateX(4px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* Radix 애니메이션 클래스 */
@@ -480,11 +539,27 @@ body {
   animation-fill-mode: both;
 }
 
-.fade-in-0 { animation-name: fadeIn; }
-.fade-out-0 { animation-name: fadeOut; }
-.zoom-in-95 { animation-name: zoomIn; }
-.zoom-out-95 { animation-name: zoomOut; }
-.slide-in-from-top-2 { animation-name: slideInFromTop; }
-.slide-in-from-bottom-2 { animation-name: slideInFromBottom; }
-.slide-in-from-left-2 { animation-name: slideInFromLeft; }
-.slide-in-from-right-2 { animation-name: slideInFromRight; }
+.fade-in-0 {
+  animation-name: fadeIn;
+}
+.fade-out-0 {
+  animation-name: fadeOut;
+}
+.zoom-in-95 {
+  animation-name: zoomIn;
+}
+.zoom-out-95 {
+  animation-name: zoomOut;
+}
+.slide-in-from-top-2 {
+  animation-name: slideInFromTop;
+}
+.slide-in-from-bottom-2 {
+  animation-name: slideInFromBottom;
+}
+.slide-in-from-left-2 {
+  animation-name: slideInFromLeft;
+}
+.slide-in-from-right-2 {
+  animation-name: slideInFromRight;
+}

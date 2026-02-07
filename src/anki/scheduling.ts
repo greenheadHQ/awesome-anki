@@ -2,17 +2,17 @@
  * 학습 데이터 관리 (스케줄링)
  */
 
-import { ankiConnect } from './client.js';
+import { ankiConnect } from "./client.js";
 
 export interface CardSchedulingInfo {
   cardId: number;
-  interval: number;    // 일 단위 간격
-  factor: number;      // ease factor (2500 = 250%)
-  due: number;         // 다음 복습 예정일
-  reps: number;        // 복습 횟수
-  lapses: number;      // 실패 횟수
-  type: number;        // 카드 타입 (0=new, 1=learning, 2=review)
-  queue: number;       // 큐 (0=new, 1=learning, 2=review)
+  interval: number; // 일 단위 간격
+  factor: number; // ease factor (2500 = 250%)
+  due: number; // 다음 복습 예정일
+  reps: number; // 복습 횟수
+  lapses: number; // 실패 횟수
+  type: number; // 카드 타입 (0=new, 1=learning, 2=review)
+  queue: number; // 큐 (0=new, 1=learning, 2=review)
 }
 
 export interface FullCardInfo extends CardSchedulingInfo {
@@ -26,8 +26,12 @@ export interface FullCardInfo extends CardSchedulingInfo {
 /**
  * 카드 스케줄링 정보 조회
  */
-export async function getCardSchedulingInfo(cardIds: number[]): Promise<CardSchedulingInfo[]> {
-  const result = await ankiConnect<FullCardInfo[]>('cardsInfo', { cards: cardIds });
+export async function getCardSchedulingInfo(
+  cardIds: number[],
+): Promise<CardSchedulingInfo[]> {
+  const result = await ankiConnect<FullCardInfo[]>("cardsInfo", {
+    cards: cardIds,
+  });
 
   return result.map((card) => ({
     cardId: card.cardId,
@@ -44,15 +48,17 @@ export async function getCardSchedulingInfo(cardIds: number[]): Promise<CardSche
 /**
  * 전체 카드 정보 조회 (백업용)
  */
-export async function getFullCardInfo(cardIds: number[]): Promise<FullCardInfo[]> {
-  return ankiConnect<FullCardInfo[]>('cardsInfo', { cards: cardIds });
+export async function getFullCardInfo(
+  cardIds: number[],
+): Promise<FullCardInfo[]> {
+  return ankiConnect<FullCardInfo[]>("cardsInfo", { cards: cardIds });
 }
 
 /**
  * 노트의 카드 ID 조회
  */
 export async function findCardsByNote(noteId: number): Promise<number[]> {
-  return ankiConnect<number[]>('findCards', { query: `nid:${noteId}` });
+  return ankiConnect<number[]>("findCards", { query: `nid:${noteId}` });
 }
 
 /**
@@ -63,7 +69,7 @@ export async function findCardsByNote(noteId: number): Promise<number[]> {
  */
 export async function setCardScheduling(
   cardId: number,
-  scheduling: Partial<CardSchedulingInfo>
+  scheduling: Partial<CardSchedulingInfo>,
 ): Promise<void> {
   // AnkiConnect에서 지원하는 필드만 설정
   // setSpecificValueOfCard는 제한적이므로 직접 SQL 실행이 필요할 수 있음
@@ -73,7 +79,7 @@ export async function setCardScheduling(
   // - setDueDate: due date 설정
 
   if (scheduling.factor !== undefined) {
-    await ankiConnect('setEaseFactors', {
+    await ankiConnect("setEaseFactors", {
       cards: [cardId],
       easeFactors: [scheduling.factor],
     });
@@ -92,24 +98,26 @@ export async function setCardScheduling(
  */
 export async function copySchedulingToNewCards(
   sourceCardId: number,
-  targetCardIds: number[]
+  targetCardIds: number[],
 ): Promise<void> {
   const [sourceInfo] = await getCardSchedulingInfo([sourceCardId]);
 
   if (!sourceInfo) {
-    console.warn(`원본 카드 ${sourceCardId}의 스케줄링 정보를 찾을 수 없습니다.`);
+    console.warn(
+      `원본 카드 ${sourceCardId}의 스케줄링 정보를 찾을 수 없습니다.`,
+    );
     return;
   }
 
   // ease factor만 복제 (interval/due는 AnkiConnect로 직접 설정 어려움)
   if (sourceInfo.factor && sourceInfo.factor !== 2500) {
     try {
-      await ankiConnect('setEaseFactors', {
+      await ankiConnect("setEaseFactors", {
         cards: targetCardIds,
         easeFactors: targetCardIds.map(() => sourceInfo.factor),
       });
     } catch (error) {
-      console.warn('ease factor 복제 실패:', error);
+      console.warn("ease factor 복제 실패:", error);
     }
   }
 }
@@ -119,7 +127,7 @@ export async function copySchedulingToNewCards(
  */
 export async function cloneSchedulingAfterSplit(
   originalNoteId: number,
-  newCardIds: number[]
+  newCardIds: number[],
 ): Promise<{ copied: boolean; sourceScheduling?: CardSchedulingInfo }> {
   // 원본 노트의 카드 찾기
   const originalCardIds = await findCardsByNote(originalNoteId);

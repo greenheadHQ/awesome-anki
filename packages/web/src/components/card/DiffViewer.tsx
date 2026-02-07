@@ -1,10 +1,11 @@
 /**
  * DiffViewer - 분할 전후 Diff 비교 컴포넌트
  */
-import { useMemo, useState } from 'react';
-import { cn } from '../../lib/utils';
-import { ArrowRight, Plus, Minus, Equal, Eye, Code } from 'lucide-react';
-import { ContentRenderer } from './ContentRenderer';
+
+import { ArrowRight, Code, Equal, Eye, Minus, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { cn } from "../../lib/utils";
+import { ContentRenderer } from "./ContentRenderer";
 
 interface DiffViewerProps {
   original: string;
@@ -17,7 +18,7 @@ interface DiffViewerProps {
 }
 
 interface DiffLine {
-  type: 'added' | 'removed' | 'unchanged';
+  type: "added" | "removed" | "unchanged";
   content: string;
   lineNumber?: number;
 }
@@ -26,8 +27,8 @@ interface DiffLine {
  * 간단한 라인 기반 diff 계산
  */
 function computeLineDiff(original: string, modified: string): DiffLine[] {
-  const originalLines = original.split('\n');
-  const modifiedLines = modified.split('\n');
+  const originalLines = original.split("\n");
+  const modifiedLines = modified.split("\n");
   const result: DiffLine[] = [];
 
   const maxLen = Math.max(originalLines.length, modifiedLines.length);
@@ -38,34 +39,44 @@ function computeLineDiff(original: string, modified: string): DiffLine[] {
 
     if (origLine === modLine) {
       if (origLine !== undefined) {
-        result.push({ type: 'unchanged', content: origLine, lineNumber: i + 1 });
+        result.push({
+          type: "unchanged",
+          content: origLine,
+          lineNumber: i + 1,
+        });
       }
     } else if (origLine === undefined) {
-      result.push({ type: 'added', content: modLine, lineNumber: i + 1 });
+      result.push({ type: "added", content: modLine, lineNumber: i + 1 });
     } else if (modLine === undefined) {
-      result.push({ type: 'removed', content: origLine, lineNumber: i + 1 });
+      result.push({ type: "removed", content: origLine, lineNumber: i + 1 });
     } else {
-      result.push({ type: 'removed', content: origLine, lineNumber: i + 1 });
-      result.push({ type: 'added', content: modLine });
+      result.push({ type: "removed", content: origLine, lineNumber: i + 1 });
+      result.push({ type: "added", content: modLine });
     }
   }
 
   return result;
 }
 
-export function DiffViewer({ original, splitCards, className }: DiffViewerProps) {
+export function DiffViewer({
+  original,
+  splitCards,
+  className,
+}: DiffViewerProps) {
   const mainCard = splitCards.find((c) => c.isMainCard) || splitCards[0];
-  const subCards = splitCards.filter((c) => !c.isMainCard && c !== splitCards[0]);
+  const subCards = splitCards.filter(
+    (c) => !c.isMainCard && c !== splitCards[0],
+  );
 
   const diffLines = useMemo(() => {
     if (!mainCard) return [];
     return computeLineDiff(original, mainCard.content);
   }, [original, mainCard]);
 
-  const hasChanges = diffLines.some((line) => line.type !== 'unchanged');
+  const hasChanges = diffLines.some((line) => line.type !== "unchanged");
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       {/* 분할 요약 */}
       <div className="flex items-center gap-3 text-sm">
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded">
@@ -83,7 +94,7 @@ export function DiffViewer({ original, splitCards, className }: DiffViewerProps)
       <div className="border rounded-lg overflow-hidden">
         <div className="bg-muted px-3 py-2 border-b flex items-center justify-between">
           <span className="font-medium text-sm">
-            {mainCard?.isMainCard ? '메인 카드 (nid 유지)' : '카드 1'}
+            {mainCard?.isMainCard ? "메인 카드 (nid 유지)" : "카드 1"}
           </span>
           {hasChanges ? (
             <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
@@ -100,15 +111,15 @@ export function DiffViewer({ original, splitCards, className }: DiffViewerProps)
             <div
               key={idx}
               className={cn(
-                'flex gap-2 py-0.5 px-2 -mx-2',
-                line.type === 'added' && 'bg-green-500/10',
-                line.type === 'removed' && 'bg-red-500/10'
+                "flex gap-2 py-0.5 px-2 -mx-2",
+                line.type === "added" && "bg-green-500/10",
+                line.type === "removed" && "bg-red-500/10",
               )}
             >
               <span className="w-6 text-right text-muted-foreground select-none">
-                {line.type === 'removed' ? (
+                {line.type === "removed" ? (
                   <Minus className="w-3 h-3 text-red-500 inline" />
-                ) : line.type === 'added' ? (
+                ) : line.type === "added" ? (
                   <Plus className="w-3 h-3 text-green-500 inline" />
                 ) : (
                   <Equal className="w-3 h-3 text-muted-foreground inline" />
@@ -116,12 +127,12 @@ export function DiffViewer({ original, splitCards, className }: DiffViewerProps)
               </span>
               <span
                 className={cn(
-                  'flex-1 whitespace-pre-wrap break-words',
-                  line.type === 'removed' && 'text-red-700 line-through',
-                  line.type === 'added' && 'text-green-700'
+                  "flex-1 whitespace-pre-wrap break-words",
+                  line.type === "removed" && "text-red-700 line-through",
+                  line.type === "added" && "text-green-700",
                 )}
               >
-                {line.content || ' '}
+                {line.content || " "}
               </span>
             </div>
           ))}
@@ -140,7 +151,9 @@ export function DiffViewer({ original, splitCards, className }: DiffViewerProps)
             </span>
           </div>
           <div className="p-3 bg-card text-sm font-mono overflow-x-auto max-h-60 overflow-y-auto">
-            <pre className="whitespace-pre-wrap break-words">{card.content}</pre>
+            <pre className="whitespace-pre-wrap break-words">
+              {card.content}
+            </pre>
           </div>
         </div>
       ))}
@@ -161,31 +174,39 @@ interface SplitPreviewCardProps {
   className?: string;
 }
 
-export function SplitPreviewCard({ card, index, className }: SplitPreviewCardProps) {
-  const [viewMode, setViewMode] = useState<'rendered' | 'raw'>('rendered');
+export function SplitPreviewCard({
+  card,
+  index,
+  className,
+}: SplitPreviewCardProps) {
+  const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
 
   return (
-    <div className={cn('border rounded-lg overflow-hidden', className)}>
+    <div className={cn("border rounded-lg overflow-hidden", className)}>
       <div className="bg-muted px-3 py-2 border-b flex items-center justify-between">
         <span className="font-medium text-sm truncate">{card.title}</span>
         <div className="flex items-center gap-2 shrink-0 ml-2">
           {/* Raw/Rendered 토글 */}
           <div className="flex rounded-md border overflow-hidden">
             <button
-              onClick={() => setViewMode('rendered')}
+              onClick={() => setViewMode("rendered")}
               className={cn(
-                'p-1 transition-colors',
-                viewMode === 'rendered' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                "p-1 transition-colors",
+                viewMode === "rendered"
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted",
               )}
               title="렌더링"
             >
               <Eye className="w-3 h-3" />
             </button>
             <button
-              onClick={() => setViewMode('raw')}
+              onClick={() => setViewMode("raw")}
               className={cn(
-                'p-1 transition-colors',
-                viewMode === 'raw' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                "p-1 transition-colors",
+                viewMode === "raw"
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted",
               )}
               title="Raw"
             >
@@ -204,8 +225,12 @@ export function SplitPreviewCard({ card, index, className }: SplitPreviewCardPro
         </div>
       </div>
       <div className="p-3 text-sm max-h-60 overflow-y-auto">
-        {viewMode === 'rendered' ? (
-          <ContentRenderer content={card.content} showToggle={false} defaultView="rendered" />
+        {viewMode === "rendered" ? (
+          <ContentRenderer
+            content={card.content}
+            showToggle={false}
+            defaultView="rendered"
+          />
         ) : (
           <pre className="whitespace-pre-wrap break-words font-mono text-xs bg-muted p-2 rounded">
             {card.content}

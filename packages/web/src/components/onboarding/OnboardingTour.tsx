@@ -1,19 +1,21 @@
-import Joyride, { STATUS, type Step, type CallBackProps } from 'react-joyride';
-import { useOnboarding } from '../../hooks/useOnboarding';
+import Joyride, { type CallBackProps, STATUS, type Step } from "react-joyride";
+import { useOnboarding } from "../../hooks/useOnboarding";
 
 const steps: Step[] = [
   {
-    target: 'body',
+    target: "body",
     content: (
       <div className="text-left">
-        <h3 className="font-bold text-lg mb-2">Anki Splitter에 오신 것을 환영합니다!</h3>
+        <h3 className="font-bold text-lg mb-2">
+          Anki Splitter에 오신 것을 환영합니다!
+        </h3>
         <p className="text-sm text-gray-600">
           이 도구는 정보 밀도가 높은 Anki 카드를 원자적 단위로 분할해줍니다.
           간단한 가이드를 통해 주요 기능을 알아보세요.
         </p>
       </div>
     ),
-    placement: 'center',
+    placement: "center",
     disableBeacon: true,
   },
   {
@@ -22,13 +24,15 @@ const steps: Step[] = [
       <div className="text-left">
         <h3 className="font-bold mb-2">1. 덱 선택</h3>
         <p className="text-sm text-gray-600">
-          먼저 작업할 덱을 선택하세요.<br /><br />
-          선택하면 통계 카드(총 노트, 분할 후보, 임베딩 상태)와
-          빠른 작업 버튼이 표시됩니다.
+          먼저 작업할 덱을 선택하세요.
+          <br />
+          <br />
+          선택하면 통계 카드(총 노트, 분할 후보, 임베딩 상태)와 빠른 작업 버튼이
+          표시됩니다.
         </p>
       </div>
     ),
-    placement: 'bottom',
+    placement: "bottom",
   },
   {
     target: '[data-tour="nav-split"]',
@@ -36,12 +40,12 @@ const steps: Step[] = [
       <div className="text-left">
         <h3 className="font-bold mb-2">2. Split 페이지</h3>
         <p className="text-sm text-gray-600">
-          분할 후보를 선택하고 미리보기를 확인한 후 분할을 적용합니다.
-          3단 레이아웃으로 원본과 결과를 비교할 수 있습니다.
+          분할 후보를 선택하고 미리보기를 확인한 후 분할을 적용합니다. 3단
+          레이아웃으로 원본과 결과를 비교할 수 있습니다.
         </p>
       </div>
     ),
-    placement: 'right',
+    placement: "right",
     spotlightPadding: 0,
   },
   {
@@ -50,12 +54,12 @@ const steps: Step[] = [
       <div className="text-left">
         <h3 className="font-bold mb-2">3. Backups 페이지</h3>
         <p className="text-sm text-gray-600">
-          분할 적용 전 자동으로 백업이 생성됩니다.
-          언제든지 롤백하여 원래 상태로 복구할 수 있습니다.
+          분할 적용 전 자동으로 백업이 생성됩니다. 언제든지 롤백하여 원래 상태로
+          복구할 수 있습니다.
         </p>
       </div>
     ),
-    placement: 'right',
+    placement: "right",
     spotlightPadding: 0,
   },
   {
@@ -64,12 +68,12 @@ const steps: Step[] = [
       <div className="text-left">
         <h3 className="font-bold mb-2">4. 도움말</h3>
         <p className="text-sm text-gray-600">
-          더 자세한 기능 설명과 FAQ는 Help 페이지에서 확인하세요.
-          언제든지 다시 볼 수 있습니다!
+          더 자세한 기능 설명과 FAQ는 Help 페이지에서 확인하세요. 언제든지 다시
+          볼 수 있습니다!
         </p>
       </div>
     ),
-    placement: 'right',
+    placement: "right",
     spotlightPadding: 0,
   },
 ];
@@ -105,30 +109,30 @@ export function OnboardingTour({ run, onComplete }: OnboardingTourProps) {
       callback={handleCallback}
       styles={{
         options: {
-          primaryColor: '#3b82f6',
+          primaryColor: "#3b82f6",
           zIndex: 10000,
         },
         tooltip: {
-          borderRadius: '8px',
-          padding: '16px',
+          borderRadius: "8px",
+          padding: "16px",
         },
         buttonNext: {
-          borderRadius: '6px',
-          padding: '8px 16px',
+          borderRadius: "6px",
+          padding: "8px 16px",
         },
         buttonBack: {
-          marginRight: '8px',
+          marginRight: "8px",
         },
         buttonSkip: {
-          color: '#6b7280',
+          color: "#6b7280",
         },
       }}
       locale={{
-        back: '이전',
-        close: '닫기',
-        last: '완료',
-        next: '다음',
-        skip: '건너뛰기',
+        back: "이전",
+        close: "닫기",
+        last: "완료",
+        next: "다음",
+        skip: "건너뛰기",
       }}
     />
   );

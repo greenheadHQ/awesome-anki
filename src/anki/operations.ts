@@ -3,15 +3,15 @@
  */
 
 import {
-  findNotes,
-  getNotesInfo,
-  updateNoteFields,
   addNote,
   addNotes,
   addTags,
-  type NoteInfo,
+  findNotes,
+  getNotesInfo,
   type NoteFields,
-} from './client.js';
+  type NoteInfo,
+  updateNoteFields,
+} from "./client.js";
 
 export interface SplitCard {
   title: string;
@@ -27,10 +27,10 @@ export interface SplitResult {
   mainCardIndex: number;
   splitCards: SplitCard[];
   splitReason: string;
-  splitType: 'hard' | 'soft';
+  splitType: "hard" | "soft";
 }
 
-const MODEL_NAME = 'KaTeX and Markdown Cloze';
+const MODEL_NAME = "KaTeX and Markdown Cloze";
 
 /**
  * 덱의 모든 노트 조회
@@ -56,11 +56,11 @@ export async function getNoteById(noteId: number): Promise<NoteInfo | null> {
 export async function updateMainCard(
   noteId: number,
   newText: string,
-  backExtra?: string
+  backExtra?: string,
 ): Promise<void> {
   const fields: NoteFields = { Text: newText };
   if (backExtra !== undefined) {
-    fields['Back Extra'] = backExtra;
+    fields["Back Extra"] = backExtra;
   }
   await updateNoteFields(noteId, fields);
 }
@@ -72,14 +72,14 @@ export async function updateMainCard(
 export async function addSplitCards(
   deckName: string,
   cards: SplitCard[],
-  originalTags: string[]
+  originalTags: string[],
 ): Promise<number[]> {
   const notes = cards.map((card) => ({
     deckName,
     modelName: MODEL_NAME,
     fields: {
       Text: card.content,
-      'Back Extra': '',
+      "Back Extra": "",
     } as NoteFields,
     tags: [...originalTags, ...card.inheritTags],
   }));
@@ -96,7 +96,7 @@ export async function addSplitCards(
 export async function applySplitResult(
   deckName: string,
   result: SplitResult,
-  originalTags: string[]
+  originalTags: string[],
 ): Promise<{ mainNoteId: number; newNoteIds: number[] }> {
   const { originalNoteId, mainCardIndex, splitCards } = result;
 
@@ -118,7 +118,7 @@ export async function applySplitResult(
  * 노트 텍스트 필드 추출
  */
 export function extractTextField(note: NoteInfo): string {
-  return note.fields.Text?.value || '';
+  return note.fields.Text?.value || "";
 }
 
 /**

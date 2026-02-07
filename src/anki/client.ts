@@ -3,7 +3,8 @@
  * https://foosoft.net/projects/anki-connect/
  */
 
-const ANKI_CONNECT_URL = process.env.ANKI_CONNECT_URL || 'http://localhost:8765';
+const ANKI_CONNECT_URL =
+  process.env.ANKI_CONNECT_URL || "http://localhost:8765";
 const ANKI_CONNECT_VERSION = 6;
 
 export interface AnkiConnectRequest {
@@ -29,7 +30,7 @@ export interface NoteInfo {
 
 export interface NoteFields {
   Text: string;
-  'Back Extra'?: string;
+  "Back Extra"?: string;
 }
 
 /**
@@ -37,7 +38,7 @@ export interface NoteFields {
  */
 export async function ankiConnect<T>(
   action: string,
-  params?: Record<string, unknown>
+  params?: Record<string, unknown>,
 ): Promise<T> {
   const request: AnkiConnectRequest = {
     action,
@@ -46,8 +47,8 @@ export async function ankiConnect<T>(
   };
 
   const response = await fetch(ANKI_CONNECT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
 
@@ -68,49 +69,49 @@ export async function ankiConnect<T>(
  * AnkiConnect 버전 확인
  */
 export async function getVersion(): Promise<number> {
-  return ankiConnect<number>('version');
+  return ankiConnect<number>("version");
 }
 
 /**
  * 프로필 목록 조회
  */
 export async function getProfiles(): Promise<string[]> {
-  return ankiConnect<string[]>('getProfiles');
+  return ankiConnect<string[]>("getProfiles");
 }
 
 /**
  * 덱 목록 조회
  */
 export async function getDeckNames(): Promise<string[]> {
-  return ankiConnect<string[]>('deckNames');
+  return ankiConnect<string[]>("deckNames");
 }
 
 /**
  * 모델 목록 조회
  */
 export async function getModelNames(): Promise<string[]> {
-  return ankiConnect<string[]>('modelNames');
+  return ankiConnect<string[]>("modelNames");
 }
 
 /**
  * 모델 필드 조회
  */
 export async function getModelFieldNames(modelName: string): Promise<string[]> {
-  return ankiConnect<string[]>('modelFieldNames', { modelName });
+  return ankiConnect<string[]>("modelFieldNames", { modelName });
 }
 
 /**
  * 노트 검색 (노트 ID 반환)
  */
 export async function findNotes(query: string): Promise<number[]> {
-  return ankiConnect<number[]>('findNotes', { query });
+  return ankiConnect<number[]>("findNotes", { query });
 }
 
 /**
  * 노트 정보 조회
  */
 export async function getNotesInfo(notes: number[]): Promise<NoteInfo[]> {
-  return ankiConnect<NoteInfo[]>('notesInfo', { notes });
+  return ankiConnect<NoteInfo[]>("notesInfo", { notes });
 }
 
 /**
@@ -118,9 +119,9 @@ export async function getNotesInfo(notes: number[]): Promise<NoteInfo[]> {
  */
 export async function updateNoteFields(
   noteId: number,
-  fields: NoteFields
+  fields: NoteFields,
 ): Promise<null> {
-  return ankiConnect<null>('updateNoteFields', {
+  return ankiConnect<null>("updateNoteFields", {
     note: { id: noteId, fields },
   });
 }
@@ -132,9 +133,9 @@ export async function addNote(
   deckName: string,
   modelName: string,
   fields: NoteFields,
-  tags: string[] = []
+  tags: string[] = [],
 ): Promise<number> {
-  return ankiConnect<number>('addNote', {
+  return ankiConnect<number>("addNote", {
     note: {
       deckName,
       modelName,
@@ -156,9 +157,9 @@ export async function addNotes(
     modelName: string;
     fields: NoteFields;
     tags: string[];
-  }>
+  }>,
 ): Promise<(number | null)[]> {
-  return ankiConnect<(number | null)[]>('addNotes', {
+  return ankiConnect<(number | null)[]>("addNotes", {
     notes: notes.map((note) => ({
       ...note,
       options: { allowDuplicate: true },
@@ -170,19 +171,19 @@ export async function addNotes(
  * 노트 태그 추가
  */
 export async function addTags(notes: number[], tags: string): Promise<null> {
-  return ankiConnect<null>('addTags', { notes, tags });
+  return ankiConnect<null>("addTags", { notes, tags });
 }
 
 /**
  * 노트 삭제
  */
 export async function deleteNotes(notes: number[]): Promise<null> {
-  return ankiConnect<null>('deleteNotes', { notes });
+  return ankiConnect<null>("deleteNotes", { notes });
 }
 
 /**
  * 동기화 실행
  */
 export async function sync(): Promise<null> {
-  return ankiConnect<null>('sync');
+  return ankiConnect<null>("sync");
 }

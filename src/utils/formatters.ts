@@ -41,7 +41,7 @@ export function extractStyles(html: string): Map<string, number> {
  */
 export function validateStylePreservation(
   original: string,
-  processed: string
+  processed: string,
 ): {
   isValid: boolean;
   missingStyles: string[];
@@ -78,17 +78,17 @@ export function validateStylePreservation(
  */
 export function decodeHtmlEntities(text: string): string {
   const entities: Record<string, string> = {
-    '&nbsp;': ' ',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&amp;': '&',
-    '&quot;': '"',
-    '&#39;': "'",
+    "&nbsp;": " ",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&amp;": "&",
+    "&quot;": '"',
+    "&#39;": "'",
   };
 
   let result = text;
   for (const [entity, char] of Object.entries(entities)) {
-    result = result.replace(new RegExp(entity, 'g'), char);
+    result = result.replace(new RegExp(entity, "g"), char);
   }
   return result;
 }
@@ -98,20 +98,18 @@ export function decodeHtmlEntities(text: string): string {
  */
 export function encodeHtmlEntities(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**
  * 줄바꿈 정규화 (<br> 태그 통일)
  */
 export function normalizeLineBreaks(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '<br>')
-    .replace(/\n/g, '<br>');
+  return html.replace(/<br\s*\/?>/gi, "<br>").replace(/\n/g, "<br>");
 }
 
 /**
@@ -119,9 +117,9 @@ export function normalizeLineBreaks(html: string): string {
  */
 export function cleanupEmptyLines(html: string): string {
   return html
-    .replace(/(<br>\s*){3,}/gi, '<br><br>')
-    .replace(/^\s*<br>/i, '')
-    .replace(/<br>\s*$/i, '');
+    .replace(/(<br>\s*){3,}/gi, "<br><br>")
+    .replace(/^\s*<br>/i, "")
+    .replace(/<br>\s*$/i, "");
 }
 
 /**
@@ -129,9 +127,9 @@ export function cleanupEmptyLines(html: string): string {
  */
 export function normalizeCardTitle(title: string): string {
   return title
-    .replace(/<[^>]+>/g, '') // HTML 태그 제거
-    .replace(/^#+\s*/, '') // 마크다운 헤더 제거
-    .replace(/\s+/g, ' ') // 연속 공백 정리
+    .replace(/<[^>]+>/g, "") // HTML 태그 제거
+    .replace(/^#+\s*/, "") // 마크다운 헤더 제거
+    .replace(/\s+/g, " ") // 연속 공백 정리
     .trim()
     .slice(0, 100); // 최대 100자
 }
@@ -155,7 +153,7 @@ export function extractImagePaths(html: string): string[] {
  * 이미지 경로가 유효한지 확인 (확장자 기반)
  */
 export function isValidImagePath(path: string): boolean {
-  const validExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+  const validExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"];
   const lowerPath = path.toLowerCase();
   return validExtensions.some((ext) => lowerPath.endsWith(ext));
 }

@@ -3,10 +3,14 @@
  */
 
 // 검증 결과 상태
-export type ValidationStatus = 'valid' | 'warning' | 'error' | 'unknown';
+export type ValidationStatus = "valid" | "warning" | "error" | "unknown";
 
 // 검증 유형
-export type ValidationType = 'fact-check' | 'freshness' | 'similarity' | 'context';
+export type ValidationType =
+  | "fact-check"
+  | "freshness"
+  | "similarity"
+  | "context";
 
 // 기본 검증 결과 인터페이스
 export interface ValidationResult {
@@ -20,7 +24,7 @@ export interface ValidationResult {
 
 // 팩트 체크 결과
 export interface FactCheckResult extends ValidationResult {
-  type: 'fact-check';
+  type: "fact-check";
   details: {
     claims: ClaimVerification[];
     overallAccuracy: number;
@@ -38,7 +42,7 @@ export interface ClaimVerification {
 
 // 최신성 검사 결과
 export interface FreshnessResult extends ValidationResult {
-  type: 'freshness';
+  type: "freshness";
   details: {
     outdatedItems: OutdatedItem[];
     lastKnownUpdate?: string;
@@ -50,17 +54,17 @@ export interface OutdatedItem {
   content: string;
   reason: string;
   currentInfo?: string;
-  severity: 'low' | 'medium' | 'high';
+  severity: "low" | "medium" | "high";
 }
 
 // 유사성 검사 결과
 export interface SimilarityResult extends ValidationResult {
-  type: 'similarity';
+  type: "similarity";
   details: {
     similarCards: SimilarCard[];
     isDuplicate: boolean;
     /** 사용된 유사도 검사 방식 */
-    method?: 'jaccard' | 'embedding';
+    method?: "jaccard" | "embedding";
   };
 }
 
@@ -72,7 +76,7 @@ export interface SimilarCard {
 
 // 문맥 일관성 검사 결과
 export interface ContextResult extends ValidationResult {
-  type: 'context';
+  type: "context";
   details: {
     inconsistencies: Inconsistency[];
     relatedCards: number[];
@@ -82,7 +86,7 @@ export interface ContextResult extends ValidationResult {
 export interface Inconsistency {
   description: string;
   conflictingNoteId?: number;
-  severity: 'low' | 'medium' | 'high';
+  severity: "low" | "medium" | "high";
 }
 
 // 전체 검증 결과

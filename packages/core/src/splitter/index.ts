@@ -1,2 +1,2 @@
 // Splitter exports
-export * from './atomic-converter.js';
+export * from "./atomic-converter.js";

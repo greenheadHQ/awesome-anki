@@ -3,10 +3,11 @@
  *
  * markdown-it + 플러그인으로 Anki 템플릿과 동일한 렌더링
  */
-import MarkdownIt from 'markdown-it';
-import markdownItContainer from 'markdown-it-container';
-import markdownItMark from 'markdown-it-mark';
-import hljs from 'highlight.js';
+
+import hljs from "highlight.js";
+import MarkdownIt from "markdown-it";
+import markdownItContainer from "markdown-it-container";
+import markdownItMark from "markdown-it-mark";
 
 // markdown-it 인스턴스 캐싱
 let mdInstance: MarkdownIt | null = null;
@@ -16,18 +17,18 @@ let mdInstance: MarkdownIt | null = null;
  */
 function getCalloutEmoji(type: string): string {
   switch (type) {
-    case 'tip':
-      return '💡';
-    case 'warning':
-      return '🚧';
-    case 'error':
-      return '🚨';
-    case 'note':
-      return '📝';
-    case 'link':
-      return '🔗';
+    case "tip":
+      return "💡";
+    case "warning":
+      return "🚧";
+    case "error":
+      return "🚨";
+    case "note":
+      return "📝";
+    case "link":
+      return "🔗";
     default:
-      return '';
+      return "";
   }
 }
 
@@ -43,7 +44,7 @@ export function getMarkdownRenderer(): MarkdownIt {
     typographer: true,
     html: true,
     breaks: true, // <br> 태그를 줄바꿈으로 처리
-    highlight: function (str: string, lang: string) {
+    highlight: (str: string, lang: string) => {
       if (lang && hljs.getLanguage(lang)) {
         try {
           return hljs.highlight(str, { language: lang }).value;
@@ -51,58 +52,57 @@ export function getMarkdownRenderer(): MarkdownIt {
           // 무시
         }
       }
-      return ''; // 기본 escaping 사용
+      return ""; // 기본 escaping 사용
     },
   }).use(markdownItMark);
 
   // Callout 컨테이너 (::: tip, warning, error, note, link)
-  const calloutTypes = ['tip', 'warning', 'error', 'note', 'link'];
+  const calloutTypes = ["tip", "warning", "error", "note", "link"];
 
   calloutTypes.forEach((type) => {
     md.use(markdownItContainer, type, {
-      validate: function (params: string) {
-        return params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
-      },
-      render: function (tokens: any[], idx: number) {
-        const m = tokens[idx].info.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
+      validate: (params: string) =>
+        params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`)),
+      render: (tokens: any[], idx: number) => {
+        const m = tokens[idx].info
+          .trim()
+          .match(new RegExp(`^${type}(\\s+(.*))?$`));
         if (tokens[idx].nesting === 1) {
           const title =
             m && m[2]
               ? `<strong>${getCalloutEmoji(type)} ${md.utils.escapeHtml(m[2])}</strong>`
-              : '';
+              : "";
           return `<div class="callout ${type}">${title}`;
         } else {
-          return '</div>\n';
+          return "</div>\n";
         }
       },
     });
   });
 
   // Toggle 컨테이너 (::: toggle [type] [title])
-  md.use(markdownItContainer, 'toggle', {
-    validate: function (params: string) {
-      return params.trim().match(/^toggle(\s+(.*))?$/);
-    },
-    render: function (tokens: any[], idx: number) {
+  md.use(markdownItContainer, "toggle", {
+    validate: (params: string) => params.trim().match(/^toggle(\s+(.*))?$/),
+    render: (tokens: any[], idx: number) => {
       const m = tokens[idx].info.trim().match(/^toggle(\s+(.*))?$/);
       if (tokens[idx].nesting === 1) {
         // 타입과 제목 분리
-        const restText = m && m[2] ? m[2].trim() : '';
-        const toggleTypes = ['tip', 'warning', 'error', 'note', 'todo'];
-        let toggleType = '';
-        let title = '정보';
+        const restText = m && m[2] ? m[2].trim() : "";
+        const toggleTypes = ["tip", "warning", "error", "note", "todo"];
+        let toggleType = "";
+        let title = "정보";
 
         if (restText) {
           const firstWord = restText.split(/\s+/)[0];
           if (toggleTypes.includes(firstWord)) {
             toggleType = firstWord;
-            title = restText.substring(firstWord.length).trim() || '정보';
+            title = restText.substring(firstWord.length).trim() || "정보";
           } else {
             title = restText;
           }
         }
 
-        const typeClass = toggleType ? ` ${toggleType}` : '';
+        const typeClass = toggleType ? ` ${toggleType}` : "";
         const renderedTitle = md.renderInline(title);
 
         return `<details class="toggle${typeClass}">
@@ -112,7 +112,7 @@ export function getMarkdownRenderer(): MarkdownIt {
           </summary>
           <div class="toggle-content">`;
       } else {
-        return '</div></details>\n';
+        return "</div></details>\n";
       }
     },
   });
@@ -127,11 +127,11 @@ export function getMarkdownRenderer(): MarkdownIt {
  */
 export function processNidLinks(html: string): string {
   return html.replace(
-    /\[((?:[^\[]|\\\[)*)\|nid(\d{13})\]/g,
+    /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
     (match, title, nid) => {
-      const cleanTitle = title.replace(/\\\[/g, '[');
+      const cleanTitle = title.replace(/\\\[/g, "[");
       return `<a href="#" class="nid-link" data-nid="${nid}" title="Note ID: ${nid}">${cleanTitle}</a>`;
-    }
+    },
   );
 }
 
@@ -139,7 +139,10 @@ export function processNidLinks(html: string): string {
  * Cloze 처리 (표시용)
  * {{c1::내용::힌트}} -> <span class="cloze">내용</span>
  */
-export function processCloze(html: string, showContent: boolean = true): string {
+export function processCloze(
+  html: string,
+  showContent: boolean = true,
+): string {
   // {{c숫자::내용::힌트?}} 패턴
   const clozePattern = /\{\{c(\d+)::([^}]*?)(?:::([^}]*?))?\}\}/g;
 
@@ -147,7 +150,7 @@ export function processCloze(html: string, showContent: boolean = true): string 
     if (showContent) {
       return `<span class="cloze" data-cloze="${num}">${content}</span>`;
     } else {
-      return `<span class="cloze cloze-hidden" data-cloze="${num}">${hint || '[...]'}</span>`;
+      return `<span class="cloze cloze-hidden" data-cloze="${num}">${hint || "[...]"}</span>`;
     }
   });
 }
@@ -158,7 +161,11 @@ export function processCloze(html: string, showContent: boolean = true): string 
  */
 export function processImages(html: string): string {
   return html.replace(/<img\s+src="([^"]+)"/gi, (match, src) => {
-    if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/api/')) {
+    if (
+      src.startsWith("http://") ||
+      src.startsWith("https://") ||
+      src.startsWith("/api/")
+    ) {
       return match;
     }
     return `<img src="/api/media/${encodeURIComponent(src)}"`;
@@ -172,17 +179,17 @@ export function preprocessAnkiHtml(text: string): string {
   let processed = text;
 
   // &nbsp;를 일반 공백으로 변환
-  processed = processed.replace(/&nbsp;/gi, ' ');
+  processed = processed.replace(/&nbsp;/gi, " ");
 
   // 이스케이프된 <br> 태그 처리 (&lt;br&gt;)
-  processed = processed.replace(/&lt;br\s*\/?&gt;/gi, '\n');
+  processed = processed.replace(/&lt;br\s*\/?&gt;/gi, "\n");
 
   // <br> 태그를 줄바꿈으로 변환 (markdown-it가 처리하도록)
   // 다양한 형태의 <br> 처리: <br>, <br/>, <br />, <BR> 등
-  processed = processed.replace(/<br\s*\/?>/gi, '\n');
+  processed = processed.replace(/<br\s*\/?>/gi, "\n");
 
   // 연속된 줄바꿈을 정리 (3개 이상은 2개로)
-  processed = processed.replace(/\n{3,}/g, '\n\n');
+  processed = processed.replace(/\n{3,}/g, "\n\n");
 
   return processed;
 }
@@ -195,15 +202,18 @@ export function postprocessHtml(html: string): string {
 
   // 텍스트로 남은 <br> 문자열을 실제 <br> 태그로 변환
   // (이스케이프된 &lt;br&gt;는 건드리지 않음)
-  processed = processed.replace(/(?<!&lt;)br(?!&gt;)/g, (match, offset, str) => {
-    // 앞뒤로 < > 가 있는지 확인
-    const before = str.charAt(offset - 1);
-    const after = str.charAt(offset + 2);
-    if (before === '<' && after === '>') {
-      return 'br'; // 이미 태그 형태이면 그대로
-    }
-    return match;
-  });
+  processed = processed.replace(
+    /(?<!&lt;)br(?!&gt;)/g,
+    (match, offset, str) => {
+      // 앞뒤로 < > 가 있는지 확인
+      const before = str.charAt(offset - 1);
+      const after = str.charAt(offset + 2);
+      if (before === "<" && after === ">") {
+        return "br"; // 이미 태그 형태이면 그대로
+      }
+      return match;
+    },
+  );
 
   return processed;
 }

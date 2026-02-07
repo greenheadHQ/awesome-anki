@@ -55,7 +55,7 @@
     }
     window.enhancedClozeEventListener = [];
 
-    window.enhancedClozeAddEventListener = function (type, handler) {
+    window.enhancedClozeAddEventListener = (type, handler) => {
       document.addEventListener(type, handler);
       window.enhancedClozeEventListener.push([type, handler]);
     };
@@ -65,7 +65,7 @@
     return new Promise((resolve, reject) => {
       const script = document.createElement("script");
       script.onload = resolve;
-      script.onerror = function () {
+      script.onerror = () => {
         const script_online = document.createElement("script");
         script_online.onload = resolve;
         script_online.onerror = reject;
@@ -87,7 +87,7 @@
       css.setAttribute("rel", "stylesheet");
       css.type = "text/css";
       css.onload = resolve;
-      css.onerror = function () {
+      css.onerror = () => {
         const css_online = document.createElement("link");
         css_online.setAttribute("rel", "stylesheet");
         css_online.type = "text/css";
@@ -109,7 +109,7 @@
     const md = new markdownit({
       typographer: true,
       html: true,
-      highlight: function (str, lang) {
+      highlight: (str, lang) => {
         if (lang && hljs.getLanguage(lang)) {
           try {
             return hljs.highlight(str, { language: lang }).value;
@@ -140,10 +140,8 @@
 
     calloutTypes.forEach((type) => {
       md.use(window.markdownitContainer, type, {
-        validate: function (params) {
-          return params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
-        },
-        render: function (tokens, idx) {
+        validate: (params) => params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`)),
+        render: (tokens, idx) => {
           const m = tokens[idx].info
             .trim()
             .match(new RegExp(`^${type}(\\s+(.*))?$`));
@@ -164,10 +162,8 @@
 
     // Toggle 컨테이너 추가 (타입별 배경색 지원: tip, warning, error, note)
     md.use(window.markdownitContainer, "toggle", {
-      validate: function (params) {
-        return params.trim().match(/^toggle(\s+(.*))?$/);
-      },
-      render: function (tokens, idx) {
+      validate: (params) => params.trim().match(/^toggle(\s+(.*))?$/),
+      render: (tokens, idx) => {
         const m = tokens[idx].info.trim().match(/^toggle(\s+(.*))?$/);
         if (tokens[idx].nesting === 1) {
           // 타입과 제목 분리
@@ -232,7 +228,7 @@
 
     const inactiveClozeCards =
       document.getElementsByClassName("cloze-inactive");
-    for (let inactiveClozeCard of inactiveClozeCards) {
+    for (const inactiveClozeCard of inactiveClozeCards) {
       inactiveClozeCard.style.boxShadow = "inset 0 -2px 0 #FA96AF";
     }
   }
@@ -290,7 +286,7 @@
     document.querySelectorAll(".cloze").forEach((element) => {
       // You can rename "linkRender" on this line, but leave the "." in front
       element.innerHTML = element.innerHTML.replace(
-        /\[((?:[^\[]|\\\[)*)\|nid(\d{13})\]/g,
+        /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
         (match, title, nid) => {
           title = title.replace(/\\\[/g, "[");
           let link;
@@ -362,7 +358,7 @@
       const htmlElements = [];
       let htmlElementIndex = 0;
       
-      result = result.replace(/<[^>]+>/g, function(match) {
+      result = result.replace(/<[^>]+>/g, (match) => {
         const placeholder = `__CALLBACK_HTML_${htmlElementIndex}__`;
         htmlElements.push(match);
         console.log(`콜백 HTML 요소 보호 #${htmlElementIndex}:`, match);
@@ -372,14 +368,14 @@
       
       // 2단계: 보호된 상태에서 백틱 처리
       // 패턴 1: <`내용`> 형태 (Anki가 백틱을 파싱한 후)
-      result = result.replace(/<`([^`]+)`>/g, function(match, code) {
+      result = result.replace(/<`([^`]+)`>/g, (match, code) => {
         console.log("콜백 - 패턴 1 매칭:", match, "→", code);
         const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `<code>${escapedCode}</code>`;
       });
       
       // 패턴 2: 일반적인 백틱 `내용` 
-      result = result.replace(/`([^`]+)`/g, function(match, code) {
+      result = result.replace(/`([^`]+)`/g, (match, code) => {
         console.log("콜백 - 패턴 2 매칭:", match, "→", code);
         const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `<code>${escapedCode}</code>`;
@@ -394,7 +390,7 @@
       
       // 4단계: 남은 HTML 태그들 이스케이프 (링크와 마크다운 허용 태그는 제외)
       // 허용할 마크다운 HTML 태그들: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
-      result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, function(match) {
+      result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, (match) => {
         console.log("콜백 - 패턴 3 매칭 (HTML 이스케이프):", match);
         return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       });
@@ -449,7 +445,7 @@
       let firstClozeCard = null;
 
       // 접힌 상태의 첫 번째 cloze 찾기
-      for (let clozeCard of clozeCards) {
+      for (const clozeCard of clozeCards) {
         if (clozeCard.dataset.ordinal !== "0") {
           firstClozeCard = clozeCard;
           break;
@@ -483,7 +479,7 @@
         const htmlElements = [];
         let htmlElementIndex = 0;
         
-        result = result.replace(/<[^>]+>/g, function(match) {
+        result = result.replace(/<[^>]+>/g, (match) => {
           const placeholder = `__KEYBOARD_HTML_${htmlElementIndex}__`;
           htmlElements.push(match);
           console.log(`키보드 HTML 요소 보호 #${htmlElementIndex}:`, match);
@@ -493,14 +489,14 @@
         
         // 2단계: 보호된 상태에서 백틱 처리
         // 패턴 1: <`내용`> 형태 (Anki가 백틱을 파싱한 후)
-        result = result.replace(/<`([^`]+)`>/g, function(match, code) {
+        result = result.replace(/<`([^`]+)`>/g, (match, code) => {
           console.log("키보드 - 패턴 1 매칭:", match, "→", code);
           const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
           return `<code>${escapedCode}</code>`;
         });
         
         // 패턴 2: 일반적인 백틱 `내용` 
-        result = result.replace(/`([^`]+)`/g, function(match, code) {
+        result = result.replace(/`([^`]+)`/g, (match, code) => {
           console.log("키보드 - 패턴 2 매칭:", match, "→", code);
           const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
           return `<code>${escapedCode}</code>`;
@@ -515,7 +511,7 @@
         
         // 4단계: 남은 HTML 태그들 이스케이프 (링크와 마크다운 허용 태그는 제외)
         // 허용할 마크다운 HTML 태그들: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
-        result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, function(match) {
+        result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, (match) => {
           console.log("키보드 - 패턴 3 매칭 (HTML 이스케이프):", match);
           return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         });
@@ -577,11 +573,11 @@
     let codeBlockCount = 0;
     
     // 마크다운 코드 블록 패턴 매칭: ```[언어명] ... ```
-    text = text.replace(/(```[a-zA-Z0-9_\-]+[\s\S]*?```)/g, function(codeBlock) {
+    text = text.replace(/(```[a-zA-Z0-9_-]+[\s\S]*?```)/g, (codeBlock) => {
       console.log(`마크다운 코드 블록 #${++codeBlockCount} 발견:`, codeBlock);
       
       // 해당 코드 블록 내부의 cloze span을 찾아서 플레이스홀더로 교체
-      return codeBlock.replace(/<span\s+class\s*=\s*["']cloze["'][^>]*>.*?<\/span>/gi, function(match) {
+      return codeBlock.replace(/<span\s+class\s*=\s*["']cloze["'][^>]*>.*?<\/span>/gi, (match) => {
         const placeholder = `__CLOZE_SPAN_${clozeSpans.length}__`;
         clozeSpans.push(match);
         console.log(`코드 블록 내 cloze 스팬 #${clozeSpans.length} 발견:`, match, `=> 플레이스홀더:`, placeholder);
@@ -664,7 +660,7 @@
     let codeBlockIndex = 0;
     
     // 코드 블록 패턴을 임시 플레이스홀더로 교체
-    let textWithProtectedCodeBlocks = text.replace(/(```[\s\S]*?```)/g, function(match) {
+    const textWithProtectedCodeBlocks = text.replace(/(```[\s\S]*?```)/g, (match) => {
       const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
       codeBlocks.push(match);
       console.log(`🔒 코드 블록 #${codeBlockIndex} 보호:`, match.substring(0, 50) + "...");
@@ -679,7 +675,7 @@
     let htmlTagIndex = 0;
     
     // HTML 태그 패턴을 임시 플레이스홀더로 교체 (속성 포함)
-    let textWithProtectedTags = textWithProtectedCodeBlocks.replace(/<[^>]+>/g, function(match) {
+    const textWithProtectedTags = textWithProtectedCodeBlocks.replace(/<[^>]+>/g, (match) => {
       const placeholder = `__HTML_TAG_${htmlTagIndex}__`;
       htmlTags.push(match);
       console.log(`🔒 HTML 태그 #${htmlTagIndex} 보호:`, match);
@@ -690,7 +686,7 @@
     console.log(`총 ${htmlTags.length}개의 HTML 태그 보호됨`);
     
     // 3단계: 남은 백틱을 유니코드 문자로 변환
-    let processedText = textWithProtectedTags.replace(/`([^`]+)`/g, function(match, code) {
+    let processedText = textWithProtectedTags.replace(/`([^`]+)`/g, (match, code) => {
       console.log(`🔍 백틱 코드 발견: ${match}`);
       // 백틱을 특수 유니코드 문자로 치환
       return `‹${code}›`;
@@ -729,7 +725,7 @@
     
     // 유니코드 문자로 보호된 백틱을 <code> 태그로 변환
     let processedCount = 0;
-    htmlContent = htmlContent.replace(/‹([^›]+)›/g, function(match, code) {
+    htmlContent = htmlContent.replace(/‹([^›]+)›/g, (match, code) => {
       console.log(`🔍 보호된 백틱 발견: ${match}`);
       
       // HTML 태그 이스케이프
@@ -778,7 +774,7 @@
       const htmlElements = [];
       let htmlElementIndex = 0;
       
-      result = result.replace(/<[^>]+>/g, function(match) {
+      result = result.replace(/<[^>]+>/g, (match) => {
         const placeholder = `__HTML_ELEMENT_${htmlElementIndex}__`;
         htmlElements.push(match);
         console.log(`HTML 요소 보호 #${htmlElementIndex}:`, match);
@@ -788,14 +784,14 @@
       
       // 2단계: 보호된 상태에서 백틱 처리
       // 패턴 1: <`내용`> 형태 (Anki가 백틱을 파싱한 후)
-      result = result.replace(/<`([^`]+)`>/g, function(match, code) {
+      result = result.replace(/<`([^`]+)`>/g, (match, code) => {
         console.log("초기 - 패턴 1 매칭:", match, "→", code);
         const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `<code>${escapedCode}</code>`;
       });
       
       // 패턴 2: 일반적인 백틱 `내용` 
-      result = result.replace(/`([^`]+)`/g, function(match, code) {
+      result = result.replace(/`([^`]+)`/g, (match, code) => {
         console.log("초기 - 패턴 2 매칭:", match, "→", code);
         const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `<code>${escapedCode}</code>`;
@@ -810,7 +806,7 @@
       
       // 4단계: 남은 HTML 태그들 이스케이프 (마크다운 허용 태그는 제외)
       // 허용할 마크다운 HTML 태그들: code, sup, sub, u, strong, em, b, i, mark, a (링크 추가)
-      result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, function(match) {
+      result = result.replace(/<(?!\/?(code|sup|sub|u|strong|em|b|i|mark|a)\b)[^>]*>/g, (match) => {
         console.log("초기 - 패턴 3 매칭 (HTML 이스케이프):", match);
         return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       });
@@ -883,7 +879,7 @@
           // <tag> 형태의 열린 태그
           const openTagRegex = new RegExp(`<${tag}\\b[^>]*>`, 'gi');
           if (content.match(openTagRegex)) {
-            content = content.replace(openTagRegex, function(match) {
+            content = content.replace(openTagRegex, (match) => {
               hasChanges = true;
               return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             });
@@ -892,7 +888,7 @@
           // </tag> 형태의 닫힌 태그
           const closeTagRegex = new RegExp(`</${tag}>`, 'gi');
           if (content.match(closeTagRegex)) {
-            content = content.replace(closeTagRegex, function(match) {
+            content = content.replace(closeTagRegex, (match) => {
               hasChanges = true;
               return match.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             });
@@ -912,8 +908,8 @@
   }
 
   function replaceInString(str) {
-    str = str.replace(/<[\/]?pre[^>]*>/gi, "");
-    str = str.replace(/<br\s*[\/]?[^>]*>/gi, "\n");
+    str = str.replace(/<[/]?pre[^>]*>/gi, "");
+    str = str.replace(/<br\s*[/]?[^>]*>/gi, "\n");
     str = str.replace(/<div[^>]*>/gi, "\n");
     str.replace(/<\/div[^>]*>/g, "\n");
     return replaceHTMLElementsInString(str);
@@ -936,7 +932,7 @@
       document.querySelectorAll(".linkRender").forEach((element) => {
         // You can rename "linkRender" on this line, but leave the "." in front
         element.innerHTML = element.innerHTML.replace(
-          /\[((?:[^\[]|\\\[)*)\|nid(\d{13})\]/g,
+          /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
           (match, title, nid) => {
             title = title.replace(/\\\[/g, "[");
             let link;

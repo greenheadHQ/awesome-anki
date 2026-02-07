@@ -1,7 +1,7 @@
-import { HelpCircle } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
-import { helpContent, type HelpItem } from '../../lib/helpContent';
-import { Link } from 'react-router-dom';
+import { HelpCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { type HelpItem, helpContent } from "../../lib/helpContent";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
 
 interface HelpTooltipProps {
   /** helpContent에 정의된 키 */
@@ -9,7 +9,7 @@ interface HelpTooltipProps {
   /** 커스텀 도움말 (helpKey 대신 사용) */
   custom?: HelpItem;
   /** 아이콘 크기 */
-  size?: 'sm' | 'md';
+  size?: "sm" | "md";
   /** 추가 클래스 */
   className?: string;
 }
@@ -17,8 +17,8 @@ interface HelpTooltipProps {
 export function HelpTooltip({
   helpKey,
   custom,
-  size = 'sm',
-  className = '',
+  size = "sm",
+  className = "",
 }: HelpTooltipProps) {
   const content = custom || helpContent[helpKey];
 
@@ -27,7 +27,7 @@ export function HelpTooltip({
     return null;
   }
 
-  const iconSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
+  const iconSize = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
 
   return (
     <Popover>

@@ -2,10 +2,10 @@
  * 팩트 체크 - Gemini를 사용한 카드 내용 사실 검증
  */
 
-import { GoogleGenAI } from '@google/genai';
-import type { FactCheckResult, ClaimVerification } from './types.js';
+import { GoogleGenAI } from "@google/genai";
+import type { ClaimVerification, FactCheckResult } from "./types.js";
 
-const MODEL_NAME = 'gemini-2.0-flash';
+const MODEL_NAME = "gemini-2.0-flash";
 
 let genAI: GoogleGenAI | null = null;
 
@@ -13,7 +13,7 @@ function getClient(): GoogleGenAI {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
+      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다.");
     }
     genAI = new GoogleGenAI({ apiKey });
   }
@@ -62,16 +62,16 @@ export interface FactCheckOptions {
  */
 export async function checkFacts(
   cardContent: string,
-  options: FactCheckOptions = {}
+  options: FactCheckOptions = {},
 ): Promise<FactCheckResult> {
   const client = getClient();
 
   // Cloze 마크업 제거하여 순수 텍스트 추출
   const cleanContent = cardContent
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, '$1') // Cloze 제거
-    .replace(/<[^>]+>/g, ' ') // HTML 태그 제거
-    .replace(/:::\s*\w+[^\n]*\n?/g, '') // 컨테이너 시작 제거
-    .replace(/^:::\s*$/gm, '') // 컨테이너 끝 제거
+    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
+    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
+    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
+    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
     .trim();
 
   const prompt = `
@@ -86,58 +86,61 @@ ${cleanContent}
       model: MODEL_NAME,
       contents: prompt,
       config: {
-        responseMimeType: 'application/json',
+        responseMimeType: "application/json",
         maxOutputTokens: options.thorough ? 4096 : 2048,
       },
     });
 
     const text = response.text;
     if (!text) {
-      throw new Error('Gemini 응답이 비어있습니다.');
+      throw new Error("Gemini 응답이 비어있습니다.");
     }
 
     const parsed = JSON.parse(text);
 
     // 결과 변환
     const claims: ClaimVerification[] = (parsed.claims || []).map((c: any) => ({
-      claim: c.claim || '',
+      claim: c.claim || "",
       isVerified: c.isVerified ?? true,
       confidence: c.confidence ?? 50,
       correction: c.correction,
       source: c.source,
     }));
 
-    const overallAccuracy = parsed.overallAccuracy ??
+    const overallAccuracy =
+      parsed.overallAccuracy ??
       (claims.length > 0
-        ? Math.round(claims.filter(c => c.isVerified).length / claims.length * 100)
+        ? Math.round(
+            (claims.filter((c) => c.isVerified).length / claims.length) * 100,
+          )
         : 100);
 
     // 상태 결정
-    let status: FactCheckResult['status'] = 'valid';
+    let status: FactCheckResult["status"] = "valid";
     if (overallAccuracy < 50) {
-      status = 'error';
+      status = "error";
     } else if (overallAccuracy < 80) {
-      status = 'warning';
+      status = "warning";
     }
 
     return {
       status,
-      type: 'fact-check',
+      type: "fact-check",
       message: parsed.summary || getStatusMessage(status, overallAccuracy),
       confidence: overallAccuracy,
       details: {
         claims,
         overallAccuracy,
-        sources: claims.filter(c => c.source).map(c => c.source!),
+        sources: claims.filter((c) => c.source).map((c) => c.source!),
       },
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('팩트 체크 실패:', error);
+    console.error("팩트 체크 실패:", error);
     return {
-      status: 'unknown',
-      type: 'fact-check',
-      message: '팩트 체크를 수행할 수 없습니다.',
+      status: "unknown",
+      type: "fact-check",
+      message: "팩트 체크를 수행할 수 없습니다.",
       confidence: 0,
       details: {
         claims: [],
@@ -150,13 +153,13 @@ ${cleanContent}
 
 function getStatusMessage(status: string, accuracy: number): string {
   switch (status) {
-    case 'valid':
+    case "valid":
       return `내용이 정확합니다 (정확도: ${accuracy}%)`;
-    case 'warning':
+    case "warning":
       return `일부 내용 검증 필요 (정확도: ${accuracy}%)`;
-    case 'error':
+    case "error":
       return `부정확한 내용 발견 (정확도: ${accuracy}%)`;
     default:
-      return '검증 불가';
+      return "검증 불가";
   }
 }

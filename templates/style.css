@@ -7,9 +7,11 @@
   text-align: left;
   word-break: keep-all;
 }
-table, th, td {
-	border: 1px solid black;
-	border-collapse: collapse;
+table,
+th,
+td {
+  border: 1px solid black;
+  border-collapse: collapse;
 }
 
 pre code {
@@ -22,10 +24,10 @@ pre code {
 
 /* 이하의 속성들은 내가 직접 작성한 것들이다 */
 code {
-	background-color: #edf1f2;
-	border-radius: 5px;
-	font-size: 16px;
-	padding: 0 5px;
+  background-color: #edf1f2;
+  border-radius: 5px;
+  font-size: 16px;
+  padding: 0 5px;
 }
 
 .nightMode code {
@@ -38,10 +40,11 @@ p {
 }
 
 /* 2025.05.31 새롭게 추 */
-h4, h5, h6 {
+h4,
+h5,
+h6 {
   margin: 0;
 }
-
 
 /* front.html, back.html에 있던 <style> 코드를 css 파일로 이전 */
 p {

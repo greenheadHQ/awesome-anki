@@ -2,34 +2,33 @@
  * 임베딩 모듈 - Gemini 기반 의미적 유사도 검사
  */
 
-// 코사인 유사도
+// 파일 기반 캐시
 export {
-  cosineSimilarity,
-  normalizeVector,
-  fastCosineSimilarity,
-} from './cosine.js';
+  type CachedEmbedding,
+  type CacheStatus,
+  cleanupCache,
+  createCache,
+  deleteCache,
+  type EmbeddingCache,
+  getCachedEmbedding,
+  getCacheStatus,
+  getTextHash,
+  loadCache,
+  saveCache,
+  setCachedEmbedding,
+} from "./cache.js";
 
 // Gemini 임베딩 클라이언트
 export {
+  type EmbeddingOptions,
   getEmbedding,
   getEmbeddings,
   getSemanticSimilarity,
   preprocessTextForEmbedding,
-  type EmbeddingOptions,
-} from './client.js';
-
-// 파일 기반 캐시
+} from "./client.js";
+// 코사인 유사도
 export {
-  loadCache,
-  saveCache,
-  createCache,
-  getCachedEmbedding,
-  setCachedEmbedding,
-  cleanupCache,
-  getCacheStatus,
-  deleteCache,
-  getTextHash,
-  type EmbeddingCache,
-  type CachedEmbedding,
-  type CacheStatus,
-} from './cache.js';
+  cosineSimilarity,
+  fastCosineSimilarity,
+  normalizeVector,
+} from "./cosine.js";

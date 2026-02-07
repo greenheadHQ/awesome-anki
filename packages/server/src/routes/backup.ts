@@ -1,12 +1,9 @@
 /**
  * Backup API Routes
  */
-import { Hono } from 'hono';
-import {
-  listBackups,
-  rollback,
-  getLatestBackupId,
-} from '@anki-splitter/core';
+
+import { getLatestBackupId, listBackups, rollback } from "@anki-splitter/core";
+import { Hono } from "hono";
 
 const app = new Hono();
 
@@ -14,7 +11,7 @@ const app = new Hono();
  * GET /api/backup
  * 백업 목록 조회
  */
-app.get('/', async (c) => {
+app.get("/", async (c) => {
   try {
     const backups = listBackups();
 
@@ -30,8 +27,8 @@ app.get('/', async (c) => {
       total: backups.length,
     });
   } catch (error) {
-    console.error('Error fetching backups:', error);
-    return c.json({ error: 'Failed to fetch backups' }, 500);
+    console.error("Error fetching backups:", error);
+    return c.json({ error: "Failed to fetch backups" }, 500);
   }
 });
 
@@ -39,7 +36,7 @@ app.get('/', async (c) => {
  * GET /api/backup/latest
  * 최근 백업 ID 조회
  */
-app.get('/latest', async (c) => {
+app.get("/latest", async (c) => {
   try {
     const latestId = getLatestBackupId();
 
@@ -49,8 +46,8 @@ app.get('/latest', async (c) => {
 
     return c.json({ backupId: latestId });
   } catch (error) {
-    console.error('Error fetching latest backup:', error);
-    return c.json({ error: 'Failed to fetch latest backup' }, 500);
+    console.error("Error fetching latest backup:", error);
+    return c.json({ error: "Failed to fetch latest backup" }, 500);
   }
 });
 
@@ -58,9 +55,9 @@ app.get('/latest', async (c) => {
  * POST /api/backup/:id/rollback
  * 롤백 실행
  */
-app.post('/:id/rollback', async (c) => {
+app.post("/:id/rollback", async (c) => {
   try {
-    const backupId = c.req.param('id');
+    const backupId = c.req.param("id");
     const result = await rollback(backupId);
 
     if (result.success) {
@@ -71,13 +68,16 @@ app.post('/:id/rollback', async (c) => {
       });
     }
 
-    return c.json({
-      success: false,
-      error: result.error,
-    }, 400);
+    return c.json(
+      {
+        success: false,
+        error: result.error,
+      },
+      400,
+    );
   } catch (error) {
-    console.error('Error during rollback:', error);
-    return c.json({ error: 'Failed to rollback' }, 500);
+    console.error("Error during rollback:", error);
+    return c.json({ error: "Failed to rollback" }, 500);
   }
 });
 

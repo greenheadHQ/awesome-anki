@@ -7,11 +7,11 @@
  * 증분 업데이트: 텍스트 변경된 카드만 재생성
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { createHash } from 'crypto';
+import { createHash } from "crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 
-const CACHE_DIR = 'output/embeddings';
+const CACHE_DIR = "output/embeddings";
 
 export interface CachedEmbedding {
   /** 임베딩 벡터 */
@@ -37,14 +37,14 @@ export interface EmbeddingCache {
  * 덱 이름을 안전한 파일명으로 변환
  */
 function getDeckHash(deckName: string): string {
-  return createHash('md5').update(deckName).digest('hex').slice(0, 12);
+  return createHash("md5").update(deckName).digest("hex").slice(0, 12);
 }
 
 /**
  * 텍스트의 MD5 해시 생성
  */
 export function getTextHash(text: string): string {
-  return createHash('md5').update(text).digest('hex');
+  return createHash("md5").update(text).digest("hex");
 }
 
 /**
@@ -75,7 +75,7 @@ export function loadCache(deckName: string): EmbeddingCache | null {
   }
 
   try {
-    const data = readFileSync(path, 'utf-8');
+    const data = readFileSync(path, "utf-8");
     return JSON.parse(data) as EmbeddingCache;
   } catch (error) {
     console.error(`캐시 로드 실패 (${deckName}):`, error);
@@ -92,7 +92,7 @@ export function saveCache(cache: EmbeddingCache): void {
 
   try {
     const data = JSON.stringify(cache, null, 2);
-    writeFileSync(path, data, 'utf-8');
+    writeFileSync(path, data, "utf-8");
   } catch (error) {
     console.error(`캐시 저장 실패 (${cache.deckName}):`, error);
     throw error;
@@ -102,7 +102,10 @@ export function saveCache(cache: EmbeddingCache): void {
 /**
  * 새 캐시 생성
  */
-export function createCache(deckName: string, dimension: number): EmbeddingCache {
+export function createCache(
+  deckName: string,
+  dimension: number,
+): EmbeddingCache {
   return {
     deckName,
     dimension,
@@ -118,7 +121,7 @@ export function createCache(deckName: string, dimension: number): EmbeddingCache
 export function getCachedEmbedding(
   cache: EmbeddingCache,
   noteId: number,
-  currentTextHash: string
+  currentTextHash: string,
 ): number[] | null {
   const cached = cache.embeddings[String(noteId)];
 
@@ -141,7 +144,7 @@ export function setCachedEmbedding(
   cache: EmbeddingCache,
   noteId: number,
   embedding: number[],
-  textHash: string
+  textHash: string,
 ): void {
   cache.embeddings[String(noteId)] = {
     embedding,
@@ -156,7 +159,7 @@ export function setCachedEmbedding(
  */
 export function cleanupCache(
   cache: EmbeddingCache,
-  validNoteIds: Set<number>
+  validNoteIds: Set<number>,
 ): number {
   const keysToDelete: string[] = [];
 
@@ -225,7 +228,7 @@ export function deleteCache(deckName: string): boolean {
   }
 
   try {
-    const fs = require('fs');
+    const fs = require("fs");
     fs.unlinkSync(path);
     return true;
   } catch (error) {

@@ -1,6 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, type SplitPreviewResult, type SplitApplyResult } from '../lib/api';
-import { queryKeys } from '../lib/query-keys';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  api,
+  type SplitApplyResult,
+  type SplitPreviewResult,
+} from "../lib/api";
+import { queryKeys } from "../lib/query-keys";
 
 export function useSplitPreview() {
   const queryClient = useQueryClient();
@@ -17,7 +21,7 @@ export function useSplitPreview() {
       // 결과를 React Query 캐시에 저장 (카드별 독립 캐시)
       queryClient.setQueryData(
         queryKeys.split.preview(variables.noteId, variables.useGemini),
-        data
+        data,
       );
     },
   });
@@ -30,7 +34,7 @@ export function useSplitPreview() {
 export function getCachedSplitPreview(
   queryClient: ReturnType<typeof useQueryClient>,
   noteId: number,
-  useGemini: boolean
+  useGemini: boolean,
 ): SplitPreviewResult | undefined {
   return queryClient.getQueryData(queryKeys.split.preview(noteId, useGemini));
 }
@@ -45,7 +49,7 @@ export function useSplitApply() {
       deckName,
     }: {
       noteId: number;
-      splitType: 'hard' | 'soft';
+      splitType: "hard" | "soft";
       deckName: string;
     }) => api.split.apply(noteId, splitType, deckName),
     onSuccess: (_, variables) => {

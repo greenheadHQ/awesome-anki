@@ -2,11 +2,16 @@
  * 검증 결과 캐싱 훅
  * localStorage를 사용하여 검증 결과를 캐시
  */
-import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { api, type ValidationStatus, type AllValidationResult } from '../lib/api';
 
-const CACHE_KEY = 'anki-validation-cache';
+import { useMutation } from "@tanstack/react-query";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  type AllValidationResult,
+  api,
+  type ValidationStatus,
+} from "../lib/api";
+
+const CACHE_KEY = "anki-validation-cache";
 const CACHE_VERSION = 1;
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
 
@@ -14,7 +19,7 @@ interface CachedValidation {
   noteId: number;
   status: ValidationStatus;
   validatedAt: string;
-  results?: AllValidationResult['results'];
+  results?: AllValidationResult["results"];
 }
 
 interface ValidationCache {
@@ -45,7 +50,7 @@ function loadCacheFromStorage(): ValidationCache {
       }
     }
   } catch (e) {
-    console.error('캐시 로드 실패:', e);
+    console.error("캐시 로드 실패:", e);
   }
   return { version: CACHE_VERSION, entries: {} };
 }
@@ -54,7 +59,7 @@ function saveCacheToStorage(cache: ValidationCache): void {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
   } catch (e) {
-    console.error('캐시 저장 실패:', e);
+    console.error("캐시 저장 실패:", e);
   }
 }
 
@@ -67,7 +72,9 @@ function getSnapshot() {
   return globalCache;
 }
 
-function updateGlobalCache(updater: (prev: ValidationCache) => ValidationCache) {
+function updateGlobalCache(
+  updater: (prev: ValidationCache) => ValidationCache,
+) {
   globalCache = updater(globalCache);
   saveCacheToStorage(globalCache);
   listeners.forEach((listener) => listener());
@@ -81,24 +88,27 @@ export function useValidationCache() {
     (noteId: number): CachedValidation | null => {
       return cache.entries[noteId] || null;
     },
-    [cache]
+    [cache],
   );
 
   // 검증 결과 저장
-  const setValidation = useCallback((noteId: number, result: AllValidationResult) => {
-    updateGlobalCache((prev) => ({
-      ...prev,
-      entries: {
-        ...prev.entries,
-        [noteId]: {
-          noteId,
-          status: result.overallStatus,
-          validatedAt: result.validatedAt,
-          results: result.results,
+  const setValidation = useCallback(
+    (noteId: number, result: AllValidationResult) => {
+      updateGlobalCache((prev) => ({
+        ...prev,
+        entries: {
+          ...prev.entries,
+          [noteId]: {
+            noteId,
+            status: result.overallStatus,
+            validatedAt: result.validatedAt,
+            results: result.results,
+          },
         },
-      },
-    }));
-  }, []);
+      }));
+    },
+    [],
+  );
 
   // 검증 결과 삭제
   const clearValidation = useCallback((noteId: number) => {
@@ -123,7 +133,7 @@ export function useValidationCache() {
       }
       return result;
     },
-    [cache]
+    [cache],
   );
 
   // 검증되지 않은 카드 수
@@ -131,7 +141,7 @@ export function useValidationCache() {
     (noteIds: number[]): number => {
       return noteIds.filter((id) => !cache.entries[id]).length;
     },
-    [cache]
+    [cache],
   );
 
   return {
@@ -153,7 +163,7 @@ export function useValidateCard(deckName: string | null) {
 
   return useMutation({
     mutationFn: async (noteId: number) => {
-      if (!deckName) throw new Error('덱이 선택되지 않았습니다.');
+      if (!deckName) throw new Error("덱이 선택되지 않았습니다.");
       return api.validate.all(noteId, deckName);
     },
     onSuccess: (data) => {
@@ -170,7 +180,7 @@ export function useBatchValidate(deckName: string | null) {
 
   return useMutation({
     mutationFn: async (noteIds: number[]) => {
-      if (!deckName) throw new Error('덱이 선택되지 않았습니다.');
+      if (!deckName) throw new Error("덱이 선택되지 않았습니다.");
 
       // 순차적으로 검증 (API 부하 방지)
       const results: AllValidationResult[] = [];

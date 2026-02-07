@@ -8,9 +8,9 @@
  * @see https://ai.google.dev/gemini-api/docs/embeddings
  */
 
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from "@google/genai";
 
-const EMBEDDING_MODEL = 'gemini-embedding-001';
+const EMBEDDING_MODEL = "gemini-embedding-001";
 const DEFAULT_DIMENSION = 768;
 
 let genAI: GoogleGenAI | null = null;
@@ -20,7 +20,7 @@ function getClient(): GoogleGenAI {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error(
-        'GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.'
+        "GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.",
       );
     }
     genAI = new GoogleGenAI({ apiKey });
@@ -45,12 +45,12 @@ export interface EmbeddingOptions {
  */
 export function preprocessTextForEmbedding(text: string): string {
   return text
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, '$1') // Cloze 내용만 추출
-    .replace(/<[^>]+>/g, ' ') // HTML 태그 제거
-    .replace(/:::\s*\w+[^\n]*\n?/g, '') // 컨테이너 시작 제거
-    .replace(/^:::\s*$/gm, '') // 컨테이너 끝 제거
-    .replace(/\[([^\]|]+)\|nid\d{13}\]/g, '$1') // nid 링크에서 제목만 추출
-    .replace(/\s+/g, ' ')
+    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 내용만 추출
+    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
+    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
+    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
+    .replace(/\[([^\]|]+)\|nid\d{13}\]/g, "$1") // nid 링크에서 제목만 추출
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -59,7 +59,7 @@ export function preprocessTextForEmbedding(text: string): string {
  */
 export async function getEmbedding(
   text: string,
-  options: EmbeddingOptions = {}
+  options: EmbeddingOptions = {},
 ): Promise<number[]> {
   const client = getClient();
   const dimension = options.dimension ?? DEFAULT_DIMENSION;
@@ -67,14 +67,14 @@ export async function getEmbedding(
   const processedText = preprocessTextForEmbedding(text);
 
   if (!processedText) {
-    throw new Error('전처리 후 텍스트가 비어있습니다');
+    throw new Error("전처리 후 텍스트가 비어있습니다");
   }
 
   const response = await client.models.embedContent({
     model: EMBEDDING_MODEL,
     contents: processedText,
     config: {
-      taskType: 'SEMANTIC_SIMILARITY',
+      taskType: "SEMANTIC_SIMILARITY",
       outputDimensionality: dimension,
     },
   });
@@ -82,7 +82,7 @@ export async function getEmbedding(
   const embedding = response.embeddings?.[0]?.values;
 
   if (!embedding || embedding.length === 0) {
-    throw new Error('임베딩 응답이 비어있습니다');
+    throw new Error("임베딩 응답이 비어있습니다");
   }
 
   return embedding;
@@ -99,7 +99,7 @@ export async function getEmbedding(
 export async function getEmbeddings(
   texts: string[],
   options: EmbeddingOptions = {},
-  onProgress?: (completed: number, total: number) => void
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<number[][]> {
   const client = getClient();
   const dimension = options.dimension ?? DEFAULT_DIMENSION;
@@ -141,7 +141,7 @@ export async function getEmbeddings(
       model: EMBEDDING_MODEL,
       contents: batchTexts,
       config: {
-        taskType: 'SEMANTIC_SIMILARITY',
+        taskType: "SEMANTIC_SIMILARITY",
         outputDimensionality: dimension,
       },
     });
@@ -174,12 +174,9 @@ export async function getEmbeddings(
 export async function getSemanticSimilarity(
   text1: string,
   text2: string,
-  options: EmbeddingOptions = {}
+  options: EmbeddingOptions = {},
 ): Promise<number> {
-  const [embedding1, embedding2] = await getEmbeddings(
-    [text1, text2],
-    options
-  );
+  const [embedding1, embedding2] = await getEmbeddings([text1, text2], options);
 
   if (embedding1.length === 0 || embedding2.length === 0) {
     return 0;

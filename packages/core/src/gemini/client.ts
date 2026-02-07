@@ -2,9 +2,9 @@
  * Gemini API 클라이언트
  */
 
-import { GoogleGenAI } from '@google/genai';
-import { SYSTEM_PROMPT, buildSplitPrompt } from './prompts.js';
-import { validateSplitResponse, type SplitResponse } from './validator.js';
+import { GoogleGenAI } from "@google/genai";
+import { buildSplitPrompt, SYSTEM_PROMPT } from "./prompts.js";
+import { type SplitResponse, validateSplitResponse } from "./validator.js";
 
 let genAI: GoogleGenAI | null = null;
 
@@ -12,14 +12,16 @@ function getClient(): GoogleGenAI {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.');
+      throw new Error(
+        "GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.",
+      );
     }
     genAI = new GoogleGenAI({ apiKey });
   }
   return genAI;
 }
 
-const MODEL_NAME = 'gemini-3-flash-preview';
+const MODEL_NAME = "gemini-3-flash-preview";
 
 export interface CardForSplit {
   noteId: number;
@@ -30,7 +32,9 @@ export interface CardForSplit {
 /**
  * 단일 카드 분할 요청
  */
-export async function requestCardSplit(card: CardForSplit): Promise<SplitResponse> {
+export async function requestCardSplit(
+  card: CardForSplit,
+): Promise<SplitResponse> {
   const client = getClient();
   const prompt = buildSplitPrompt(card.noteId, card.text);
 
@@ -39,13 +43,13 @@ export async function requestCardSplit(card: CardForSplit): Promise<SplitRespons
     contents: prompt,
     config: {
       systemInstruction: SYSTEM_PROMPT,
-      responseMimeType: 'application/json',
+      responseMimeType: "application/json",
     },
   });
 
   const text = response.text;
   if (!text) {
-    throw new Error('Gemini 응답이 비어있습니다.');
+    throw new Error("Gemini 응답이 비어있습니다.");
   }
 
   // JSON 파싱 및 검증
@@ -58,7 +62,7 @@ export async function requestCardSplit(card: CardForSplit): Promise<SplitRespons
  */
 export async function requestBatchCardSplit(
   cards: CardForSplit[],
-  onProgress?: (completed: number, total: number) => void
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<Map<number, SplitResponse>> {
   const results = new Map<number, SplitResponse>();
   const BATCH_SIZE = 10;
@@ -69,12 +73,12 @@ export async function requestBatchCardSplit(
 
     // 배치 내 병렬 처리
     const batchResults = await Promise.allSettled(
-      batch.map((card) => requestCardSplit(card))
+      batch.map((card) => requestCardSplit(card)),
     );
 
     for (let j = 0; j < batch.length; j++) {
       const result = batchResults[j];
-      if (result.status === 'fulfilled') {
+      if (result.status === "fulfilled") {
         results.set(batch[j].noteId, result.value);
       } else {
         console.error(`카드 ${batch[j].noteId} 분할 실패:`, result.reason);
@@ -133,13 +137,13 @@ ${card.text}
     model: MODEL_NAME,
     contents: analysisPrompt,
     config: {
-      responseMimeType: 'application/json',
+      responseMimeType: "application/json",
     },
   });
 
   const text = response.text;
   if (!text) {
-    throw new Error('Gemini 응답이 비어있습니다.');
+    throw new Error("Gemini 응답이 비어있습니다.");
   }
 
   return JSON.parse(text);

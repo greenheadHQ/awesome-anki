@@ -4,7 +4,9 @@
   "private": true,
   "description": "Anki Card Splitter - Web GUI for managing Anki cards",
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "concurrently \"bun run dev:server\" \"bun run dev:web\"",
     "dev:server": "bun run --watch packages/server/src/index.ts",

@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = 'anki-splitter-onboarding-completed';
+const STORAGE_KEY = "anki-splitter-onboarding-completed";
 
 export function useOnboarding() {
   const [isCompleted, setIsCompleted] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'true';
+    return stored === "true";
   });
 
   const [shouldRun, setShouldRun] = useState(false);
@@ -22,7 +22,7 @@ export function useOnboarding() {
   }, [isCompleted]);
 
   const completeOnboarding = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    localStorage.setItem(STORAGE_KEY, "true");
     setIsCompleted(true);
     setShouldRun(false);
   }, []);

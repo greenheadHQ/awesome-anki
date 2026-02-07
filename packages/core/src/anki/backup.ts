@@ -2,11 +2,22 @@
  * 백업 및 롤백 관리
  */
 
-import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
-import { join } from 'path';
-import { getNotesInfo, updateNoteFields, deleteNotes, type NoteInfo } from './client.js';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "fs";
+import { join } from "path";
+import {
+  deleteNotes,
+  getNotesInfo,
+  type NoteInfo,
+  updateNoteFields,
+} from "./client.js";
 
-const BACKUP_DIR = join(process.cwd(), 'output', 'backups');
+const BACKUP_DIR = join(process.cwd(), "output", "backups");
 
 export interface BackupEntry {
   id: string;
@@ -20,7 +31,7 @@ export interface BackupEntry {
     modelName: string;
   };
   createdNoteIds: number[];
-  splitType: 'hard' | 'soft';
+  splitType: "hard" | "soft";
 }
 
 export interface BackupFile {
@@ -41,7 +52,7 @@ function ensureBackupDir(): void {
  * 백업 파일 경로 생성
  */
 function getBackupFilePath(): string {
-  const date = new Date().toISOString().split('T')[0];
+  const date = new Date().toISOString().split("T")[0];
   return join(BACKUP_DIR, `backup-${date}.json`);
 }
 
@@ -52,7 +63,7 @@ function loadBackupFile(filePath: string): BackupFile {
   if (!existsSync(filePath)) {
     return { version: 1, entries: [] };
   }
-  const content = readFileSync(filePath, 'utf-8');
+  const content = readFileSync(filePath, "utf-8");
   return JSON.parse(content);
 }
 
@@ -61,7 +72,7 @@ function loadBackupFile(filePath: string): BackupFile {
  */
 function saveBackupFile(filePath: string, data: BackupFile): void {
   ensureBackupDir();
-  writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 
 /**
@@ -71,7 +82,7 @@ export async function createBackup(
   deckName: string,
   originalNoteId: number,
   createdNoteIds: number[],
-  splitType: 'hard' | 'soft'
+  splitType: "hard" | "soft",
 ): Promise<string> {
   // 원본 노트 정보 조회
   const [originalNote] = await getNotesInfo([originalNoteId]);
@@ -112,7 +123,7 @@ export async function createBackup(
 export async function preBackup(
   deckName: string,
   originalNoteId: number,
-  splitType: 'hard' | 'soft'
+  splitType: "hard" | "soft",
 ): Promise<{ backupId: string; originalNote: NoteInfo }> {
   const [originalNote] = await getNotesInfo([originalNoteId]);
 
@@ -149,7 +160,7 @@ export async function preBackup(
  */
 export function updateBackupWithCreatedNotes(
   backupId: string,
-  createdNoteIds: number[]
+  createdNoteIds: number[],
 ): void {
   const filePath = getBackupFilePath();
   const backupFile = loadBackupFile(filePath);
@@ -175,7 +186,7 @@ export async function rollback(backupId: string): Promise<{
 }> {
   // 모든 백업 파일에서 검색
   ensureBackupDir();
-  const files = readdirSync(BACKUP_DIR).filter((f) => f.startsWith('backup-'));
+  const files = readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-"));
 
   let entry: BackupEntry | undefined;
   let filePath: string | undefined;
@@ -207,8 +218,8 @@ export async function rollback(backupId: string): Promise<{
     }
 
     await updateNoteFields(entry.originalNoteId, {
-      Text: originalFields.Text || '',
-      'Back Extra': originalFields['Back Extra'] || '',
+      Text: originalFields.Text || "",
+      "Back Extra": originalFields["Back Extra"] || "",
     });
 
     // 백업 엔트리 제거 (롤백 완료 표시)
@@ -224,7 +235,7 @@ export async function rollback(backupId: string): Promise<{
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : '알 수 없는 오류',
+      error: error instanceof Error ? error.message : "알 수 없는 오류",
     };
   }
 }
@@ -234,7 +245,7 @@ export async function rollback(backupId: string): Promise<{
  */
 export function listBackups(): BackupEntry[] {
   ensureBackupDir();
-  const files = readdirSync(BACKUP_DIR).filter((f) => f.startsWith('backup-'));
+  const files = readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-"));
 
   const allEntries: BackupEntry[] = [];
   for (const file of files) {
@@ -245,7 +256,7 @@ export function listBackups(): BackupEntry[] {
 
   // 최신순 정렬
   return allEntries.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
 }
 

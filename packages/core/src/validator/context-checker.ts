@@ -7,12 +7,12 @@
  * 3. 불일치 사항 보고
  */
 
-import { GoogleGenAI } from '@google/genai';
-import type { ContextResult, Inconsistency } from './types.js';
-import { parseNidLinks, extractUniqueNids } from '../parser/nid-parser.js';
-import { getNotesInfo, findNotes, type NoteInfo } from '../anki/client.js';
+import { GoogleGenAI } from "@google/genai";
+import { findNotes, getNotesInfo, type NoteInfo } from "../anki/client.js";
+import { extractUniqueNids, parseNidLinks } from "../parser/nid-parser.js";
+import type { ContextResult, Inconsistency } from "./types.js";
 
-const MODEL_NAME = 'gemini-2.0-flash';
+const MODEL_NAME = "gemini-2.0-flash";
 
 let genAI: GoogleGenAI | null = null;
 
@@ -20,7 +20,7 @@ function getClient(): GoogleGenAI {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
+      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다.");
     }
     genAI = new GoogleGenAI({ apiKey });
   }
@@ -79,13 +79,15 @@ export interface ContextCheckOptions {
 async function getLinkedNotes(noteIds: string[]): Promise<NoteInfo[]> {
   if (noteIds.length === 0) return [];
 
-  const numericIds = noteIds.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
+  const numericIds = noteIds
+    .map((id) => parseInt(id, 10))
+    .filter((id) => !isNaN(id));
   if (numericIds.length === 0) return [];
 
   try {
     return await getNotesInfo(numericIds);
   } catch (error) {
-    console.error('링크된 노트 조회 실패:', error);
+    console.error("링크된 노트 조회 실패:", error);
     return [];
   }
 }
@@ -99,7 +101,7 @@ async function findReverseLinks(noteId: number): Promise<number[]> {
     const query = `"nid${noteId}"`;
     return await findNotes(query);
   } catch (error) {
-    console.error('역방향 링크 검색 실패:', error);
+    console.error("역방향 링크 검색 실패:", error);
     return [];
   }
 }
@@ -109,7 +111,7 @@ async function findReverseLinks(noteId: number): Promise<number[]> {
  */
 export async function checkContext(
   targetCard: CardForContext,
-  options: ContextCheckOptions = {}
+  options: ContextCheckOptions = {},
 ): Promise<ContextResult> {
   const maxRelatedCards = options.maxRelatedCards ?? 10;
 
@@ -129,13 +131,16 @@ export async function checkContext(
     ...linkedNids,
     ...reverseNids.map((id) => id.toString()),
   ];
-  const uniqueRelatedNids = [...new Set(allRelatedNids)].slice(0, maxRelatedCards);
+  const uniqueRelatedNids = [...new Set(allRelatedNids)].slice(
+    0,
+    maxRelatedCards,
+  );
 
   if (uniqueRelatedNids.length === 0) {
     return {
-      status: 'valid',
-      type: 'context',
-      message: '연결된 카드가 없습니다.',
+      status: "valid",
+      type: "context",
+      message: "연결된 카드가 없습니다.",
       confidence: 100,
       details: {
         inconsistencies: [],
@@ -150,15 +155,15 @@ export async function checkContext(
 
   if (linkedNotes.length === 0) {
     return {
-      status: 'warning',
-      type: 'context',
-      message: '링크된 카드를 찾을 수 없습니다.',
+      status: "warning",
+      type: "context",
+      message: "링크된 카드를 찾을 수 없습니다.",
       confidence: 50,
       details: {
         inconsistencies: [
           {
             description: `${uniqueRelatedNids.length}개의 링크된 카드를 찾을 수 없습니다. 삭제되었거나 잘못된 링크일 수 있습니다.`,
-            severity: 'medium',
+            severity: "medium",
           },
         ],
         relatedCards: uniqueRelatedNids.map((id) => parseInt(id, 10)),
@@ -179,14 +184,17 @@ export async function checkContext(
     },
     ...linkedNotes.map((note) => ({
       noteId: note.noteId,
-      text: cleanContent(note.fields.Text?.value || ''),
+      text: cleanContent(note.fields.Text?.value || ""),
       isTarget: false,
     })),
   ];
 
   const cardsText = cardContents
-    .map((c) => `[NOTE ID: ${c.noteId}${c.isTarget ? ' (대상 카드)' : ''}]\n${c.text}`)
-    .join('\n\n---\n\n');
+    .map(
+      (c) =>
+        `[NOTE ID: ${c.noteId}${c.isTarget ? " (대상 카드)" : ""}]\n${c.text}`,
+    )
+    .join("\n\n---\n\n");
 
   const prompt = `
 ${CONTEXT_CHECK_PROMPT}
@@ -205,14 +213,14 @@ ${cardsText}
       model: MODEL_NAME,
       contents: prompt,
       config: {
-        responseMimeType: 'application/json',
+        responseMimeType: "application/json",
         maxOutputTokens: options.thorough ? 4096 : 2048,
       },
     });
 
     const text = response.text;
     if (!text) {
-      throw new Error('Gemini 응답이 비어있습니다.');
+      throw new Error("Gemini 응답이 비어있습니다.");
     }
 
     const parsed = JSON.parse(text);
@@ -220,27 +228,30 @@ ${cardsText}
     // 결과 변환
     const inconsistencies: Inconsistency[] = (parsed.inconsistencies || []).map(
       (inc: any) => ({
-        description: inc.description || '',
+        description: inc.description || "",
         conflictingNoteId: inc.conflictingNoteId,
-        severity: inc.severity || 'medium',
-      })
+        severity: inc.severity || "medium",
+      }),
     );
 
-    const hasInconsistency = parsed.hasInconsistency ?? inconsistencies.length > 0;
-    const coherenceScore = parsed.coherenceScore ?? (hasInconsistency ? 70 : 100);
+    const hasInconsistency =
+      parsed.hasInconsistency ?? inconsistencies.length > 0;
+    const coherenceScore =
+      parsed.coherenceScore ?? (hasInconsistency ? 70 : 100);
 
     // 상태 결정
-    let status: ContextResult['status'] = 'valid';
-    if (inconsistencies.some((i) => i.severity === 'high')) {
-      status = 'error';
+    let status: ContextResult["status"] = "valid";
+    if (inconsistencies.some((i) => i.severity === "high")) {
+      status = "error";
     } else if (hasInconsistency) {
-      status = 'warning';
+      status = "warning";
     }
 
     return {
       status,
-      type: 'context',
-      message: parsed.summary || getStatusMessage(status, inconsistencies.length),
+      type: "context",
+      message:
+        parsed.summary || getStatusMessage(status, inconsistencies.length),
       confidence: coherenceScore,
       details: {
         inconsistencies,
@@ -249,11 +260,11 @@ ${cardsText}
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('문맥 일관성 검사 실패:', error);
+    console.error("문맥 일관성 검사 실패:", error);
     return {
-      status: 'unknown',
-      type: 'context',
-      message: '문맥 일관성 검사를 수행할 수 없습니다.',
+      status: "unknown",
+      type: "context",
+      message: "문맥 일관성 검사를 수행할 수 없습니다.",
       confidence: 0,
       details: {
         inconsistencies: [],
@@ -269,24 +280,24 @@ ${cardsText}
  */
 function cleanContent(text: string): string {
   return text
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, '$1') // Cloze 제거
-    .replace(/<[^>]+>/g, ' ') // HTML 태그 제거
-    .replace(/:::\s*\w+[^\n]*\n?/g, '') // 컨테이너 시작 제거
-    .replace(/^:::\s*$/gm, '') // 컨테이너 끝 제거
-    .replace(/\s+/g, ' ')
+    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
+    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
+    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
+    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 function getStatusMessage(status: string, count: number): string {
   switch (status) {
-    case 'valid':
-      return '연결된 카드들과 일관성이 있습니다.';
-    case 'warning':
+    case "valid":
+      return "연결된 카드들과 일관성이 있습니다.";
+    case "warning":
       return `${count}개의 잠재적 불일치가 발견되었습니다.`;
-    case 'error':
+    case "error":
       return `${count}개의 심각한 불일치가 발견되었습니다.`;
     default:
-      return '검증 불가';
+      return "검증 불가";
   }
 }
 
@@ -296,21 +307,22 @@ function getStatusMessage(status: string, count: number): string {
  */
 export async function analyzeCardGroup(
   cards: CardForContext[],
-  options: ContextCheckOptions = {}
+  options: ContextCheckOptions = {},
 ): Promise<{
   overallCoherence: number;
   inconsistencies: Array<Inconsistency & { sourceNoteId: number }>;
   groupStructure: Map<number, number[]>; // noteId -> linked noteIds
 }> {
   const groupStructure = new Map<number, number[]>();
-  const allInconsistencies: Array<Inconsistency & { sourceNoteId: number }> = [];
+  const allInconsistencies: Array<Inconsistency & { sourceNoteId: number }> =
+    [];
 
   // 각 카드의 링크 구조 분석
   for (const card of cards) {
     const linkedNids = extractUniqueNids(card.text);
     groupStructure.set(
       card.noteId,
-      linkedNids.map((id) => parseInt(id, 10))
+      linkedNids.map((id) => parseInt(id, 10)),
     );
   }
 
@@ -331,7 +343,7 @@ export async function analyzeCardGroup(
   const severityWeights = { low: 1, medium: 3, high: 5 };
   const totalWeight = allInconsistencies.reduce(
     (sum, inc) => sum + severityWeights[inc.severity],
-    0
+    0,
   );
   const overallCoherence = Math.max(0, 100 - totalWeight * 5);
 

@@ -1,12 +1,12 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Layout } from './components/layout/Layout';
-import { Dashboard } from './pages/Dashboard';
-import { CardBrowser } from './pages/CardBrowser';
-import { SplitWorkspace } from './pages/SplitWorkspace';
-import { BackupManager } from './pages/BackupManager';
-import { PromptManager } from './pages/PromptManager';
-import { Help } from './pages/Help';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Layout } from "./components/layout/Layout";
+import { BackupManager } from "./pages/BackupManager";
+import { CardBrowser } from "./pages/CardBrowser";
+import { Dashboard } from "./pages/Dashboard";
+import { Help } from "./pages/Help";
+import { PromptManager } from "./pages/PromptManager";
+import { SplitWorkspace } from "./pages/SplitWorkspace";
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,14 +1,26 @@
-import { NavLink } from 'react-router-dom';
-import { cn } from '../../lib/utils';
-import { LayoutDashboard, Scissors, FolderOpen, History, FileText, HelpCircle } from 'lucide-react';
+import {
+  FileText,
+  FolderOpen,
+  HelpCircle,
+  History,
+  LayoutDashboard,
+  Scissors,
+} from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { cn } from "../../lib/utils";
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', tourId: 'nav-dashboard' },
-  { to: '/split', icon: Scissors, label: 'Split', tourId: 'nav-split' },
-  { to: '/browse', icon: FolderOpen, label: 'Browse', tourId: 'nav-browse' },
-  { to: '/backups', icon: History, label: 'Backups', tourId: 'nav-backups' },
-  { to: '/prompts', icon: FileText, label: 'Prompts', tourId: 'nav-prompts' },
-  { to: '/help', icon: HelpCircle, label: 'Help', tourId: 'nav-help' },
+  {
+    to: "/",
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    tourId: "nav-dashboard",
+  },
+  { to: "/split", icon: Scissors, label: "Split", tourId: "nav-split" },
+  { to: "/browse", icon: FolderOpen, label: "Browse", tourId: "nav-browse" },
+  { to: "/backups", icon: History, label: "Backups", tourId: "nav-backups" },
+  { to: "/prompts", icon: FileText, label: "Prompts", tourId: "nav-prompts" },
+  { to: "/help", icon: HelpCircle, label: "Help", tourId: "nav-help" },
 ];
 
 export function Sidebar() {
@@ -29,10 +41,10 @@ export function Sidebar() {
               data-tour={item.tourId}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )
               }
             >

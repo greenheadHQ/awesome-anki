@@ -2,13 +2,13 @@
  * Gemini 응답 검증 (zod 스키마)
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // 분할 카드 스키마
 const SplitCardSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
-  cardType: z.enum(['cloze', 'basic']).optional().default('cloze'),
+  cardType: z.enum(["cloze", "basic"]).optional().default("cloze"),
   charCount: z.number().int().min(0).optional(),
   contextTag: z.string().optional(),
   inheritImages: z.array(z.string()).default([]),
@@ -18,12 +18,15 @@ const SplitCardSchema = z.object({
 });
 
 // 품질 체크 스키마
-const QualityChecksSchema = z.object({
-  allCardsUnder80Chars: z.boolean(),
-  allClozeHaveHints: z.boolean(),
-  noEnumerations: z.boolean(),
-  allContextTagsPresent: z.boolean(),
-}).optional().nullable();
+const QualityChecksSchema = z
+  .object({
+    allCardsUnder80Chars: z.boolean(),
+    allClozeHaveHints: z.boolean(),
+    noEnumerations: z.boolean(),
+    allContextTagsPresent: z.boolean(),
+  })
+  .optional()
+  .nullable();
 
 // 분할 응답 스키마
 const SplitResponseSchema = z.object({
@@ -32,7 +35,7 @@ const SplitResponseSchema = z.object({
   mainCardIndex: z.number().int().min(0),
   splitCards: z.array(SplitCardSchema),
   splitReason: z.string(),
-  splitType: z.enum(['hard', 'soft', 'none']),
+  splitType: z.enum(["hard", "soft", "none"]),
   qualityChecks: QualityChecksSchema,
 });
 
@@ -57,20 +60,23 @@ export function validateSplitResponse(data: unknown): SplitResponse {
 
   if (!result.success) {
     const errors = result.error.errors
-      .map((e) => `${e.path.join('.')}: ${e.message}`)
-      .join(', ');
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join(", ");
     throw new Error(`분할 응답 검증 실패: ${errors}`);
   }
 
   // 추가 검증: 분할이 필요한 경우 splitCards가 있어야 함
   if (result.data.shouldSplit && result.data.splitCards.length === 0) {
-    throw new Error('분할이 필요하다고 했지만 splitCards가 비어있습니다.');
+    throw new Error("분할이 필요하다고 했지만 splitCards가 비어있습니다.");
   }
 
   // 추가 검증: mainCardIndex가 범위 내인지
-  if (result.data.shouldSplit && result.data.mainCardIndex >= result.data.splitCards.length) {
+  if (
+    result.data.shouldSplit &&
+    result.data.mainCardIndex >= result.data.splitCards.length
+  ) {
     throw new Error(
-      `mainCardIndex(${result.data.mainCardIndex})가 splitCards 범위를 벗어났습니다.`
+      `mainCardIndex(${result.data.mainCardIndex})가 splitCards 범위를 벗어났습니다.`,
     );
   }
 
@@ -85,8 +91,8 @@ export function validateAnalysisResponse(data: unknown): AnalysisResponse {
 
   if (!result.success) {
     const errors = result.error.errors
-      .map((e) => `${e.path.join('.')}: ${e.message}`)
-      .join(', ');
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join(", ");
     throw new Error(`분석 응답 검증 실패: ${errors}`);
   }
 
@@ -127,7 +133,7 @@ export function validateAllCardsHaveCloze(cards: SplitCard[]): {
  */
 export function validateStylePreservation(
   original: string,
-  processed: string
+  processed: string,
 ): {
   preserved: boolean;
   missingStyles: string[];

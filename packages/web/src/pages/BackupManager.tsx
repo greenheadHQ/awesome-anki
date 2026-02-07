@@ -1,24 +1,30 @@
 /**
  * BackupManager - 백업 관리 및 롤백
  */
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { useBackups, useRollback } from '../hooks/useBackups';
-import { cn } from '../lib/utils';
+
 import {
-  History,
-  RotateCcw,
   AlertTriangle,
+  ArrowLeft,
   CheckCircle,
-  XCircle,
   Clock,
   FileText,
-  Plus,
+  History,
   Loader2,
-  ArrowLeft,
-} from 'lucide-react';
-import type { BackupEntry } from '../lib/api';
+  Plus,
+  RotateCcw,
+  XCircle,
+} from "lucide-react";
+import { useState } from "react";
+import { Button } from "../components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { useBackups, useRollback } from "../hooks/useBackups";
+import type { BackupEntry } from "../lib/api";
+import { cn } from "../lib/utils";
 
 /**
  * 롤백 확인 다이얼로그
@@ -34,7 +40,7 @@ function RollbackConfirmDialog({
   onCancel: () => void;
   isLoading: boolean;
 }) {
-  const date = new Date(backup.timestamp).toLocaleString('ko-KR');
+  const date = new Date(backup.timestamp).toLocaleString("ko-KR");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -125,8 +131,8 @@ function RollbackResultDialog({
         <CardHeader>
           <CardTitle
             className={cn(
-              'flex items-center gap-2',
-              success ? 'text-green-600' : 'text-red-600'
+              "flex items-center gap-2",
+              success ? "text-green-600" : "text-red-600",
             )}
           >
             {success ? (
@@ -150,11 +156,11 @@ function RollbackResultDialog({
               </p>
               <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
                 <div>
-                  <span className="text-muted-foreground">복원된 노트:</span>{' '}
+                  <span className="text-muted-foreground">복원된 노트:</span>{" "}
                   {restoredNoteId}
                 </div>
                 <div>
-                  <span className="text-muted-foreground">삭제된 카드:</span>{' '}
+                  <span className="text-muted-foreground">삭제된 카드:</span>{" "}
                   {deletedNoteIds?.length || 0}개
                 </div>
               </div>
@@ -185,12 +191,12 @@ function BackupCard({
   onRollback: (backup: BackupEntry) => void;
 }) {
   const date = new Date(backup.timestamp);
-  const formattedDate = date.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  const formattedDate = date.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   const relativeTime = getRelativeTime(date);
@@ -203,15 +209,17 @@ function BackupCard({
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                  backup.splitType === 'hard'
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                  "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                  backup.splitType === "hard"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
                 )}
               >
-                {backup.splitType === 'hard' ? 'Hard Split' : 'Soft Split'}
+                {backup.splitType === "hard" ? "Hard Split" : "Soft Split"}
               </span>
-              <span className="text-xs text-muted-foreground">{relativeTime}</span>
+              <span className="text-xs text-muted-foreground">
+                {relativeTime}
+              </span>
             </div>
 
             <div className="text-sm space-y-1">
@@ -225,9 +233,7 @@ function BackupCard({
 
               <div className="flex items-center gap-2">
                 <Plus className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  생성된 카드: {backup.createdNoteIds.length}개
-                </span>
+                <span>생성된 카드: {backup.createdNoteIds.length}개</span>
               </div>
 
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -259,11 +265,11 @@ function getRelativeTime(date: Date): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return '방금 전';
+  if (diffMins < 1) return "방금 전";
   if (diffMins < 60) return `${diffMins}분 전`;
   if (diffHours < 24) return `${diffHours}시간 전`;
   if (diffDays < 7) return `${diffDays}일 전`;
-  return date.toLocaleDateString('ko-KR');
+  return date.toLocaleDateString("ko-KR");
 }
 
 /**
@@ -273,7 +279,9 @@ export function BackupManager() {
   const { data, isLoading, error, refetch } = useBackups();
   const rollbackMutation = useRollback();
 
-  const [selectedBackup, setSelectedBackup] = useState<BackupEntry | null>(null);
+  const [selectedBackup, setSelectedBackup] = useState<BackupEntry | null>(
+    null,
+  );
   const [rollbackResult, setRollbackResult] = useState<{
     success: boolean;
     restoredNoteId?: number;
@@ -291,7 +299,7 @@ export function BackupManager() {
     } catch (err) {
       setRollbackResult({
         success: false,
-        error: err instanceof Error ? err.message : '알 수 없는 오류',
+        error: err instanceof Error ? err.message : "알 수 없는 오류",
       });
       setSelectedBackup(null);
     }
@@ -339,7 +347,7 @@ export function BackupManager() {
               <div>
                 <p className="text-sm text-muted-foreground">Hard Split</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {backups.filter((b) => b.splitType === 'hard').length}
+                  {backups.filter((b) => b.splitType === "hard").length}
                 </p>
               </div>
               <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
@@ -355,7 +363,7 @@ export function BackupManager() {
               <div>
                 <p className="text-sm text-muted-foreground">Soft Split</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {backups.filter((b) => b.splitType === 'soft').length}
+                  {backups.filter((b) => b.splitType === "soft").length}
                 </p>
               </div>
               <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">

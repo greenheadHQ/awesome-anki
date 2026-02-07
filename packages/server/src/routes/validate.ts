@@ -1,18 +1,19 @@
 /**
  * Validate API - 카드 내용 검증
  */
-import { Hono } from 'hono';
+
 import {
+  type CardForComparison,
+  type CardForContext,
+  checkContext,
   checkFacts,
   checkFreshness,
   checkSimilarity,
-  checkContext,
-  getNoteById,
-  getDeckNotes,
   extractTextField,
-  type CardForComparison,
-  type CardForContext,
-} from '@anki-splitter/core';
+  getDeckNotes,
+  getNoteById,
+} from "@anki-splitter/core";
+import { Hono } from "hono";
 
 const validate = new Hono();
 
@@ -20,7 +21,7 @@ const validate = new Hono();
  * POST /api/validate/fact-check
  * 카드 내용 팩트 체크
  */
-validate.post('/fact-check', async (c) => {
+validate.post("/fact-check", async (c) => {
   try {
     const { noteId, thorough } = await c.req.json<{
       noteId: number;
@@ -28,13 +29,13 @@ validate.post('/fact-check', async (c) => {
     }>();
 
     if (!noteId) {
-      return c.json({ error: 'noteId is required' }, 400);
+      return c.json({ error: "noteId is required" }, 400);
     }
 
     // 카드 내용 가져오기
     const note = await getNoteById(noteId);
     if (!note) {
-      return c.json({ error: 'Note not found' }, 404);
+      return c.json({ error: "Note not found" }, 404);
     }
 
     const text = extractTextField(note);
@@ -47,10 +48,10 @@ validate.post('/fact-check', async (c) => {
       result,
     });
   } catch (error) {
-    console.error('Fact check error:', error);
+    console.error("Fact check error:", error);
     return c.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      500
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      500,
     );
   }
 });
@@ -59,7 +60,7 @@ validate.post('/fact-check', async (c) => {
  * POST /api/validate/freshness
  * 카드 내용 최신성 검사
  */
-validate.post('/freshness', async (c) => {
+validate.post("/freshness", async (c) => {
   try {
     const { noteId, checkDate } = await c.req.json<{
       noteId: number;
@@ -67,13 +68,13 @@ validate.post('/freshness', async (c) => {
     }>();
 
     if (!noteId) {
-      return c.json({ error: 'noteId is required' }, 400);
+      return c.json({ error: "noteId is required" }, 400);
     }
 
     // 카드 내용 가져오기
     const note = await getNoteById(noteId);
     if (!note) {
-      return c.json({ error: 'Note not found' }, 404);
+      return c.json({ error: "Note not found" }, 404);
     }
 
     const text = extractTextField(note);
@@ -86,10 +87,10 @@ validate.post('/freshness', async (c) => {
       result,
     });
   } catch (error) {
-    console.error('Freshness check error:', error);
+    console.error("Freshness check error:", error);
     return c.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      500
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      500,
     );
   }
 });
@@ -100,24 +101,25 @@ validate.post('/freshness', async (c) => {
  *
  * @param useEmbedding - true: Gemini 임베딩 + 코사인 유사도, false: Jaccard (기본)
  */
-validate.post('/similarity', async (c) => {
+validate.post("/similarity", async (c) => {
   try {
-    const { noteId, deckName, threshold, maxResults, useEmbedding } = await c.req.json<{
-      noteId: number;
-      deckName: string;
-      threshold?: number;
-      maxResults?: number;
-      useEmbedding?: boolean;
-    }>();
+    const { noteId, deckName, threshold, maxResults, useEmbedding } =
+      await c.req.json<{
+        noteId: number;
+        deckName: string;
+        threshold?: number;
+        maxResults?: number;
+        useEmbedding?: boolean;
+      }>();
 
     if (!noteId || !deckName) {
-      return c.json({ error: 'noteId and deckName are required' }, 400);
+      return c.json({ error: "noteId and deckName are required" }, 400);
     }
 
     // 대상 카드 가져오기
     const note = await getNoteById(noteId);
     if (!note) {
-      return c.json({ error: 'Note not found' }, 404);
+      return c.json({ error: "Note not found" }, 404);
     }
 
     const targetText = extractTextField(note);
@@ -133,7 +135,7 @@ validate.post('/similarity', async (c) => {
     const result = await checkSimilarity(
       { noteId, text: targetText },
       allCards,
-      { threshold, maxResults, useEmbedding, deckName }
+      { threshold, maxResults, useEmbedding, deckName },
     );
 
     return c.json({
@@ -141,10 +143,10 @@ validate.post('/similarity', async (c) => {
       result,
     });
   } catch (error) {
-    console.error('Similarity check error:', error);
+    console.error("Similarity check error:", error);
     return c.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      500
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      500,
     );
   }
 });
@@ -153,23 +155,24 @@ validate.post('/similarity', async (c) => {
  * POST /api/validate/context
  * 문맥 일관성 검사 (nid 링크로 연결된 카드들과의 일관성)
  */
-validate.post('/context', async (c) => {
+validate.post("/context", async (c) => {
   try {
-    const { noteId, includeReverseLinks, maxRelatedCards, thorough } = await c.req.json<{
-      noteId: number;
-      includeReverseLinks?: boolean;
-      maxRelatedCards?: number;
-      thorough?: boolean;
-    }>();
+    const { noteId, includeReverseLinks, maxRelatedCards, thorough } =
+      await c.req.json<{
+        noteId: number;
+        includeReverseLinks?: boolean;
+        maxRelatedCards?: number;
+        thorough?: boolean;
+      }>();
 
     if (!noteId) {
-      return c.json({ error: 'noteId is required' }, 400);
+      return c.json({ error: "noteId is required" }, 400);
     }
 
     // 카드 내용 가져오기
     const note = await getNoteById(noteId);
     if (!note) {
-      return c.json({ error: 'Note not found' }, 404);
+      return c.json({ error: "Note not found" }, 404);
     }
 
     const text = extractTextField(note);
@@ -192,10 +195,10 @@ validate.post('/context', async (c) => {
       result,
     });
   } catch (error) {
-    console.error('Context check error:', error);
+    console.error("Context check error:", error);
     return c.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      500
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      500,
     );
   }
 });
@@ -204,7 +207,7 @@ validate.post('/context', async (c) => {
  * POST /api/validate/all
  * 모든 검증 수행 (팩트 체크 + 최신성 + 유사성 + 문맥)
  */
-validate.post('/all', async (c) => {
+validate.post("/all", async (c) => {
   try {
     const { noteId, deckName } = await c.req.json<{
       noteId: number;
@@ -212,49 +215,55 @@ validate.post('/all', async (c) => {
     }>();
 
     if (!noteId || !deckName) {
-      return c.json({ error: 'noteId and deckName are required' }, 400);
+      return c.json({ error: "noteId and deckName are required" }, 400);
     }
 
     // 카드 내용 가져오기
     const note = await getNoteById(noteId);
     if (!note) {
-      return c.json({ error: 'Note not found' }, 404);
+      return c.json({ error: "Note not found" }, 404);
     }
 
     const text = extractTextField(note);
 
     // 병렬로 모든 검증 수행
-    const [factCheckResult, freshnessResult, similarityResult, contextResult] = await Promise.all([
-      checkFacts(text),
-      checkFreshness(text),
-      (async () => {
-        const allNotes = await getDeckNotes(deckName);
-        const allCards: CardForComparison[] = allNotes.map((n) => ({
-          noteId: n.noteId,
-          text: extractTextField(n),
-        }));
-        return checkSimilarity({ noteId, text }, allCards);
-      })(),
-      (async () => {
-        const targetCard: CardForContext = {
-          noteId,
-          text,
-          tags: note.tags,
-        };
-        return checkContext(targetCard, { includeReverseLinks: true });
-      })(),
-    ]);
+    const [factCheckResult, freshnessResult, similarityResult, contextResult] =
+      await Promise.all([
+        checkFacts(text),
+        checkFreshness(text),
+        (async () => {
+          const allNotes = await getDeckNotes(deckName);
+          const allCards: CardForComparison[] = allNotes.map((n) => ({
+            noteId: n.noteId,
+            text: extractTextField(n),
+          }));
+          return checkSimilarity({ noteId, text }, allCards);
+        })(),
+        (async () => {
+          const targetCard: CardForContext = {
+            noteId,
+            text,
+            tags: note.tags,
+          };
+          return checkContext(targetCard, { includeReverseLinks: true });
+        })(),
+      ]);
 
     // 전체 상태 결정
-    const results = [factCheckResult, freshnessResult, similarityResult, contextResult];
-    let overallStatus: 'valid' | 'warning' | 'error' | 'unknown' = 'valid';
+    const results = [
+      factCheckResult,
+      freshnessResult,
+      similarityResult,
+      contextResult,
+    ];
+    let overallStatus: "valid" | "warning" | "error" | "unknown" = "valid";
 
-    if (results.some((r) => r.status === 'error')) {
-      overallStatus = 'error';
-    } else if (results.some((r) => r.status === 'warning')) {
-      overallStatus = 'warning';
-    } else if (results.some((r) => r.status === 'unknown')) {
-      overallStatus = 'unknown';
+    if (results.some((r) => r.status === "error")) {
+      overallStatus = "error";
+    } else if (results.some((r) => r.status === "warning")) {
+      overallStatus = "warning";
+    } else if (results.some((r) => r.status === "unknown")) {
+      overallStatus = "unknown";
     }
 
     return c.json({
@@ -269,10 +278,10 @@ validate.post('/all', async (c) => {
       validatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Validation error:', error);
+    console.error("Validation error:", error);
     return c.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      500
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      500,
     );
   }
 });

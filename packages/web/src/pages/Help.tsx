@@ -1,18 +1,23 @@
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { glossaryItems, faqItems } from '../lib/helpContent';
 import {
-  Scissors,
-  Sparkles,
-  FileCheck,
-  History,
+  BarChart3,
   BookOpen,
-  HelpCircle,
-  Layers,
-  FolderOpen,
+  FileCheck,
   FileText,
   FlaskConical,
-  BarChart3,
-} from 'lucide-react';
+  FolderOpen,
+  HelpCircle,
+  History,
+  Layers,
+  Scissors,
+  Sparkles,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { faqItems, glossaryItems } from "../lib/helpContent";
 
 export function Help() {
   return (
@@ -57,8 +62,8 @@ export function Help() {
                   적용합니다
                 </li>
                 <li>
-                  <strong>필요시 롤백</strong>: Backups에서 원래 상태로 복구할 수
-                  있습니다
+                  <strong>필요시 롤백</strong>: Backups에서 원래 상태로 복구할
+                  수 있습니다
                 </li>
               </ol>
             </div>
@@ -131,7 +136,9 @@ export function Help() {
                   #### 헤더 기준 자동 분할
                 </li>
                 <li>
-                  <span className="text-purple-600 font-medium">Soft Split</span>
+                  <span className="text-purple-600 font-medium">
+                    Soft Split
+                  </span>
                   : AI가 의미적으로 분할 제안
                 </li>
               </ul>
@@ -148,8 +155,8 @@ export function Help() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                카드 목록을 조회하고 검증합니다. 검증 상태별로 필터링하고,
-                개별 카드에 대해 팩트 체크, 최신성 검사, 유사성 검사를 실행할 수
+                카드 목록을 조회하고 검증합니다. 검증 상태별로 필터링하고, 개별
+                카드에 대해 팩트 체크, 최신성 검사, 유사성 검사를 실행할 수
                 있습니다.
               </p>
             </CardContent>
@@ -187,7 +194,8 @@ export function Help() {
               </p>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>
-                  <span className="font-medium">버전</span>: 프롬프트 버전 목록 및 활성화
+                  <span className="font-medium">버전</span>: 프롬프트 버전 목록
+                  및 활성화
                 </li>
                 <li>
                   <span className="font-medium">히스토리</span>: 분할 기록 조회
@@ -273,9 +281,9 @@ export function Help() {
             <div>
               <h4 className="font-medium text-sm">임베딩 생성하기</h4>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                Dashboard에서 덱을 선택한 후 "임베딩 생성" 버튼을 클릭합니다.
-                한 번 생성된 임베딩은 캐시되어 재사용됩니다. 카드 내용이
-                변경되면 자동으로 갱신됩니다.
+                Dashboard에서 덱을 선택한 후 "임베딩 생성" 버튼을 클릭합니다. 한
+                번 생성된 임베딩은 캐시되어 재사용됩니다. 카드 내용이 변경되면
+                자동으로 갱신됩니다.
               </p>
             </div>
             <div>
@@ -301,23 +309,24 @@ export function Help() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              프롬프트 버전 관리 시스템으로 AI의 분할 품질을 지속적으로 개선할 수
-              있습니다. SuperMemo의 Twenty Rules를 기반으로 설계된 프롬프트로 원자적
-              카드를 생성합니다.
+              프롬프트 버전 관리 시스템으로 AI의 분할 품질을 지속적으로 개선할
+              수 있습니다. SuperMemo의 Twenty Rules를 기반으로 설계된 프롬프트로
+              원자적 카드를 생성합니다.
             </p>
             <div id="prompt-version-concept">
               <h4 className="font-medium text-sm">버전 관리 개념</h4>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                각 버전은 시스템 프롬프트, 분할 규칙, 예제를 포함합니다. 버전별로
-                카드 길이 제한(Cloze 80자, Basic 40자)이나 힌트 필수 여부 등을
-                다르게 설정할 수 있습니다.
+                각 버전은 시스템 프롬프트, 분할 규칙, 예제를 포함합니다.
+                버전별로 카드 길이 제한(Cloze 80자, Basic 40자)이나 힌트 필수
+                여부 등을 다르게 설정할 수 있습니다.
               </p>
             </div>
             <div>
               <h4 className="font-medium text-sm">버전 선택하기</h4>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                Split 페이지 헤더에서 프롬프트 버전을 선택합니다. 활성화된 버전에는 ✓
-                표시가 있습니다. 다른 버전을 선택하면 해당 규칙으로 분할이 수행됩니다.
+                Split 페이지 헤더에서 프롬프트 버전을 선택합니다. 활성화된
+                버전에는 ✓ 표시가 있습니다. 다른 버전을 선택하면 해당 규칙으로
+                분할이 수행됩니다.
               </p>
             </div>
           </CardContent>
@@ -340,25 +349,18 @@ export function Help() {
             <div>
               <h4 className="font-medium text-sm">테스트 방법</h4>
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
-                <li>
-                  Prompts 페이지에서 "실험" 탭으로 이동
-                </li>
-                <li>
-                  "새 실험" 버튼을 클릭하여 비교할 두 버전 선택
-                </li>
-                <li>
-                  Split 페이지에서 각 버전으로 카드를 분할
-                </li>
-                <li>
-                  실험 대시보드에서 승인률, 평균 글자 수 등 비교
-                </li>
+                <li>Prompts 페이지에서 "실험" 탭으로 이동</li>
+                <li>"새 실험" 버튼을 클릭하여 비교할 두 버전 선택</li>
+                <li>Split 페이지에서 각 버전으로 카드를 분할</li>
+                <li>실험 대시보드에서 승인률, 평균 글자 수 등 비교</li>
               </ol>
             </div>
             <div>
               <h4 className="font-medium text-sm">결과 해석</h4>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                승인률이 높고, 수정률과 거부율이 낮은 버전이 더 좋은 성능을 보입니다.
-                평균 글자 수가 목표 범위(Cloze 40~60자) 내에 있는지도 확인하세요.
+                승인률이 높고, 수정률과 거부율이 낮은 버전이 더 좋은 성능을
+                보입니다. 평균 글자 수가 목표 범위(Cloze 40~60자) 내에 있는지도
+                확인하세요.
               </p>
             </div>
           </CardContent>
@@ -382,16 +384,19 @@ export function Help() {
                   <strong>총 분할 수</strong>: 해당 버전으로 수행된 분할 횟수
                 </li>
                 <li>
-                  <strong>승인률</strong>: 수정 없이 바로 승인된 비율 (높을수록 좋음)
+                  <strong>승인률</strong>: 수정 없이 바로 승인된 비율 (높을수록
+                  좋음)
                 </li>
                 <li>
                   <strong>수정률</strong>: 사용자가 일부 수정 후 승인한 비율
                 </li>
                 <li>
-                  <strong>거부율</strong>: 분할 결과를 거부한 비율 (낮을수록 좋음)
+                  <strong>거부율</strong>: 분할 결과를 거부한 비율 (낮을수록
+                  좋음)
                 </li>
                 <li>
-                  <strong>평균 글자 수</strong>: 생성된 카드의 평균 길이 (40~60자 권장)
+                  <strong>평균 글자 수</strong>: 생성된 카드의 평균 길이
+                  (40~60자 권장)
                 </li>
               </ul>
             </div>
@@ -399,8 +404,8 @@ export function Help() {
               <h4 className="font-medium text-sm">히스토리 활용</h4>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                 Prompts 페이지의 "히스토리" 탭에서 모든 분할 기록을 확인할 수
-                있습니다. 특정 버전의 분할 결과가 자주 수정/거부되면 프롬프트 규칙
-                조정이 필요합니다.
+                있습니다. 특정 버전의 분할 결과가 자주 수정/거부되면 프롬프트
+                규칙 조정이 필요합니다.
               </p>
             </div>
           </CardContent>

@@ -2,32 +2,42 @@
  * SplitWorkspace - 카드 분할 작업 공간
  * 3단 레이아웃: 후보 목록 | 원본 카드 | 분할 미리보기
  */
-import { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { ContentRenderer } from '../components/card/ContentRenderer';
-import { DiffViewer, SplitPreviewCard } from '../components/card/DiffViewer';
-import { useDecks } from '../hooks/useDecks';
-import { useCards, useCardDetail } from '../hooks/useCards';
-import { useSplitPreview, useSplitApply, getCachedSplitPreview } from '../hooks/useSplit';
-import { usePromptVersions, useAddPromptHistory } from '../hooks/usePrompts';
-import { queryKeys } from '../lib/query-keys';
-import { cn } from '../lib/utils';
-import type { SplitPreviewResult } from '../lib/api';
+
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  Scissors,
-  ChevronRight,
-  Loader2,
-  Check,
   AlertTriangle,
+  Check,
+  ChevronRight,
+  FileText,
+  Loader2,
+  Scissors,
+  Shield,
   Sparkles,
   Zap,
-  Shield,
-  FileText,
-} from 'lucide-react';
-import { ValidationPanel } from '../components/validation/ValidationPanel';
-import { HelpTooltip } from '../components/help/HelpTooltip';
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { ContentRenderer } from "../components/card/ContentRenderer";
+import { DiffViewer, SplitPreviewCard } from "../components/card/DiffViewer";
+import { HelpTooltip } from "../components/help/HelpTooltip";
+import { Button } from "../components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { ValidationPanel } from "../components/validation/ValidationPanel";
+import { useCardDetail, useCards } from "../hooks/useCards";
+import { useDecks } from "../hooks/useDecks";
+import { useAddPromptHistory, usePromptVersions } from "../hooks/usePrompts";
+import {
+  getCachedSplitPreview,
+  useSplitApply,
+  useSplitPreview,
+} from "../hooks/useSplit";
+import type { SplitPreviewResult } from "../lib/api";
+import { queryKeys } from "../lib/query-keys";
+import { cn } from "../lib/utils";
 
 interface SplitCandidate {
   noteId: number;
@@ -42,24 +52,30 @@ interface SplitCandidate {
 export function SplitWorkspace() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
-  const [splitType, setSplitType] = useState<'hard' | 'soft'>('hard');
+  const [splitType, setSplitType] = useState<"hard" | "soft">("hard");
   const [showValidation, setShowValidation] = useState(false);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
+    null,
+  );
 
   const queryClient = useQueryClient();
   const { data: decksData } = useDecks();
-  const { data: cardsData, isLoading: isLoadingCards } = useCards(selectedDeck, {
-    limit: 500,
-    filter: 'all',
-  });
+  const { data: cardsData, isLoading: isLoadingCards } = useCards(
+    selectedDeck,
+    {
+      limit: 500,
+      filter: "all",
+    },
+  );
 
   // 프롬프트 버전 관련
-  const { data: promptVersionsData, isLoading: isLoadingVersions } = usePromptVersions();
+  const { data: promptVersionsData, isLoading: isLoadingVersions } =
+    usePromptVersions();
   const addHistory = useAddPromptHistory();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(
-    selectedCard?.noteId ?? null
+    selectedCard?.noteId ?? null,
   );
 
   const splitPreview = useSplitPreview();
@@ -67,11 +83,16 @@ export function SplitWorkspace() {
 
   // 현재 선택된 카드의 캐시된 미리보기 결과 조회
   const cachedPreview = selectedCard
-    ? getCachedSplitPreview(queryClient, selectedCard.noteId, splitType === 'soft')
+    ? getCachedSplitPreview(
+        queryClient,
+        selectedCard.noteId,
+        splitType === "soft",
+      )
     : undefined;
 
   // 캐시 있으면 캐시 사용, 없으면 mutation 결과 사용
-  const previewData: SplitPreviewResult | undefined = cachedPreview || splitPreview.data;
+  const previewData: SplitPreviewResult | undefined =
+    cachedPreview || splitPreview.data;
 
   // 현재 카드에 대한 로딩 중인지 확인 (다른 카드 분석 중에는 영향 없음)
   const isLoadingCurrentCard =
@@ -102,14 +123,14 @@ export function SplitWorkspace() {
       splitPreview.reset();
 
       // 분할 타입 자동 선택
-      const type = selectedCard.analysis.canHardSplit ? 'hard' : 'soft';
+      const type = selectedCard.analysis.canHardSplit ? "hard" : "soft";
       setSplitType(type);
 
       // 캐시 확인
       const cached = getCachedSplitPreview(
         queryClient,
         selectedCard.noteId,
-        type === 'soft'
+        type === "soft",
       );
 
       // 캐시 없고 Hard Split이면 자동 요청 (Gemini 비용 없음)
@@ -128,7 +149,7 @@ export function SplitWorkspace() {
   };
 
   const candidates = (cardsData?.cards || []).filter(
-    (c: any) => c.analysis?.canHardSplit || c.analysis?.canSoftSplit
+    (c: any) => c.analysis?.canHardSplit || c.analysis?.canSoftSplit,
   ) as SplitCandidate[];
 
   const handleApply = () => {
@@ -153,24 +174,26 @@ export function SplitWorkspace() {
                 title: card.title,
                 content: card.content,
               })),
-              userAction: 'approved',
+              userAction: "approved",
               qualityChecks: null, // TODO: 실제 품질 검사 결과 연동
             });
           }
           // 성공 후 목록에서 제거하고 다음 카드 선택
-          const nextCard = candidates.find((c) => c.noteId !== selectedCard.noteId);
+          const nextCard = candidates.find(
+            (c) => c.noteId !== selectedCard.noteId,
+          );
           setSelectedCard(nextCard || null);
         },
-      }
+      },
     );
   };
 
   const handleSwitchSplitType = () => {
-    const newType = splitType === 'hard' ? 'soft' : 'hard';
+    const newType = splitType === "hard" ? "soft" : "hard";
     setSplitType(newType);
     if (selectedCard) {
       // Hard로 전환 시만 자동 요청, Soft는 별도 버튼으로
-      if (newType === 'hard') {
+      if (newType === "hard") {
         splitPreview.mutate({ noteId: selectedCard.noteId, useGemini: false });
       }
     }
@@ -183,7 +206,7 @@ export function SplitWorkspace() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">분할 작업</h1>
           <select
-            value={selectedDeck || ''}
+            value={selectedDeck || ""}
             onChange={(e) => {
               setSelectedDeck(e.target.value);
               setSelectedCard(null);
@@ -203,7 +226,7 @@ export function SplitWorkspace() {
             <FileText className="w-4 h-4 text-muted-foreground" />
             <HelpTooltip helpKey="promptVersionSelect" />
             <select
-              value={selectedVersionId || ''}
+              value={selectedVersionId || ""}
               onChange={(e) => setSelectedVersionId(e.target.value)}
               disabled={isLoadingVersions}
               className="px-3 py-1.5 border rounded-md bg-background text-sm min-w-[140px]"
@@ -216,7 +239,7 @@ export function SplitWorkspace() {
                 promptVersionsData?.versions?.map((version) => (
                   <option key={version.id} value={version.id}>
                     {version.name}
-                    {version.id === promptVersionsData.activeVersionId && ' ✓'}
+                    {version.id === promptVersionsData.activeVersionId && " ✓"}
                   </option>
                 ))
               )}
@@ -252,8 +275,8 @@ export function SplitWorkspace() {
                       key={card.noteId}
                       onClick={() => setSelectedCard(card)}
                       className={cn(
-                        'w-full text-left px-4 py-3 hover:bg-muted transition-colors',
-                        selectedCard?.noteId === card.noteId && 'bg-primary/10'
+                        "w-full text-left px-4 py-3 hover:bg-muted transition-colors",
+                        selectedCard?.noteId === card.noteId && "bg-primary/10",
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -298,10 +321,10 @@ export function SplitWorkspace() {
                   <button
                     onClick={() => setShowValidation(!showValidation)}
                     className={cn(
-                      'flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors',
+                      "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
                       showValidation
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/80'
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80",
                     )}
                   >
                     <Shield className="w-3 h-3" />
@@ -358,13 +381,13 @@ export function SplitWorkspace() {
                     <button
                       onClick={handleSwitchSplitType}
                       className={cn(
-                        'text-xs px-2 py-1 rounded transition-colors',
-                        splitType === 'hard'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-purple-100 text-purple-700'
+                        "text-xs px-2 py-1 rounded transition-colors",
+                        splitType === "hard"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-purple-100 text-purple-700",
                       )}
                     >
-                      {splitType === 'hard' ? (
+                      {splitType === "hard" ? (
                         <>
                           <Zap className="w-3 h-3 inline mr-1" />
                           Hard Split
@@ -389,7 +412,8 @@ export function SplitWorkspace() {
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
-              ) : splitPreview.isError && splitPreview.variables?.noteId === selectedCard.noteId ? (
+              ) : splitPreview.isError &&
+                splitPreview.variables?.noteId === selectedCard.noteId ? (
                 <div className="flex flex-col items-center justify-center h-full text-destructive">
                   <AlertTriangle className="w-8 h-8 mb-3" />
                   <span className="font-medium mb-2">분할 분석 실패</span>
@@ -432,20 +456,17 @@ export function SplitWorkspace() {
                   {/* 분할 카드 미리보기 */}
                   <div className="space-y-3">
                     {previewData.splitCards.map((card, idx) => (
-                      <SplitPreviewCard
-                        key={idx}
-                        card={card}
-                        index={idx}
-                      />
+                      <SplitPreviewCard key={idx} card={card} index={idx} />
                     ))}
                   </div>
                 </div>
-              ) : splitType === 'soft' ? (
+              ) : splitType === "soft" ? (
                 // Soft Split: Gemini 분석 요청 필요
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Sparkles className="w-12 h-12 mb-4 text-purple-400" />
                   <p className="text-center mb-4">
-                    Soft Split은 Gemini AI를 사용합니다.<br />
+                    Soft Split은 Gemini AI를 사용합니다.
+                    <br />
                     <span className="text-xs text-muted-foreground">
                       API 비용이 발생할 수 있습니다.
                     </span>

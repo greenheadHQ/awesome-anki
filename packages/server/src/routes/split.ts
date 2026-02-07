@@ -1,20 +1,21 @@
 /**
  * Split API Routes
  */
-import { Hono } from 'hono';
+
 import {
-  getNoteById,
-  extractTextField,
-  extractTags,
-  performHardSplit,
-  requestCardSplit,
   applySplitResult,
-  preBackup,
-  updateBackupWithCreatedNotes,
   cloneSchedulingAfterSplit,
+  extractTags,
+  extractTextField,
   findCardsByNote,
+  getNoteById,
+  performHardSplit,
+  preBackup,
+  requestCardSplit,
   type SplitResult,
-} from '@anki-splitter/core';
+  updateBackupWithCreatedNotes,
+} from "@anki-splitter/core";
+import { Hono } from "hono";
 
 const app = new Hono();
 
@@ -22,7 +23,7 @@ const app = new Hono();
  * POST /api/split/preview
  * 분할 미리보기
  */
-app.post('/preview', async (c) => {
+app.post("/preview", async (c) => {
   try {
     const { noteId, useGemini = false } = await c.req.json<{
       noteId: number;
@@ -31,7 +32,7 @@ app.post('/preview', async (c) => {
 
     const note = await getNoteById(noteId);
     if (!note) {
-      return c.json({ error: 'Note not found' }, 404);
+      return c.json({ error: "Note not found" }, 404);
     }
 
     const text = extractTextField(note);
@@ -42,7 +43,7 @@ app.post('/preview', async (c) => {
     if (hardResult && hardResult.length > 1) {
       return c.json({
         noteId,
-        splitType: 'hard',
+        splitType: "hard",
         originalText: text,
         splitCards: hardResult.map((card) => ({
           title: card.title,
@@ -60,7 +61,7 @@ app.post('/preview', async (c) => {
       if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
         return c.json({
           noteId,
-          splitType: 'soft',
+          splitType: "soft",
           originalText: text,
           splitCards: geminiResult.splitCards.map((card, idx) => ({
             title: card.title,
@@ -74,19 +75,20 @@ app.post('/preview', async (c) => {
 
       return c.json({
         noteId,
-        splitType: 'none',
-        reason: geminiResult.splitReason || 'Gemini determined split is not needed',
+        splitType: "none",
+        reason:
+          geminiResult.splitReason || "Gemini determined split is not needed",
       });
     }
 
     return c.json({
       noteId,
-      splitType: 'none',
-      reason: 'Hard split not applicable. Enable useGemini for soft split.',
+      splitType: "none",
+      reason: "Hard split not applicable. Enable useGemini for soft split.",
     });
   } catch (error) {
-    console.error('Error in split preview:', error);
-    return c.json({ error: 'Failed to generate split preview' }, 500);
+    console.error("Error in split preview:", error);
+    return c.json({ error: "Failed to generate split preview" }, 500);
   }
 });
 
@@ -94,7 +96,7 @@ app.post('/preview', async (c) => {
  * POST /api/split/apply
  * 분할 적용
  */
-app.post('/apply', async (c) => {
+app.post("/apply", async (c) => {
   try {
     const { noteId, deckName, splitCards, mainCardIndex } = await c.req.json<{
       noteId: number;
@@ -111,7 +113,7 @@ app.post('/apply', async (c) => {
     }>();
 
     // 1. 백업 생성
-    const { backupId } = await preBackup(deckName, noteId, 'soft');
+    const { backupId } = await preBackup(deckName, noteId, "soft");
 
     // 2. 분할 결과 구성
     const splitResult: SplitResult = {
@@ -125,8 +127,8 @@ app.post('/apply', async (c) => {
         preservedLinks: card.preservedLinks || [],
         backLinks: card.backLinks || [],
       })),
-      splitReason: '',
-      splitType: 'soft',
+      splitReason: "",
+      splitType: "soft",
     };
 
     // 3. 분할 적용
@@ -152,8 +154,8 @@ app.post('/apply', async (c) => {
       newNoteIds: applied.newNoteIds,
     });
   } catch (error) {
-    console.error('Error applying split:', error);
-    return c.json({ error: 'Failed to apply split' }, 500);
+    console.error("Error applying split:", error);
+    return c.json({ error: "Failed to apply split" }, 500);
   }
 });
 

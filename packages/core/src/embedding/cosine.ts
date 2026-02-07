@@ -14,7 +14,7 @@
 export function cosineSimilarity(vec1: number[], vec2: number[]): number {
   if (vec1.length !== vec2.length) {
     throw new Error(
-      `벡터 차원이 일치하지 않습니다: ${vec1.length} vs ${vec2.length}`
+      `벡터 차원이 일치하지 않습니다: ${vec1.length} vs ${vec2.length}`,
     );
   }
 
@@ -69,10 +69,10 @@ export function normalizeVector(vec: number[]): number[] {
  */
 export function fastCosineSimilarity(
   normalizedVec1: number[],
-  normalizedVec2: number[]
+  normalizedVec2: number[],
 ): number {
   if (normalizedVec1.length !== normalizedVec2.length) {
-    throw new Error('벡터 차원이 일치하지 않습니다');
+    throw new Error("벡터 차원이 일치하지 않습니다");
   }
 
   let dotProduct = 0;

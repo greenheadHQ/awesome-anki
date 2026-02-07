@@ -1,13 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
-import { queryKeys } from '../lib/query-keys';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../lib/api";
+import { queryKeys } from "../lib/query-keys";
 
 export function useCards(
   deckName: string | null,
-  opts?: { page?: number; limit?: number; filter?: string }
+  opts?: { page?: number; limit?: number; filter?: string },
 ) {
   return useQuery({
-    queryKey: queryKeys.cards.byDeck(deckName || '', opts),
+    queryKey: queryKeys.cards.byDeck(deckName || "", opts),
     queryFn: () => api.cards.getByDeck(deckName!, opts),
     enabled: !!deckName,
     staleTime: 30 * 1000, // 30 seconds
@@ -24,8 +24,13 @@ export function useCardDetail(noteId: number | null) {
 
 export function useSplitPreview() {
   return useMutation({
-    mutationFn: ({ noteId, useGemini }: { noteId: number; useGemini?: boolean }) =>
-      api.split.preview(noteId, useGemini),
+    mutationFn: ({
+      noteId,
+      useGemini,
+    }: {
+      noteId: number;
+      useGemini?: boolean;
+    }) => api.split.preview(noteId, useGemini),
   });
 }
 
