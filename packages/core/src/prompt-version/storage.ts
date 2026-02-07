@@ -4,14 +4,11 @@
 
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import type {
   ActiveVersionInfo,
-  DEFAULT_METRICS,
-  DEFAULT_MODIFICATION_PATTERNS,
   Experiment,
   ModificationPatterns,
-  PromptMetrics,
   PromptVersion,
   SplitHistoryEntry,
 } from "./types.js";

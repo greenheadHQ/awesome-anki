@@ -3,9 +3,7 @@
  */
 
 import {
-  addNote,
   addNotes,
-  addTags,
   findNotes,
   getNotesInfo,
   type NoteFields,

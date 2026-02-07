@@ -36,6 +36,7 @@ export function ContentRenderer({
       {showToggle && (
         <div className="absolute top-2 right-2 flex gap-1 z-10">
           <button
+            type="button"
             onClick={() => setView("rendered")}
             className={cn(
               "p-1.5 rounded transition-colors",
@@ -48,6 +49,7 @@ export function ContentRenderer({
             <Eye className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => setView("raw")}
             className={cn(
               "p-1.5 rounded transition-colors",
@@ -71,6 +73,7 @@ export function ContentRenderer({
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none content-rendered"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized HTML rendering from markdown-it
             dangerouslySetInnerHTML={{ __html: processedContent }}
           />
         )}
@@ -95,6 +98,7 @@ export function ContentPreview({
         "prose prose-sm dark:prose-invert max-w-none content-rendered",
         className,
       )}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized HTML rendering from markdown-it
       dangerouslySetInnerHTML={{ __html: processedContent }}
     />
   );

@@ -52,7 +52,7 @@ export function useSplitApply() {
       splitType: "hard" | "soft";
       deckName: string;
     }) => api.split.apply(noteId, splitType, deckName),
-    onSuccess: (_, variables) => {
+    onSuccess: (_, _variables) => {
       // 카드 목록 캐시 무효화
       queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
       // 백업 목록도 새로고침

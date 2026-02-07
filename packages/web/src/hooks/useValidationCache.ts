@@ -4,7 +4,7 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import {
   type AllValidationResult,
   api,
@@ -77,7 +77,9 @@ function updateGlobalCache(
 ) {
   globalCache = updater(globalCache);
   saveCacheToStorage(globalCache);
-  listeners.forEach((listener) => listener());
+  for (const listener of listeners) {
+    listener();
+  }
 }
 
 export function useValidationCache() {

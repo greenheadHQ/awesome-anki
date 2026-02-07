@@ -63,15 +63,14 @@ export function getMarkdownRenderer(): MarkdownIt {
     md.use(markdownItContainer, type, {
       validate: (params: string) =>
         params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`)),
-      render: (tokens: any[], idx: number) => {
+      render: (tokens: { info: string; nesting: number }[], idx: number) => {
         const m = tokens[idx].info
           .trim()
           .match(new RegExp(`^${type}(\\s+(.*))?$`));
         if (tokens[idx].nesting === 1) {
-          const title =
-            m && m[2]
-              ? `<strong>${getCalloutEmoji(type)} ${md.utils.escapeHtml(m[2])}</strong>`
-              : "";
+          const title = m?.[2]
+            ? `<strong>${getCalloutEmoji(type)} ${md.utils.escapeHtml(m[2])}</strong>`
+            : "";
           return `<div class="callout ${type}">${title}`;
         } else {
           return "</div>\n";
@@ -83,11 +82,11 @@ export function getMarkdownRenderer(): MarkdownIt {
   // Toggle 컨테이너 (::: toggle [type] [title])
   md.use(markdownItContainer, "toggle", {
     validate: (params: string) => params.trim().match(/^toggle(\s+(.*))?$/),
-    render: (tokens: any[], idx: number) => {
+    render: (tokens: { info: string; nesting: number }[], idx: number) => {
       const m = tokens[idx].info.trim().match(/^toggle(\s+(.*))?$/);
       if (tokens[idx].nesting === 1) {
         // 타입과 제목 분리
-        const restText = m && m[2] ? m[2].trim() : "";
+        const restText = m?.[2] ? m[2].trim() : "";
         const toggleTypes = ["tip", "warning", "error", "note", "todo"];
         let toggleType = "";
         let title = "정보";
@@ -128,7 +127,7 @@ export function getMarkdownRenderer(): MarkdownIt {
 export function processNidLinks(html: string): string {
   return html.replace(
     /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
-    (match, title, nid) => {
+    (_match, title, nid) => {
       const cleanTitle = title.replace(/\\\[/g, "[");
       return `<a href="#" class="nid-link" data-nid="${nid}" title="Note ID: ${nid}">${cleanTitle}</a>`;
     },
@@ -146,7 +145,7 @@ export function processCloze(
   // {{c숫자::내용::힌트?}} 패턴
   const clozePattern = /\{\{c(\d+)::([^}]*?)(?:::([^}]*?))?\}\}/g;
 
-  return html.replace(clozePattern, (match, num, content, hint) => {
+  return html.replace(clozePattern, (_match, num, content, hint) => {
     if (showContent) {
       return `<span class="cloze" data-cloze="${num}">${content}</span>`;
     } else {

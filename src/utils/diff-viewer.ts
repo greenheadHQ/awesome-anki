@@ -141,7 +141,7 @@ function truncateHtml(html: string, maxLength: number): string {
   let text = html.replace(/<br\s*\/?>/gi, "\n");
   // 나머지 태그는 유지하되 길이 제한
   if (text.length > maxLength) {
-    text = text.slice(0, maxLength) + "...";
+    text = `${text.slice(0, maxLength)}...`;
   }
   return text;
 }

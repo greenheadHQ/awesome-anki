@@ -8,7 +8,7 @@ export function useCards(
 ) {
   return useQuery({
     queryKey: queryKeys.cards.byDeck(deckName || "", opts),
-    queryFn: () => api.cards.getByDeck(deckName!, opts),
+    queryFn: () => api.cards.getByDeck(deckName as string, opts),
     enabled: !!deckName,
     staleTime: 30 * 1000, // 30 seconds
   });
@@ -17,7 +17,7 @@ export function useCards(
 export function useCardDetail(noteId: number | null) {
   return useQuery({
     queryKey: queryKeys.cards.detail(noteId || 0),
-    queryFn: () => api.cards.getById(noteId!),
+    queryFn: () => api.cards.getById(noteId as number),
     enabled: !!noteId,
   });
 }

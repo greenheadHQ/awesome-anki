@@ -99,13 +99,21 @@ ${cleanContent}
     const parsed = JSON.parse(text);
 
     // 결과 변환
-    const claims: ClaimVerification[] = (parsed.claims || []).map((c: any) => ({
-      claim: c.claim || "",
-      isVerified: c.isVerified ?? true,
-      confidence: c.confidence ?? 50,
-      correction: c.correction,
-      source: c.source,
-    }));
+    const claims: ClaimVerification[] = (parsed.claims || []).map(
+      (c: {
+        claim?: string;
+        isVerified?: boolean;
+        confidence?: number;
+        correction?: string;
+        source?: string;
+      }) => ({
+        claim: c.claim || "",
+        isVerified: c.isVerified ?? true,
+        confidence: c.confidence ?? 50,
+        correction: c.correction,
+        source: c.source,
+      }),
+    );
 
     const overallAccuracy =
       parsed.overallAccuracy ??
@@ -131,7 +139,7 @@ ${cleanContent}
       details: {
         claims,
         overallAccuracy,
-        sources: claims.filter((c) => c.source).map((c) => c.source!),
+        sources: claims.filter((c) => c.source).map((c) => c.source as string),
       },
       timestamp: new Date().toISOString(),
     };

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ContentRenderer } from "../components/card/ContentRenderer";
-import { DiffViewer, SplitPreviewCard } from "../components/card/DiffViewer";
+import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/Button";
 import {
@@ -36,7 +36,6 @@ import {
   useSplitPreview,
 } from "../hooks/useSplit";
 import type { SplitPreviewResult } from "../lib/api";
-import { queryKeys } from "../lib/query-keys";
 import { cn } from "../lib/utils";
 
 interface SplitCandidate {
@@ -139,7 +138,12 @@ export function SplitWorkspace() {
       }
       // Soft Split은 사용자가 명시적으로 요청해야 함 (캐시된 결과 있으면 바로 표시)
     }
-  }, [selectedCard?.noteId]);
+  }, [
+    selectedCard?.noteId,
+    selectedCard,
+    queryClient, // mutation 상태 초기화 (이전 카드 결과 제거)
+    splitPreview,
+  ]);
 
   // Soft Split 분석 요청 핸들러
   const handleRequestSoftSplit = () => {
@@ -149,7 +153,8 @@ export function SplitWorkspace() {
   };
 
   const candidates = (cardsData?.cards || []).filter(
-    (c: any) => c.analysis?.canHardSplit || c.analysis?.canSoftSplit,
+    (c: { analysis?: { canHardSplit?: boolean; canSoftSplit?: boolean } }) =>
+      c.analysis?.canHardSplit || c.analysis?.canSoftSplit,
   ) as SplitCandidate[];
 
   const handleApply = () => {
@@ -272,6 +277,7 @@ export function SplitWorkspace() {
                 <div className="divide-y">
                   {candidates.map((card) => (
                     <button
+                      type="button"
                       key={card.noteId}
                       onClick={() => setSelectedCard(card)}
                       className={cn(
@@ -319,6 +325,7 @@ export function SplitWorkspace() {
               {selectedCard && (
                 <div className="flex items-center gap-3">
                   <button
+                    type="button"
                     onClick={() => setShowValidation(!showValidation)}
                     className={cn(
                       "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
@@ -379,6 +386,7 @@ export function SplitWorkspace() {
                 {selectedCard && (
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={handleSwitchSplitType}
                       className={cn(
                         "text-xs px-2 py-1 rounded transition-colors",
@@ -433,7 +441,7 @@ export function SplitWorkspace() {
                     다시 시도
                   </Button>
                 </div>
-              ) : previewData && previewData.splitCards ? (
+              ) : previewData?.splitCards ? (
                 <div className="space-y-4">
                   {/* 캐시 표시 */}
                   {cachedPreview && (
@@ -456,7 +464,11 @@ export function SplitWorkspace() {
                   {/* 분할 카드 미리보기 */}
                   <div className="space-y-3">
                     {previewData.splitCards.map((card, idx) => (
-                      <SplitPreviewCard key={idx} card={card} index={idx} />
+                      <SplitPreviewCard
+                        key={`split-${card.title}-${idx}`}
+                        card={card}
+                        index={idx}
+                      />
                     ))}
                   </div>
                 </div>

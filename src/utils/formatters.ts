@@ -142,8 +142,10 @@ export function extractImagePaths(html: string): string[] {
   const images: string[] = [];
   let match: RegExpExecArray | null;
 
-  while ((match = pattern.exec(html)) !== null) {
+  match = pattern.exec(html);
+  while (match) {
     images.push(match[1]);
+    match = pattern.exec(html);
   }
 
   return images;

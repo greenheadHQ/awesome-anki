@@ -18,7 +18,7 @@ import {
   Sparkles,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   type AllValidationResult,
   api,
@@ -173,6 +173,7 @@ export function ValidationPanel({
             {/* 팩트 체크 */}
             <div className="border rounded-lg overflow-hidden">
               <button
+                type="button"
                 className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
                 onClick={() => toggleSection("factCheck")}
               >
@@ -200,7 +201,7 @@ export function ValidationPanel({
                       {result.results.factCheck.details.claims.map(
                         (claim, i) => (
                           <div
-                            key={i}
+                            key={`claim-${claim.claim.slice(0, 20)}-${i}`}
                             className="text-xs p-2 bg-background rounded"
                           >
                             <div className="flex items-start gap-2">
@@ -230,6 +231,7 @@ export function ValidationPanel({
             {/* 최신성 검사 */}
             <div className="border rounded-lg overflow-hidden">
               <button
+                type="button"
                 className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
                 onClick={() => toggleSection("freshness")}
               >
@@ -255,7 +257,7 @@ export function ValidationPanel({
                       {result.results.freshness.details.outdatedItems.map(
                         (item, i) => (
                           <div
-                            key={i}
+                            key={`freshness-${item.content.slice(0, 20)}-${i}`}
                             className="text-xs p-2 bg-background rounded"
                           >
                             <p className="font-medium">{item.content}</p>
@@ -279,6 +281,7 @@ export function ValidationPanel({
             {/* 유사성 검사 */}
             <div className="border rounded-lg overflow-hidden">
               <button
+                type="button"
                 className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
                 onClick={() => toggleSection("similarity")}
               >
@@ -335,6 +338,7 @@ export function ValidationPanel({
                     </span>
                     <div className="flex items-center gap-2">
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setUseEmbedding(false);
@@ -352,6 +356,7 @@ export function ValidationPanel({
                         Jaccard
                       </button>
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setUseEmbedding(true);
@@ -402,7 +407,7 @@ export function ValidationPanel({
                             result.results.similarity.details.similarCards
                           ).map((card, i) => (
                             <div
-                              key={i}
+                              key={`similar-${card.noteId}-${i}`}
                               className="text-xs p-2 bg-background rounded"
                             >
                               <div className="flex justify-between items-start">
@@ -438,6 +443,7 @@ export function ValidationPanel({
             {/* 문맥 일관성 검사 */}
             <div className="border rounded-lg overflow-hidden">
               <button
+                type="button"
                 className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
                 onClick={() => toggleSection("context")}
               >
@@ -469,7 +475,7 @@ export function ValidationPanel({
                       {result.results.context.details.inconsistencies.map(
                         (inc, i) => (
                           <div
-                            key={i}
+                            key={`inc-${inc.conflictingNoteId ?? "unknown"}-${i}`}
                             className="text-xs p-2 bg-background rounded"
                           >
                             <div className="flex items-start gap-2">

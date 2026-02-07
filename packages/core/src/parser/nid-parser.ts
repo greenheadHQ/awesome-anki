@@ -26,7 +26,8 @@ export function parseNidLinks(content: string): NidLink[] {
   // 정규식 상태 초기화
   NID_LINK_REGEX.lastIndex = 0;
 
-  while ((match = NID_LINK_REGEX.exec(content)) !== null) {
+  match = NID_LINK_REGEX.exec(content);
+  while (match) {
     links.push({
       title: match[1],
       nid: match[2],
@@ -34,6 +35,7 @@ export function parseNidLinks(content: string): NidLink[] {
       startIndex: match.index,
       endIndex: match.index + match[0].length,
     });
+    match = NID_LINK_REGEX.exec(content);
   }
 
   return links;

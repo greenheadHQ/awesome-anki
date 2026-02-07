@@ -95,18 +95,18 @@ export function parseContainers(content: string): ContainerBlock[] {
       const blockContent = contentLines.pop();
       state.depth--;
 
-      if (block && blockContent) {
+      if (block && blockContent && block.type && block.startLine) {
         const endLine = state.lineNumber;
         const rawContent = blockContent.join("\n");
 
         result.push({
-          type: block.type!,
+          type: block.type,
           toggleType: block.toggleType,
           title: block.title,
           content: rawContent,
-          startLine: block.startLine!,
+          startLine: block.startLine,
           endLine,
-          raw: `:::${block.type}${block.toggleType ? " " + block.toggleType : ""}${block.title ? " " + block.title : ""}\n${rawContent}\n:::`,
+          raw: `:::${block.type}${block.toggleType ? ` ${block.toggleType}` : ""}${block.title ? ` ${block.title}` : ""}\n${rawContent}\n:::`,
         });
       }
       continue;

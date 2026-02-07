@@ -4,11 +4,9 @@
  */
 
 import {
-  AlertCircle,
   BarChart3,
   Check,
   ChevronRight,
-  Clock,
   Edit,
   FileText,
   FlaskConical,
@@ -98,6 +96,7 @@ export function PromptManager() {
       <div className="flex border-b mb-4">
         {tabs.map((tab) => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
@@ -197,6 +196,7 @@ function VersionsTab({
               <div className="divide-y">
                 {versions.map((version) => (
                   <button
+                    type="button"
                     key={version.id}
                     onClick={() => onSelectVersion(version)}
                     className={cn(

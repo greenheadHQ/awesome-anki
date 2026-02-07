@@ -9,7 +9,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { findNotes, getNotesInfo, type NoteInfo } from "../anki/client.js";
-import { extractUniqueNids, parseNidLinks } from "../parser/nid-parser.js";
+import { extractUniqueNids } from "../parser/nid-parser.js";
 import type { ContextResult, Inconsistency } from "./types.js";
 
 const MODEL_NAME = "gemini-2.0-flash";
@@ -81,7 +81,7 @@ async function getLinkedNotes(noteIds: string[]): Promise<NoteInfo[]> {
 
   const numericIds = noteIds
     .map((id) => parseInt(id, 10))
-    .filter((id) => !isNaN(id));
+    .filter((id) => !Number.isNaN(id));
   if (numericIds.length === 0) return [];
 
   try {
@@ -227,7 +227,11 @@ ${cardsText}
 
     // 결과 변환
     const inconsistencies: Inconsistency[] = (parsed.inconsistencies || []).map(
-      (inc: any) => ({
+      (inc: {
+        description?: string;
+        conflictingNoteId?: number;
+        severity?: string;
+      }) => ({
         description: inc.description || "",
         conflictingNoteId: inc.conflictingNoteId,
         severity: inc.severity || "medium",

@@ -167,8 +167,10 @@ function createAtomicCard(
   const images: string[] = [];
   let match: RegExpExecArray | null;
   IMAGE_PATTERN.lastIndex = 0;
-  while ((match = IMAGE_PATTERN.exec(content)) !== null) {
+  match = IMAGE_PATTERN.exec(content);
+  while (match) {
     images.push(match[1]);
+    match = IMAGE_PATTERN.exec(content);
   }
 
   // nid 링크 추출

@@ -147,7 +147,7 @@
             .match(new RegExp(`^${type}(\\s+(.*))?$`));
           if (tokens[idx].nesting === 1) {
             const title =
-              m && m[2]
+              m?.[2]
                 ? `<strong>${getCalloutImoji(type)} ${md.utils.escapeHtml(
                     m[2]
                   )}</strong>`
@@ -167,7 +167,7 @@
         const m = tokens[idx].info.trim().match(/^toggle(\s+(.*))?$/);
         if (tokens[idx].nesting === 1) {
           // 타입과 제목 분리
-          const restText = m && m[2] ? m[2].trim() : "";
+          const restText = m?.[2] ? m[2].trim() : "";
           const toggleTypes = ["tip", "warning", "error", "note", "todo"];
           let toggleType = "";
           let title = "정보";
@@ -287,7 +287,7 @@
       // You can rename "linkRender" on this line, but leave the "." in front
       element.innerHTML = element.innerHTML.replace(
         /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
-        (match, title, nid) => {
+        (_match, title, nid) => {
           title = title.replace(/\\\[/g, "[");
           let link;
           if (
@@ -452,7 +452,7 @@
         }
       }
 
-      function callback() {
+      const callback = () => {
         // 이미 펼쳐진 상태면 아무것도 하지 않음
         if (firstClozeCard.dataset.ordinal === "0") return;
 
@@ -522,7 +522,7 @@
         // 시각적 스타일 변경
         firstClozeCard.style.backgroundColor = "transparent";
         firstClozeCard.style.boxShadow = "inset 0 -2px 0 #85B0FD";
-      }
+      };
 
       callback();
       // 키보드 이벤트에서도 링크 렌더링 적용
@@ -663,7 +663,7 @@
     const textWithProtectedCodeBlocks = text.replace(/(```[\s\S]*?```)/g, (match) => {
       const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
       codeBlocks.push(match);
-      console.log(`🔒 코드 블록 #${codeBlockIndex} 보호:`, match.substring(0, 50) + "...");
+      console.log(`🔒 코드 블록 #${codeBlockIndex} 보호:`, `${match.substring(0, 50)}...`);
       codeBlockIndex++;
       return placeholder;
     });
@@ -933,7 +933,7 @@
         // You can rename "linkRender" on this line, but leave the "." in front
         element.innerHTML = element.innerHTML.replace(
           /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
-          (match, title, nid) => {
+          (_match, title, nid) => {
             title = title.replace(/\\\[/g, "[");
             let link;
             if (
@@ -948,7 +948,7 @@
                   developer: "github.com/gugutu",
                 });
                 link = `javascript:window.jsAPI.ankiSearchCard(\`nid:${nid}\`)`;
-              } catch (e) {
+              } catch (_e) {
                 link = `https://ankiuser.net/edit/${nid}' target='_blank`;
               }
             return disableLinks

@@ -238,32 +238,32 @@ body {
 /* Toggle 타입별 색상 (원본 템플릿과 동일) */
 .toggle.tip {
   background-color: #e0f7fa;
-  border-left-color: #00acc1;
   border-color: #b2ebf2;
+  border-left-color: #00acc1;
 }
 
 .toggle.warning {
   background-color: #fff3e0;
-  border-left-color: #ffb300;
   border-color: #ffe0b2;
+  border-left-color: #ffb300;
 }
 
 .toggle.error {
   background-color: #ffebee;
-  border-left-color: #e53935;
   border-color: #ffcdd2;
+  border-left-color: #e53935;
 }
 
 .toggle.note {
   background-color: #e8f5e9;
-  border-left-color: #43a047;
   border-color: #c8e6c9;
+  border-left-color: #43a047;
 }
 
 .toggle.todo {
   background-color: #f3e5f5;
-  border-left-color: #9c27b0;
   border-color: #e1bee7;
+  border-left-color: #9c27b0;
 }
 
 /* Prose 커스텀 */

@@ -7,9 +7,9 @@
  * 증분 업데이트: 텍스트 변경된 카드만 재생성
  */
 
-import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 const CACHE_DIR = "output/embeddings";
 
@@ -228,7 +228,7 @@ export function deleteCache(deckName: string): boolean {
   }
 
   try {
-    const fs = require("fs");
+    const fs = require("node:fs");
     fs.unlinkSync(path);
     return true;
   } catch (error) {

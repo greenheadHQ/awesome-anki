@@ -11,7 +11,6 @@ import {
   getCacheStatus,
   getDeckNotes,
   getEmbedding,
-  getEmbeddings,
   getTextHash,
   loadCache,
   preprocessTextForEmbedding,
@@ -130,7 +129,7 @@ embedding.get("/status/:deckName", async (c) => {
     try {
       const notes = await getDeckNotes(deckName);
       totalNotes = notes.length;
-    } catch (e) {
+    } catch (_e) {
       // 덱을 찾을 수 없는 경우
     }
 

@@ -9,12 +9,10 @@
 import { cosineSimilarity } from "../embedding/cosine.js";
 import {
   createCache,
-  type EmbeddingCache,
   getCachedEmbedding,
   getEmbedding,
   getTextHash,
   loadCache,
-  preprocessTextForEmbedding,
   saveCache,
   setCachedEmbedding,
 } from "../embedding/index.js";
@@ -60,7 +58,9 @@ function getWordSet(text: string, ngramSize: number = 2): Set<string> {
   const result = new Set<string>();
 
   // 단어 추가
-  words.forEach((w) => result.add(w));
+  for (const w of words) {
+    result.add(w);
+  }
 
   // n-gram 추가
   for (let i = 0; i <= words.length - ngramSize; i++) {
@@ -210,7 +210,7 @@ async function checkSimilarityWithEmbedding(
       try {
         cardEmbedding = await getEmbedding(card.text);
         setCachedEmbedding(cache, card.noteId, cardEmbedding, cardTextHash);
-      } catch (error) {
+      } catch (_error) {
         console.warn(`카드 ${card.noteId} 임베딩 실패, 스킵`);
         continue;
       }
@@ -281,7 +281,7 @@ function buildSimilarityResult(
 }
 
 function getStatusMessage(
-  status: string,
+  _status: string,
   count: number,
   isDuplicate: boolean,
 ): string {

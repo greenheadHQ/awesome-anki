@@ -420,8 +420,11 @@ export function Help() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {faqItems.map((item, index) => (
-                <div key={index} className="border-b pb-3 last:border-0">
+              {faqItems.map((item) => (
+                <div
+                  key={item.question}
+                  className="border-b pb-3 last:border-0"
+                >
                   <h4 className="font-medium text-sm">{item.question}</h4>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                     {item.answer}

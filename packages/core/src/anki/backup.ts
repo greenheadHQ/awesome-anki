@@ -8,8 +8,8 @@ import {
   readdirSync,
   readFileSync,
   writeFileSync,
-} from "fs";
-import { join } from "path";
+} from "node:fs";
+import { join } from "node:path";
 import {
   deleteNotes,
   getNotesInfo,

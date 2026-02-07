@@ -13,7 +13,7 @@ export function useDecks() {
 export function useDeckStats(deckName: string | null) {
   return useQuery({
     queryKey: queryKeys.deckStats(deckName || ""),
-    queryFn: () => api.decks.stats(deckName!),
+    queryFn: () => api.decks.stats(deckName as string),
     enabled: !!deckName,
     staleTime: 60 * 1000, // 1 minute
   });

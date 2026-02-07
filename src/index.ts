@@ -282,7 +282,7 @@ async function runSplit(deckName: string, shouldApply: boolean) {
           });
           softSplitCount++;
         }
-      } catch (error) {
+      } catch (_error) {
         console.error(chalk.red(`\n   카드 ${candidate.noteId} 분석 실패`));
       }
     }
@@ -374,7 +374,7 @@ async function runSplit(deckName: string, shouldApply: boolean) {
           ),
         );
         successCount++;
-      } catch (error) {
+      } catch (_error) {
         console.error(chalk.red(`❌ ${result.noteId}: 적용 실패`));
         failCount++;
       }

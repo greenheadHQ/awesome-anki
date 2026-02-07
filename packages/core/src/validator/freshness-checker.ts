@@ -105,7 +105,12 @@ ${cleanContent}
 
     // 결과 변환
     const outdatedItems: OutdatedItem[] = (parsed.outdatedItems || []).map(
-      (item: any) => ({
+      (item: {
+        content?: string;
+        reason?: string;
+        currentInfo?: string;
+        severity?: string;
+      }) => ({
         content: item.content || "",
         reason: item.reason || "",
         currentInfo: item.currentInfo,

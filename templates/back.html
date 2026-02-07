@@ -133,7 +133,7 @@
         render: (tokens, idx) => {
           const m = tokens[idx].info.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
           if (tokens[idx].nesting === 1) {
-            const title = m && m[2] ? `<strong>${getCalloutImoji(type)} ${md.utils.escapeHtml(m[2])}</strong>` : '';
+            const title = m?.[2] ? `<strong>${getCalloutImoji(type)} ${md.utils.escapeHtml(m[2])}</strong>` : '';
             return `<div class="callout ${type}">${title}`;
           } else {
             return '</div>\n';
@@ -149,7 +149,7 @@
         const m = tokens[idx].info.trim().match(/^toggle(\s+(.*))?$/);
         if (tokens[idx].nesting === 1) {
           // 타입과 제목 분리
-          const restText = m && m[2] ? m[2].trim() : '';
+          const restText = m?.[2] ? m[2].trim() : '';
           const toggleTypes = ['tip', 'warning', 'error', 'note', 'todo'];
           let toggleType = '';
           let title = '정보';
@@ -201,7 +201,7 @@
     // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
     // render 메서드 내부에 아래 코드 정의
     var clozeCards = document.getElementsByClassName("cloze");
-    for (var i = 0; i < clozeCards.length; i++) {
+    for (let i = 0; i < clozeCards.length; i++) {
       clozeCards[i].style.boxShadow = "inset 0 -2.3px 0 #85B0FD";
     }
 
@@ -293,7 +293,7 @@
             try {
               window.jsAPI ||= new AnkiDroidJS({ version: "0.0.3", developer: "github.com/gugutu" });
               link = `javascript:window.jsAPI.ankiSearchCard(\`nid:${nid}\`)`;
-            } catch (e) {
+            } catch (_e) {
               link = `https://ankiuser.net/edit/${nid}' target='_blank`;
             }
           }
@@ -426,12 +426,12 @@
      *       마크다운 파싱 후 다시 복원
      */
     const clozeSpans = [];  // 임시 저장할 cloze span 배열
-    let codeBlockCount = 0; // 코드 블록 개수 카운터 (디버깅용)
+    let _codeBlockCount = 0; // 코드 블록 개수 카운터 (디버깅용)
     
     // 마크다운 코드 블록 패턴 매칭: ```[언어명] ... ```
     // [a-zA-Z0-9_\-]+ : 언어명 (js, python, html 등)
     text = text.replace(/(```[a-zA-Z0-9_-]+[\s\S]*?```)/g, (codeBlock) => {
-      codeBlockCount++;
+      _codeBlockCount++;
       
       // 해당 코드 블록 내부의 cloze span을 찾아서 플레이스홀더로 교체
       return codeBlock.replace(/<span\s+class\s*=\s*["']cloze["'].*?<\/span>/gi, (match) => {
@@ -533,7 +533,7 @@
     const textWithProtectedCodeBlocks = text.replace(/(```[\s\S]*?```)/g, (match) => {
       const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
       codeBlocks.push(match);
-      console.log(`🔒 BACK - 코드 블록 #${codeBlockIndex} 보호:`, match.substring(0, 50) + "...");
+      console.log(`🔒 BACK - 코드 블록 #${codeBlockIndex} 보호:`, `${match.substring(0, 50)}...`);
       codeBlockIndex++;
       return placeholder;
     });
@@ -958,7 +958,7 @@
             document.querySelectorAll('.linkRender').forEach(element => { // You can rename "linkRender" on this line, but leave the "." in front
                 element.innerHTML = element.innerHTML.replace(
                     /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
-                    (match, title, nid) => {
+                    (_match, title, nid) => {
                         title = title.replace(/\\\[/g, '[');
                         let link;
                         if (document.documentElement.classList.contains('iphone') || document.documentElement.classList.contains('ipad')) {
@@ -966,7 +966,7 @@
                         } else try {
                             window.jsAPI ||= new AnkiDroidJS({ version: "0.0.3", developer: "github.com/gugutu" });
                             link = `javascript:window.jsAPI.ankiSearchCard(\`nid:${nid}\`)`;
-                        } catch (e) {
+                        } catch (_e) {
                             link = `https://ankiuser.net/edit/${nid}' target='_blank`;
                         }
                         return disableLinks ? `${title}` : `<a href='${link}' class='noteLink'>${title}</a>`;

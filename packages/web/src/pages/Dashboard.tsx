@@ -39,14 +39,14 @@ export function Dashboard() {
   // 임베딩 상태 조회
   const { data: embeddingStatus, isLoading: isLoadingEmbedding } = useQuery({
     queryKey: ["embedding-status", selectedDeck],
-    queryFn: () => api.embedding.status(selectedDeck!),
+    queryFn: () => api.embedding.status(selectedDeck as string),
     enabled: !!selectedDeck,
     staleTime: 30000,
   });
 
   // 임베딩 생성 뮤테이션
   const generateMutation = useMutation({
-    mutationFn: () => api.embedding.generate(selectedDeck!, false),
+    mutationFn: () => api.embedding.generate(selectedDeck as string, false),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["embedding-status", selectedDeck],

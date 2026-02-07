@@ -10,18 +10,12 @@ import "dotenv/config";
 import {
   type CardForComparison,
   checkSimilarity,
-  cosineSimilarity,
-  createCache,
   extractTextField,
   getCacheStatus,
   getDeckNotes,
   getEmbedding,
   getSemanticSimilarity,
-  getTextHash,
-  loadCache,
   preprocessTextForEmbedding,
-  saveCache,
-  setCachedEmbedding,
 } from "@anki-splitter/core";
 
 const DECK_NAME = "[책] 이것이 취업을 위한 컴퓨터 과학이다";
@@ -78,8 +72,8 @@ async function testSemanticSimilarity() {
   const card1Text = extractTextField(dnsCards[0]);
   const card2Text = extractTextField(dnsCards[1]);
 
-  console.log("카드 1:", card1Text.slice(0, 100) + "...");
-  console.log("카드 2:", card2Text.slice(0, 100) + "...");
+  console.log("카드 1:", `${card1Text.slice(0, 100)}...`);
+  console.log("카드 2:", `${card2Text.slice(0, 100)}...`);
 
   const similarity = await getSemanticSimilarity(card1Text, card2Text);
   console.log(`\n의미적 유사도: ${similarity}%`);
@@ -91,7 +85,7 @@ async function testSemanticSimilarity() {
   );
   if (otherCard) {
     const otherText = extractTextField(otherCard);
-    console.log("\n다른 카드:", otherText.slice(0, 100) + "...");
+    console.log("\n다른 카드:", `${otherText.slice(0, 100)}...`);
 
     const otherSimilarity = await getSemanticSimilarity(card1Text, otherText);
     console.log(`DNS 카드 vs 다른 주제 카드 유사도: ${otherSimilarity}%`);

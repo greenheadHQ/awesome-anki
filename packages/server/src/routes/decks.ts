@@ -20,7 +20,7 @@ app.get("/", async (c) => {
   try {
     const decks = await getDeckNames();
     return c.json({ decks });
-  } catch (error) {
+  } catch (_error) {
     return c.json({ error: "Failed to fetch decks" }, 500);
   }
 });
@@ -58,7 +58,7 @@ app.get("/:name/stats", async (c) => {
       hardSplitCount,
       softSplitCount,
     });
-  } catch (error) {
+  } catch (_error) {
     return c.json({ error: "Failed to fetch deck stats" }, 500);
   }
 });

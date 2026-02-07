@@ -27,7 +27,8 @@ export function parseClozes(content: string): ClozeItem[] {
   // 정규식 상태 초기화
   CLOZE_REGEX.lastIndex = 0;
 
-  while ((match = CLOZE_REGEX.exec(content)) !== null) {
+  match = CLOZE_REGEX.exec(content);
+  while (match) {
     clozes.push({
       clozeNumber: parseInt(match[1], 10),
       content: match[2],
@@ -36,6 +37,7 @@ export function parseClozes(content: string): ClozeItem[] {
       startIndex: match.index,
       endIndex: match.index + match[0].length,
     });
+    match = CLOZE_REGEX.exec(content);
   }
 
   return clozes;
@@ -77,7 +79,7 @@ export function createCloze(
  * 1 Note = 1 Atomic Card 원칙: 분할된 카드는 {{c1::}}로 통일
  */
 export function resetClozesToC1(content: string): string {
-  return content.replace(CLOZE_REGEX, (match, _num, innerContent, hint) => {
+  return content.replace(CLOZE_REGEX, (_match, _num, innerContent, hint) => {
     return createCloze(1, innerContent, hint);
   });
 }

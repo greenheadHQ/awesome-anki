@@ -6,6 +6,7 @@ import type {
   FewShotExample,
   PromptConfig,
   PromptVersion,
+  SplitHistoryEntry,
 } from "@anki-splitter/core";
 import {
   addHistoryEntry,
@@ -289,7 +290,7 @@ prompts.get("/history", async (c) => {
     const limit = parseInt(c.req.query("limit") ?? "100", 10);
     const offset = parseInt(c.req.query("offset") ?? "0", 10);
 
-    let history;
+    let history: SplitHistoryEntry[];
 
     if (versionId) {
       history = await getHistoryByVersion(versionId);

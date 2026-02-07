@@ -109,7 +109,7 @@ export function DiffViewer({
         <div className="p-3 bg-card text-sm font-mono overflow-x-auto max-h-80 overflow-y-auto">
           {diffLines.map((line, idx) => (
             <div
-              key={idx}
+              key={`${line.type}-${line.lineNumber ?? idx}-${idx}`}
               className={cn(
                 "flex gap-2 py-0.5 px-2 -mx-2",
                 line.type === "added" && "bg-green-500/10",
@@ -141,7 +141,10 @@ export function DiffViewer({
 
       {/* 서브 카드들 */}
       {subCards.map((card, idx) => (
-        <div key={idx} className="border rounded-lg overflow-hidden">
+        <div
+          key={`sub-${card.title}-${idx}`}
+          className="border rounded-lg overflow-hidden"
+        >
           <div className="bg-muted px-3 py-2 border-b flex items-center justify-between">
             <span className="font-medium text-sm">
               새 카드 {idx + 1}: {card.title}
@@ -189,6 +192,7 @@ export function SplitPreviewCard({
           {/* Raw/Rendered 토글 */}
           <div className="flex rounded-md border overflow-hidden">
             <button
+              type="button"
               onClick={() => setViewMode("rendered")}
               className={cn(
                 "p-1 transition-colors",
@@ -201,6 +205,7 @@ export function SplitPreviewCard({
               <Eye className="w-3 h-3" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("raw")}
               className={cn(
                 "p-1 transition-colors",

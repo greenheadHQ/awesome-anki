@@ -21,7 +21,7 @@ export function usePromptVersions() {
 export function usePromptVersion(versionId: string | null) {
   return useQuery({
     queryKey: queryKeys.prompts.version(versionId || ""),
-    queryFn: () => api.prompts.version(versionId!),
+    queryFn: () => api.prompts.version(versionId as string),
     enabled: !!versionId,
   });
 }
@@ -94,7 +94,7 @@ export function useExperiments() {
 export function useExperiment(experimentId: string | null) {
   return useQuery({
     queryKey: queryKeys.prompts.experiment(experimentId || ""),
-    queryFn: () => api.prompts.experiment(experimentId!),
+    queryFn: () => api.prompts.experiment(experimentId as string),
     enabled: !!experimentId,
   });
 }
