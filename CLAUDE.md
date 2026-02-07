@@ -1,171 +1,59 @@
-# Anki Claude Code - LLM 가이드
+# Anki Claude Code
 
-## 세션 규칙 ⚠️
+## 안전 규칙 (최우선)
 
-### 세션 시작 시
-- `docs/` 디렉토리 내 모든 문서 정독 필수
-  - `docs/TODO.md` - 진행 상황 및 다음 작업
-  - `docs/FEATURES.md` - 기능 및 기술 상세
-  - `docs/TROUBLESHOOTING.md` - 문제 해결 기록
+- **반드시 `test` 프로필에서만 작업**: `open -a Anki --args -p test`
+- 기본 Anki 프로필 접근 **절대 금지**
+- `--apply` 없이 항상 **미리보기 먼저 확인**
+- `.env`에 `GEMINI_API_KEY` 필요 (Soft Split, 검증용)
 
-### 세션 종료 시
-- `docs/*.md` 문서 최신화 필수
-  - 완료된 작업 체크
-  - 새로운 결정사항 기록
-  - 다음 작업 업데이트
+## 프로젝트 한줄 설명
 
----
+Anki 카드를 원자적 단위로 분할하는 웹 앱 + CLI. Gemini AI로 정보 밀도 높은 카드를 학습 효율 좋은 작은 카드로 분리.
 
-## 프로젝트 개요
+## 환경
 
-Anki 카드를 원자적 단위로 분할하는 Claude Code 스킬. 정보 밀도 높은 카드를 학습 효율이 좋은 작은 카드들로 분리.
-
-## 핵심 컨텍스트
-
-### 환경
-- **런타임**: bun (npm 아님)
-- **Anki 프로필**: 반드시 `test` 프로필에서만 작업 (`open -a Anki --args -p test`)
-- **AnkiConnect**: localhost:8765 (애드온 코드: 2055492159)
+- **런타임**: Bun (npm 아님)
+- **AnkiConnect**: localhost:8765 (애드온 2055492159)
 - **대상 모델**: `KaTeX and Markdown Cloze` (필드: Text, Back Extra)
-- **LLM**: `gemini-3-flash-preview` (구조화된 출력 지원, 1M 토큰 입력)
+- **LLM**: `gemini-3-flash-preview` (구조화된 출력, 1M 토큰)
+- **Anki 프로필**: `test` 전용
 
-### 테스트 데이터
-- 덱: `[책] 이것이 취업을 위한 컴퓨터 과학이다` (262개 노트)
-- 1차 테스트 카드 (DNS 관련, nid 링크 많음):
+## 테스트 데이터
+
+- 덱: `[책] 이것이 취업을 위한 컴퓨터 과학이다`
+- 테스트 카드 (DNS 관련, nid 링크 많음):
   - 1757399484677: 도메인 네임의 계층적 구조
   - 1757400981612: 네임 서버의 계층적 구조
   - 1757407967676: DNS 레코드 타입
 
-## 아키텍처 (모노레포)
+## 프로젝트 구조
 
-```
-anki-claude-code/
-├── packages/
-│   ├── core/                 # 핵심 로직 (CLI + 웹 공용)
-│   │   └── src/
-│   │       ├── anki/         # AnkiConnect API 래퍼
-│   │       ├── gemini/       # Gemini API 호출
-│   │       ├── parser/       # 텍스트 파싱 (container, nid, cloze)
-│   │       ├── splitter/     # Hard/Soft Split 로직
-│   │       ├── validator/    # 카드 검증 (fact-check, freshness, similarity, context)
-│   │       └── utils/        # HTML 스타일 보존, diff
-│   │
-│   ├── server/               # Hono REST API 서버
-│   │   └── src/
-│   │       ├── index.ts      # 서버 진입점 (localhost:3000)
-│   │       └── routes/       # API 라우트 (decks, cards, split, backup, validate)
-│   │
-│   └── web/                  # React 프론트엔드
-│       └── src/
-│           ├── pages/        # Dashboard, CardBrowser, SplitWorkspace
-│           ├── components/   # UI 컴포넌트 (shadcn/ui 스타일)
-│           └── hooks/        # TanStack Query 훅
-│
-├── src/                      # CLI 진입점 (하위 호환)
-│   └── index.ts
-│
-└── output/
-    └── backups/              # 분할 전 상태 백업 (JSON)
-```
+모노레포: `packages/core`(핵심 로직) + `packages/server`(Hono, :3000) + `packages/web`(React 19, :5173)
 
-## 웹 API 엔드포인트
-
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| GET | /api/decks | 덱 목록 |
-| GET | /api/decks/:name/stats | 덱 통계 (분할 후보 수 등) |
-| GET | /api/cards/deck/:name | 카드 목록 (페이지네이션, 필터) |
-| GET | /api/cards/:noteId | 카드 상세 |
-| POST | /api/split/preview | 분할 미리보기 |
-| POST | /api/split/apply | 분할 적용 |
-| GET | /api/backup | 백업 목록 |
-| POST | /api/backup/:id/rollback | 롤백 |
-| POST | /api/validate/fact-check | 팩트 체크 |
-| POST | /api/validate/freshness | 최신성 검사 |
-| POST | /api/validate/similarity | 유사성 검사 |
-| POST | /api/validate/context | 문맥 일관성 검사 |
-| POST | /api/validate/all | 전체 검증 (병렬) |
-
-## 분할 전략
-
-### Hard Split (구현 완료)
-- `####` 헤더나 `---` 구분선으로 명확히 분리되는 경우
-- 정규식 기반으로 빠르고 정확
-
-### Soft Split (구현 완료)
-- 구분자 없지만 정보 밀도 높은 경우 (Cloze > 3개)
-- Gemini 3 Flash Preview에게 분할 제안 요청
-- 처음 5개 후보만 분석 (API 비용 고려)
-
-### nid 승계 전략
-- `mainCardIndex` 카드: `updateNoteFields`로 기존 nid 유지
-- 서브 카드들: `addNotes`로 새 nid 생성 + 역링크 삽입
-
-## 시행착오 및 결정사항
-
-### 1. 컨테이너 파서 설계
-- **문제**: 정규식만으로는 중첩 `::: toggle` 처리 불가
-- **해결**: 상태 머신 방식 (스택 기반 depth 추적)
-
-### 2. Cloze 번호 처리
-- **결정**: 분할 후 모든 카드는 `{{c1::}}`로 리셋 (1 Note = 1 Atomic Card 원칙)
-
-### 3. todo 블록 처리
-- **규칙**: `::: toggle todo` 블록은 분할 대상에서 제외 (미완성 상태)
-- **플래그**: purple 플래그 카드도 주의 필요
-
-### 4. 스타일 보존
-- 반드시 보존해야 하는 HTML: `<span style="color:...">`, `<font color>`, `<b>`, `<u>`, `<sup>`
-- `formatters.ts`에서 검증 로직 제공
-
-## 구현 완료 기능
-
-1. **rollback**: 분할 적용 전 자동 백업 + 롤백 가능
-2. **학습 데이터 복제**: ease factor를 새 카드에 복제
-3. **--note 플래그**: 특정 카드 선택 Gemini 분할
-
-## 미구현 기능
-
-1. **전체 Soft Split**: 현재 5개만 분석 (전체 후보 분석 미지원)
-2. **interval/due 복제**: AnkiConnect 제한으로 ease factor만 복제 가능
-
-## 실행 방법
-
-### 웹 GUI (권장)
+## 실행
 
 ```bash
-# 개발 서버 (서버 + 클라이언트 동시 실행)
-bun run dev
-
-# 서버만 (localhost:3000)
-bun run dev:server
-
-# 클라이언트만 (localhost:5173)
-bun run dev:web
+bun run dev          # 서버 + 클라이언트 동시 실행
+bun run cli:status   # CLI 연결 확인
 ```
 
-### CLI (하위 호환)
+## 스킬 라우팅
 
-```bash
-# 연결 확인
-bun run cli:status
+| 키워드 | 스킬 |
+|--------|------|
+| 모노레포 구조가 어떻게 돼, 기술 스택, export 충돌 | `understanding-project` |
+| AnkiConnect 연결 안 돼, test 프로필, ease factor 복제 | `working-with-anki` |
+| Hard Split이 뭐야, Soft Split 결과가 이상해, 파서 버그 | `splitting-cards` |
+| 팩트 체크 결과가, 유사한 카드 찾아줘, 문맥 검증 | `validating-cards` |
+| 임베딩 생성, 코사인 유사도, 캐시 어디에 | `managing-embeddings` |
+| 프롬프트 버전 관리, A/B 테스트 만들어, SuperMemo 규칙 | `managing-prompts` |
+| API 라우트 추가, Hono 엔드포인트, 서버 에러 | `developing-web-api` |
+| React 컴포넌트 추가, ContentRenderer 수정, TanStack Query | `developing-web-ui` |
+| TODO 뭐 남았어, 미구현 기능, 기술 부채, 다음에 뭐 해 | `tracking-todo` |
+| 문서 오래됐어, 스킬 최신화, git log 수정일 | `checking-freshness` |
 
-# 분할 미리보기
-bun run cli:split
+## 세션 규칙
 
-# 분할 적용
-bun run cli:split -- --apply
-
-# 특정 카드 Gemini 분할
-bun run cli split --note 1757399484677
-
-# 백업/롤백
-bun run cli backups
-bun run cli rollback
-```
-
-## 주의사항
-
-- `.env`에 `GEMINI_API_KEY` 필요 (Soft Split용)
-- 기본 Anki 프로필 접근 금지 (test 프로필만 사용)
-- `--apply` 없이 항상 미리보기 먼저 확인
+- 소스 코드 변경 시, 대응 스킬의 문서도 함께 최신화
+- 새로운 시행착오/결정사항은 해당 스킬의 `references/troubleshooting.md`에 기록
