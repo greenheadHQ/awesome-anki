@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "react-error-boundary";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster } from "sonner";
 import { ErrorFallback } from "./components/ErrorFallback";
 import { Layout } from "./components/layout/Layout";
 import { RouteError } from "./components/RouteError";
@@ -63,6 +64,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        <Toaster position="bottom-right" richColors duration={4000} />
       </QueryClientProvider>
     </ErrorBoundary>
   );

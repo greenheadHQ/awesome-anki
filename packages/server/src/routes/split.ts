@@ -9,6 +9,7 @@ import {
   extractTextField,
   findCardsByNote,
   getNoteById,
+  getPromptVersion,
   NotFoundError,
   performHardSplit,
   preBackup,
@@ -26,9 +27,14 @@ const app = new Hono();
  * 분할 미리보기
  */
 app.post("/preview", async (c) => {
-  const { noteId, useGemini = false } = await c.req.json<{
+  const {
+    noteId,
+    useGemini = false,
+    versionId,
+  } = await c.req.json<{
     noteId: number;
     useGemini?: boolean;
+    versionId?: string;
   }>();
 
   const note = await getNoteById(noteId);
@@ -39,53 +45,71 @@ app.post("/preview", async (c) => {
   const text = extractTextField(note);
   const tags = extractTags(note);
 
-  // Hard Split 먼저 시도
-  const hardResult = performHardSplit(text, noteId);
-  if (hardResult && hardResult.length > 1) {
-    return c.json({
-      noteId,
-      splitType: "hard",
-      originalText: text,
-      splitCards: hardResult.map((card) => ({
-        title: card.title,
-        content: card.content,
-        isMainCard: card.isMainCard,
-      })),
-      mainCardIndex: hardResult.findIndex((c) => c.isMainCard),
-    });
-  }
-
-  // Soft Split (Gemini) 요청 시
-  if (useGemini) {
-    const geminiResult = await requestCardSplit({ noteId, text, tags });
-
-    if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
+  // Hard Split 먼저 시도 (versionId 무관)
+  if (!useGemini) {
+    const hardResult = performHardSplit(text, noteId);
+    if (hardResult && hardResult.length > 1) {
       return c.json({
         noteId,
-        splitType: "soft",
+        splitType: "hard",
         originalText: text,
-        splitCards: geminiResult.splitCards.map((card, idx) => ({
+        splitCards: hardResult.map((card) => ({
           title: card.title,
           content: card.content,
-          isMainCard: idx === geminiResult.mainCardIndex,
+          isMainCard: card.isMainCard,
         })),
-        mainCardIndex: geminiResult.mainCardIndex,
-        splitReason: geminiResult.splitReason,
+        mainCardIndex: hardResult.findIndex((c) => c.isMainCard),
       });
     }
 
     return c.json({
       noteId,
       splitType: "none",
-      reason:
-        geminiResult.splitReason || "Gemini determined split is not needed",
+      reason: "Hard split not applicable. Enable useGemini for soft split.",
+    });
+  }
+
+  // Soft Split (Gemini) 요청 — 프롬프트 버전 resolve
+  let prompts:
+    | { systemPrompt: string; splitPromptTemplate: string }
+    | undefined;
+  if (versionId) {
+    const version = await getPromptVersion(versionId);
+    if (version) {
+      prompts = {
+        systemPrompt: version.systemPrompt,
+        splitPromptTemplate: version.splitPromptTemplate,
+      };
+    }
+  }
+
+  const startTime = Date.now();
+  const geminiResult = await requestCardSplit({ noteId, text, tags }, prompts);
+  const executionTimeMs = Date.now() - startTime;
+
+  if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
+    return c.json({
+      noteId,
+      splitType: "soft",
+      originalText: text,
+      splitCards: geminiResult.splitCards.map((card, idx) => ({
+        title: card.title,
+        content: card.content,
+        isMainCard: idx === geminiResult.mainCardIndex,
+      })),
+      mainCardIndex: geminiResult.mainCardIndex,
+      splitReason: geminiResult.splitReason,
+      executionTimeMs,
+      tokenUsage: geminiResult.tokenUsage,
     });
   }
 
   return c.json({
     noteId,
     splitType: "none",
-    reason: "Hard split not applicable. Enable useGemini for soft split.",
+    reason: geminiResult.splitReason || "Gemini determined split is not needed",
+    executionTimeMs,
+    tokenUsage: geminiResult.tokenUsage,
   });
 });
 
@@ -94,7 +118,13 @@ app.post("/preview", async (c) => {
  * 분할 적용 (자동 롤백 포함)
  */
 app.post("/apply", async (c) => {
-  const { noteId, deckName, splitCards, mainCardIndex } = await c.req.json<{
+  const {
+    noteId,
+    deckName,
+    splitCards,
+    mainCardIndex,
+    splitType = "soft",
+  } = await c.req.json<{
     noteId: number;
     deckName: string;
     splitCards: Array<{
@@ -106,13 +136,14 @@ app.post("/apply", async (c) => {
       backLinks?: string[];
     }>;
     mainCardIndex: number;
+    splitType?: "hard" | "soft";
   }>();
 
   let backupId: string | undefined;
 
   try {
     // Critical Step 1: 백업 생성
-    const backup = await preBackup(deckName, noteId, "soft");
+    const backup = await preBackup(deckName, noteId, splitType);
     backupId = backup.backupId;
 
     // Critical Step 2: 분할 적용
@@ -128,7 +159,7 @@ app.post("/apply", async (c) => {
         backLinks: card.backLinks || [],
       })),
       splitReason: "",
-      splitType: "soft",
+      splitType,
     };
 
     const applied = await applySplitResult(deckName, splitResult, []);

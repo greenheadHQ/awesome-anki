@@ -260,14 +260,16 @@ prompts.post("/history", async (c) => {
     noteId: number;
     deckName: string;
     originalContent: string;
+    originalTags?: string[];
     splitCards: Array<{
       title: string;
       content: string;
-      charCount: number;
-      cardType: "cloze" | "basic";
+      charCount?: number;
+      cardType?: "cloze" | "basic";
       contextTag?: string;
     }>;
     userAction: "approved" | "modified" | "rejected";
+    rejectionReason?: string;
     modificationDetails?: {
       lengthReduced: boolean;
       contextAdded: boolean;
@@ -282,6 +284,15 @@ prompts.post("/history", async (c) => {
       noEnumerations: boolean;
       allContextTagsPresent: boolean;
     } | null;
+    aiModel?: string;
+    splitType?: "hard" | "soft";
+    splitReason?: string;
+    executionTimeMs?: number;
+    tokenUsage?: {
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+    };
   }>();
 
   if (
@@ -301,10 +312,21 @@ prompts.post("/history", async (c) => {
     deckName: body.deckName || "",
     originalContent: body.originalContent,
     originalCharCount: body.originalContent.length,
-    splitCards: body.splitCards || [],
+    originalTags: body.originalTags,
+    splitCards: (body.splitCards || []).map((c) => ({
+      ...c,
+      charCount: c.charCount ?? c.content.length,
+      cardType: c.cardType ?? "cloze",
+    })),
     userAction: body.userAction,
+    rejectionReason: body.rejectionReason,
     modificationDetails: body.modificationDetails,
     qualityChecks: body.qualityChecks ?? null,
+    aiModel: body.aiModel,
+    splitType: body.splitType,
+    splitReason: body.splitReason,
+    executionTimeMs: body.executionTimeMs,
+    tokenUsage: body.tokenUsage,
     timestamp: new Date().toISOString(),
   });
 

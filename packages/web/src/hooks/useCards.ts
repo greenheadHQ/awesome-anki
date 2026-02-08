@@ -22,32 +22,6 @@ export function useCardDetail(noteId: number | null) {
   });
 }
 
-export function useSplitPreview() {
-  return useMutation({
-    mutationFn: ({
-      noteId,
-      useGemini,
-    }: {
-      noteId: number;
-      useGemini?: boolean;
-    }) => api.split.preview(noteId, useGemini),
-  });
-}
-
-export function useApplySplit() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: api.split.apply,
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.cards.detail(variables.noteId),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.backups });
-    },
-  });
-}
-
 export function useBackups() {
   return useQuery({
     queryKey: queryKeys.backups,

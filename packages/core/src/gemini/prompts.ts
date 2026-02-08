@@ -243,6 +243,22 @@ shouldSplit: false로 응답하고 splitCards는 빈 배열로:
 }
 
 /**
+ * 프롬프트 버전의 splitPromptTemplate에서 변수를 치환.
+ * 지원 변수: {{noteId}}, {{text}}, {{tags}}
+ */
+export function buildSplitPromptFromTemplate(
+  template: string,
+  noteId: number,
+  text: string,
+  tags?: string[],
+): string {
+  return template
+    .replace(/\{\{noteId\}\}/g, String(noteId))
+    .replace(/\{\{text\}\}/g, text)
+    .replace(/\{\{tags\}\}/g, tags?.join(", ") ?? "");
+}
+
+/**
  * 분석 전용 프롬프트
  */
 export function buildAnalysisPrompt(noteId: number, cardText: string): string {

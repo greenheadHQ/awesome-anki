@@ -50,7 +50,7 @@ export interface CardDetail extends CardSummary {
   }>;
 }
 
-export interface SplitPreview {
+export interface SplitPreviewResult {
   noteId: number;
   splitType: "hard" | "soft" | "none";
   originalText?: string;
@@ -62,6 +62,23 @@ export interface SplitPreview {
   mainCardIndex?: number;
   splitReason?: string;
   reason?: string;
+  executionTimeMs?: number;
+  tokenUsage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+}
+
+/** @deprecated Use SplitPreviewResult instead */
+export type SplitPreview = SplitPreviewResult;
+
+export interface SplitApplyResult {
+  success: boolean;
+  backupId: string;
+  mainNoteId: number;
+  newNoteIds: number[];
+  warning?: string;
 }
 
 export interface BackupEntry {
@@ -210,6 +227,7 @@ export interface SplitHistoryEntry {
   deckName: string;
   originalContent: string;
   originalCharCount: number;
+  originalTags?: string[];
   splitCards: Array<{
     title: string;
     content: string;
@@ -217,6 +235,7 @@ export interface SplitHistoryEntry {
     cardType?: "cloze" | "basic";
   }>;
   userAction: "approved" | "modified" | "rejected";
+  rejectionReason?: string;
   modificationDetails?: {
     lengthReduced: boolean;
     contextAdded: boolean;
@@ -224,6 +243,15 @@ export interface SplitHistoryEntry {
     cardsMerged: boolean;
     cardsSplit: boolean;
     hintAdded: boolean;
+  };
+  aiModel?: string;
+  splitType?: "hard" | "soft";
+  splitReason?: string;
+  executionTimeMs?: number;
+  tokenUsage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
   };
   timestamp: string;
 }
@@ -323,23 +351,19 @@ export const api = {
   },
 
   split: {
-    preview: (noteId: number, useGemini = false) =>
-      fetchJson<SplitPreview>("/split/preview", {
+    preview: (noteId: number, useGemini = false, versionId?: string) =>
+      fetchJson<SplitPreviewResult>("/split/preview", {
         method: "POST",
-        body: JSON.stringify({ noteId, useGemini }),
+        body: JSON.stringify({ noteId, useGemini, versionId }),
       }),
     apply: (data: {
       noteId: number;
       deckName: string;
       splitCards: Array<{ title: string; content: string }>;
       mainCardIndex: number;
+      splitType?: "hard" | "soft";
     }) =>
-      fetchJson<{
-        success: boolean;
-        backupId: string;
-        mainNoteId: number;
-        newNoteIds: number[];
-      }>("/split/apply", {
+      fetchJson<SplitApplyResult>("/split/apply", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -464,6 +488,7 @@ export const api = {
       noteId: number;
       deckName: string;
       originalContent: string;
+      originalTags?: string[];
       splitCards: Array<{
         title: string;
         content: string;
@@ -471,6 +496,7 @@ export const api = {
         cardType?: "cloze" | "basic";
       }>;
       userAction: "approved" | "modified" | "rejected";
+      rejectionReason?: string;
       modificationDetails?: {
         lengthReduced: boolean;
         contextAdded: boolean;
@@ -485,6 +511,15 @@ export const api = {
         noEnumerations: boolean;
         allContextTagsPresent: boolean;
       } | null;
+      aiModel?: string;
+      splitType?: "hard" | "soft";
+      splitReason?: string;
+      executionTimeMs?: number;
+      tokenUsage?: {
+        promptTokens?: number;
+        completionTokens?: number;
+        totalTokens?: number;
+      };
     }) =>
       fetchJson<SplitHistoryEntry>("/prompts/history", {
         method: "POST",

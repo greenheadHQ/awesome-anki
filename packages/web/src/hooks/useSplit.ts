@@ -13,14 +13,20 @@ export function useSplitPreview() {
     mutationFn: ({
       noteId,
       useGemini = false,
+      versionId,
     }: {
       noteId: number;
       useGemini?: boolean;
-    }) => api.split.preview(noteId, useGemini),
+      versionId?: string;
+    }) => api.split.preview(noteId, useGemini, versionId),
     onSuccess: (data, variables) => {
-      // 결과를 React Query 캐시에 저장 (카드별 독립 캐시)
+      // 결과를 React Query 캐시에 저장 (카드별+버전별 독립 캐시)
       queryClient.setQueryData(
-        queryKeys.split.preview(variables.noteId, variables.useGemini),
+        queryKeys.split.preview(
+          variables.noteId,
+          variables.useGemini,
+          variables.versionId,
+        ),
         data,
       );
     },
@@ -35,23 +41,24 @@ export function getCachedSplitPreview(
   queryClient: ReturnType<typeof useQueryClient>,
   noteId: number,
   useGemini: boolean,
+  versionId?: string,
 ): SplitPreviewResult | undefined {
-  return queryClient.getQueryData(queryKeys.split.preview(noteId, useGemini));
+  return queryClient.getQueryData(
+    queryKeys.split.preview(noteId, useGemini, versionId),
+  );
 }
 
 export function useSplitApply() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      noteId,
-      splitType,
-      deckName,
-    }: {
+    mutationFn: (data: {
       noteId: number;
-      splitType: "hard" | "soft";
       deckName: string;
-    }) => api.split.apply(noteId, splitType, deckName),
+      splitCards: Array<{ title: string; content: string }>;
+      mainCardIndex: number;
+      splitType?: "hard" | "soft";
+    }) => api.split.apply(data),
     onSuccess: (_, _variables) => {
       // 카드 목록 캐시 무효화
       queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });

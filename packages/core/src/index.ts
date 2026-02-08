@@ -92,6 +92,7 @@ export {
 export {
   buildAnalysisPrompt,
   buildSplitPrompt,
+  buildSplitPromptFromTemplate,
   SYSTEM_PROMPT,
 } from "./gemini/prompts.js";
 export {
@@ -142,6 +143,8 @@ export {
   type PromptConfig,
   type PromptMetrics,
   type PromptVersion,
+  REJECTION_REASONS,
+  type RejectionReasonId,
   type SplitHistoryEntry,
 } from "./prompt-version/types.js";
 // Splitter exports
