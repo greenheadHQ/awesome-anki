@@ -63,7 +63,7 @@ export function PromptManager() {
       id: "history" as const,
       label: "히스토리",
       icon: History,
-      count: historyData?.total || 0,
+      count: historyData?.totalCount || 0,
       helpKey: "promptHistory" as const,
     },
     {
@@ -133,7 +133,7 @@ export function PromptManager() {
         )}
         {activeTab === "history" && (
           <HistoryTab
-            entries={historyData?.entries || []}
+            entries={historyData?.history || []}
             isLoading={isLoadingHistory}
           />
         )}

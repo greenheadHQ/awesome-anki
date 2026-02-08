@@ -476,11 +476,11 @@ export const api = {
       if (opts?.versionId) params.set("versionId", opts.versionId);
       const query = params.toString();
       return fetchJson<{
-        entries: SplitHistoryEntry[];
-        total: number;
-        page: number;
+        history: SplitHistoryEntry[];
+        totalCount: number;
+        offset: number;
         limit: number;
-        totalPages: number;
+        hasMore: boolean;
       }>(`/prompts/history${query ? `?${query}` : ""}`);
     },
     addHistory: (data: {

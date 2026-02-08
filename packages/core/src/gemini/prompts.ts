@@ -244,7 +244,7 @@ shouldSplit: false로 응답하고 splitCards는 빈 배열로:
 
 /**
  * 프롬프트 버전의 splitPromptTemplate에서 변수를 치환.
- * 지원 변수: {{noteId}}, {{text}}, {{tags}}
+ * 지원 변수: {{noteId}}/\${noteId}, {{text}}/\${cardText}, {{tags}}/\${tags}
  */
 export function buildSplitPromptFromTemplate(
   template: string,
@@ -252,10 +252,69 @@ export function buildSplitPromptFromTemplate(
   text: string,
   tags?: string[],
 ): string {
-  return template
+  const tagsStr = tags?.join(", ") ?? "";
+  const replaced = template
+    // {{var}} 문법 (신규 권장)
     .replace(/\{\{noteId\}\}/g, String(noteId))
     .replace(/\{\{text\}\}/g, text)
-    .replace(/\{\{tags\}\}/g, tags?.join(", ") ?? "");
+    .replace(/\{\{tags\}\}/g, tagsStr)
+    // ${var} 문법 (기존 저장된 템플릿 호환)
+    .replace(/\$\{noteId\}/g, String(noteId))
+    .replace(/\$\{cardText\}/g, text)
+    .replace(/\$\{tags\}/g, tagsStr);
+
+  // JSON 응답 형식이 템플릿에 없으면 기본 형식 추가
+  if (!replaced.includes("응답 형식") && !replaced.includes("JSON")) {
+    return `${replaced}\n\n${SPLIT_RESPONSE_FORMAT(noteId)}`;
+  }
+  return replaced;
+}
+
+/**
+ * JSON 응답 형식 명세 (템플릿에 형식이 누락된 경우 자동 추가)
+ */
+function SPLIT_RESPONSE_FORMAT(noteId: number): string {
+  return `## 응답 형식 (JSON)
+반드시 아래 형식을 정확히 따라주세요:
+
+\`\`\`json
+{
+  "originalNoteId": "${noteId}",
+  "shouldSplit": true,
+  "mainCardIndex": 0,
+  "splitCards": [
+    {
+      "title": "분할된 카드 제목 (간결하게)",
+      "content": "분할된 내용 (HTML 포함, 모든 스타일 유지)",
+      "cardType": "cloze 또는 basic",
+      "charCount": 글자수,
+      "contextTag": "[주제 > 하위주제]"
+    }
+  ],
+  "splitReason": "분할 이유 설명",
+  "splitType": "soft",
+  "qualityChecks": {
+    "allCardsUnder80Chars": true,
+    "allClozeHaveHints": true,
+    "noEnumerations": true,
+    "allContextTagsPresent": true
+  }
+}
+\`\`\`
+
+## 분할이 불필요한 경우
+shouldSplit: false로 응답하고 splitCards는 빈 배열로:
+\`\`\`json
+{
+  "originalNoteId": "${noteId}",
+  "shouldSplit": false,
+  "mainCardIndex": 0,
+  "splitCards": [],
+  "splitReason": "분할이 불필요한 이유",
+  "splitType": "none",
+  "qualityChecks": null
+}
+\`\`\``;
 }
 
 /**
