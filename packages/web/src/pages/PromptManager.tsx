@@ -19,6 +19,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { useState } from "react";
+import { ContentRenderer } from "../components/card/ContentRenderer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/Button";
 import {
@@ -588,32 +589,52 @@ function HistoryRow({
                 </div>
               )}
 
+              {/* 원본 카드 */}
+              {entry.originalContent && (
+                <details className="group">
+                  <summary className="font-medium cursor-pointer select-none flex items-center gap-1">
+                    <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                    원본 카드
+                  </summary>
+                  <div className="mt-2 bg-background border rounded p-4 max-h-80 overflow-y-auto">
+                    <ContentRenderer
+                      content={entry.originalContent}
+                      showToggle={true}
+                      className="text-sm"
+                    />
+                  </div>
+                </details>
+              )}
+
               {/* 분할 카드 목록 */}
               {entry.splitCards && entry.splitCards.length > 0 && (
                 <div>
                   <p className="font-medium mb-2">
                     분할 카드 ({entry.splitCards.length}개)
                   </p>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {entry.splitCards.map((card, idx) => (
                       <div
                         key={`${entry.id}-card-${idx}`}
-                        className="flex items-start gap-2 bg-background rounded px-3 py-2 border"
+                        className="bg-background rounded border overflow-hidden"
                       >
-                        <span className="text-xs text-muted-foreground mt-0.5 shrink-0">
-                          #{idx + 1}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="font-medium text-xs">{card.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {card.content}
-                          </p>
-                        </div>
-                        {card.charCount != null && (
-                          <span className="text-xs text-muted-foreground shrink-0 ml-auto">
-                            {card.charCount}자
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 border-b">
+                          <span className="font-medium text-xs">
+                            #{idx + 1} {card.title}
                           </span>
-                        )}
+                          {card.charCount != null && (
+                            <span className="text-xs text-muted-foreground">
+                              {card.charCount}자
+                            </span>
+                          )}
+                        </div>
+                        <div className="px-3 py-2">
+                          <ContentRenderer
+                            content={card.content}
+                            showToggle={false}
+                            className="text-sm"
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
