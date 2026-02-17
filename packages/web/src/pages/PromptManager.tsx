@@ -86,21 +86,21 @@ export function PromptManager() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">프롬프트 관리</h1>
       </div>
 
       {/* 탭 네비게이션 */}
-      <div className="flex border-b mb-4">
+      <div className="flex border-b mb-4 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 border-b-2 transition-colors",
+              "flex items-center gap-2 px-3 md:px-4 py-2 border-b-2 transition-colors whitespace-nowrap min-h-[44px]",
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground",
@@ -180,9 +180,9 @@ function VersionsTab({
   }
 
   return (
-    <div className="grid grid-cols-12 gap-4 h-full">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
       {/* 버전 목록 */}
-      <div className="col-span-5 overflow-y-auto">
+      <div className="md:col-span-5 overflow-y-auto">
         <Card className="h-full">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-sm">버전 목록</CardTitle>
@@ -238,7 +238,7 @@ function VersionsTab({
       </div>
 
       {/* 버전 상세 */}
-      <div className="col-span-7 overflow-y-auto">
+      <div className="md:col-span-7 overflow-y-auto">
         {selectedVersion ? (
           <Card className="h-full">
             <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
@@ -440,55 +440,57 @@ function HistoryTab({ entries, isLoading }: HistoryTabProps) {
             히스토리가 없습니다
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-muted sticky top-0">
-              <tr>
-                <th className="text-left px-4 py-2">시간</th>
-                <th className="text-left px-4 py-2">Note ID</th>
-                <th className="text-left px-4 py-2">버전</th>
-                <th className="text-left px-4 py-2">결과</th>
-                <th className="text-left px-4 py-2">카드 수</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {entries.map((entry) => (
-                <tr key={entry.id} className="hover:bg-muted/50">
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {new Date(entry.timestamp).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 font-mono">{entry.noteId}</td>
-                  <td className="px-4 py-2">{entry.promptVersionId}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={cn(
-                        "px-1.5 py-0.5 rounded text-xs flex items-center gap-1 w-fit",
-                        entry.userAction === "approved" &&
-                          "bg-green-100 text-green-700",
-                        entry.userAction === "modified" &&
-                          "bg-yellow-100 text-yellow-700",
-                        entry.userAction === "rejected" &&
-                          "bg-red-100 text-red-700",
-                      )}
-                    >
-                      {entry.userAction === "approved" && (
-                        <ThumbsUp className="w-3 h-3" />
-                      )}
-                      {entry.userAction === "modified" && (
-                        <Edit className="w-3 h-3" />
-                      )}
-                      {entry.userAction === "rejected" && (
-                        <ThumbsDown className="w-3 h-3" />
-                      )}
-                      {entry.userAction}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">
-                    {entry.splitCards?.length || 0}개
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[500px]">
+              <thead className="bg-muted sticky top-0">
+                <tr>
+                  <th className="text-left px-4 py-2">시간</th>
+                  <th className="text-left px-4 py-2">Note ID</th>
+                  <th className="text-left px-4 py-2">버전</th>
+                  <th className="text-left px-4 py-2">결과</th>
+                  <th className="text-left px-4 py-2">카드 수</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {entries.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-muted/50">
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 font-mono">{entry.noteId}</td>
+                    <td className="px-4 py-2">{entry.promptVersionId}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.5 rounded text-xs flex items-center gap-1 w-fit",
+                          entry.userAction === "approved" &&
+                            "bg-green-100 text-green-700",
+                          entry.userAction === "modified" &&
+                            "bg-yellow-100 text-yellow-700",
+                          entry.userAction === "rejected" &&
+                            "bg-red-100 text-red-700",
+                        )}
+                      >
+                        {entry.userAction === "approved" && (
+                          <ThumbsUp className="w-3 h-3" />
+                        )}
+                        {entry.userAction === "modified" && (
+                          <Edit className="w-3 h-3" />
+                        )}
+                        {entry.userAction === "rejected" && (
+                          <ThumbsDown className="w-3 h-3" />
+                        )}
+                        {entry.userAction}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      {entry.splitCards?.length || 0}개
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -594,7 +596,7 @@ function MetricsTab({ versions }: MetricsTabProps) {
           <CardTitle className="text-sm">전체 통계</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard label="총 분할 수" value={totalSplits} />
             <MetricCard
               label="평균 승인률"
@@ -624,53 +626,60 @@ function MetricsTab({ versions }: MetricsTabProps) {
               버전 데이터가 없습니다
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-4 py-2">버전</th>
-                  <th className="text-right px-4 py-2">분할 수</th>
-                  <th className="text-right px-4 py-2">승인률</th>
-                  <th className="text-right px-4 py-2">수정률</th>
-                  <th className="text-right px-4 py-2">거부율</th>
-                  <th className="text-right px-4 py-2">평균 글자</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {versions.map((version) => (
-                  <tr key={version.id} className="hover:bg-muted/50">
-                    <td className="px-4 py-2 font-medium">{version.name}</td>
-                    <td className="px-4 py-2 text-right">
-                      {version.metrics?.totalSplits || 0}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <span
-                        className={cn(
-                          (version.metrics?.approvalRate || 0) >= 0.8 &&
-                            "text-green-600",
-                          (version.metrics?.approvalRate || 0) < 0.5 &&
-                            "text-red-600",
-                        )}
-                      >
-                        {Math.round((version.metrics?.approvalRate || 0) * 100)}
-                        %
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-right text-yellow-600">
-                      {Math.round(
-                        (version.metrics?.modificationRate || 0) * 100,
-                      )}
-                      %
-                    </td>
-                    <td className="px-4 py-2 text-right text-red-600">
-                      {Math.round((version.metrics?.rejectionRate || 0) * 100)}%
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {Math.round(version.metrics?.avgCharCount || 0)}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="text-left px-4 py-2">버전</th>
+                    <th className="text-right px-4 py-2">분할 수</th>
+                    <th className="text-right px-4 py-2">승인률</th>
+                    <th className="text-right px-4 py-2">수정률</th>
+                    <th className="text-right px-4 py-2">거부율</th>
+                    <th className="text-right px-4 py-2">평균 글자</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {versions.map((version) => (
+                    <tr key={version.id} className="hover:bg-muted/50">
+                      <td className="px-4 py-2 font-medium">{version.name}</td>
+                      <td className="px-4 py-2 text-right">
+                        {version.metrics?.totalSplits || 0}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <span
+                          className={cn(
+                            (version.metrics?.approvalRate || 0) >= 0.8 &&
+                              "text-green-600",
+                            (version.metrics?.approvalRate || 0) < 0.5 &&
+                              "text-red-600",
+                          )}
+                        >
+                          {Math.round(
+                            (version.metrics?.approvalRate || 0) * 100,
+                          )}
+                          %
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right text-yellow-600">
+                        {Math.round(
+                          (version.metrics?.modificationRate || 0) * 100,
+                        )}
+                        %
+                      </td>
+                      <td className="px-4 py-2 text-right text-red-600">
+                        {Math.round(
+                          (version.metrics?.rejectionRate || 0) * 100,
+                        )}
+                        %
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {Math.round(version.metrics?.avgCharCount || 0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

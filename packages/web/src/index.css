@@ -2,6 +2,7 @@
 
 /* Custom CSS Variables for theming */
 :root {
+  --mobile-header-height: 3.5rem;
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -357,7 +358,11 @@ body {
   margin: 1em 0;
 }
 
-/* 테이블 스타일 */
+/* 테이블 스타일 — overflow-x로 모바일에서 가로 스크롤 허용 */
+.content-rendered {
+  overflow-x: auto;
+}
+
 .content-rendered table {
   border-collapse: collapse;
   margin: 1em 0;

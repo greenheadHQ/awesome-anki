@@ -15,10 +15,14 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
+import {
+  MobilePanelTabs,
+  type SplitPanel,
+} from "../components/split/MobilePanelTabs";
 import { Button } from "../components/ui/Button";
 import {
   Card,
@@ -36,10 +40,10 @@ import {
   useSplitApply,
   useSplitPreview,
 } from "../hooks/useSplit";
-import type { DifficultCard, SplitPreviewResult } from "../lib/api";
+import type { DifficultCard, SplitPreview } from "../lib/api";
 import { cn } from "../lib/utils";
 
-type WorkspaceMode = "candidates" | "difficult";
+export type WorkspaceMode = "candidates" | "difficult";
 
 interface SplitCandidate {
   noteId: number;
@@ -88,6 +92,9 @@ export function SplitWorkspace() {
     null,
   );
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
+  const [activePanel, setActivePanel] = useState<SplitPanel>("candidates");
+
+  const originalPanelRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
   const { data: decksData } = useDecks();
@@ -125,7 +132,7 @@ export function SplitWorkspace() {
     : undefined;
 
   // 캐시 있으면 캐시 사용, 없으면 mutation 결과 사용
-  const previewData: SplitPreviewResult | undefined =
+  const previewData: SplitPreview | undefined =
     cachedPreview || splitPreview.data;
 
   // 현재 카드에 대한 로딩 중인지 확인 (다른 카드 분석 중에는 영향 없음)
@@ -162,6 +169,12 @@ export function SplitWorkspace() {
       const type = card.analysis.canHardSplit ? "hard" : "soft";
       setSplitType(type);
 
+      // 모바일: 원본 탭으로 자동 전환 + 스크롤 리셋
+      setActivePanel("original");
+      if (originalPanelRef.current) {
+        originalPanelRef.current.scrollTop = 0;
+      }
+
       // 캐시 확인
       const cached = getCachedSplitPreview(
         queryClient,
@@ -184,10 +197,26 @@ export function SplitWorkspace() {
     }
   };
 
-  const candidates = (cardsData?.cards || []).filter(
-    (c: { analysis?: { canHardSplit?: boolean; canSoftSplit?: boolean } }) =>
-      c.analysis?.canHardSplit || c.analysis?.canSoftSplit,
-  ) as SplitCandidate[];
+  // Soft Split 완료 시 미리보기 탭으로 자동 전환
+  useEffect(() => {
+    if (splitPreview.isSuccess && splitPreview.data?.splitCards) {
+      setActivePanel("preview");
+    }
+  }, [splitPreview.isSuccess, splitPreview.data]);
+
+  const candidates = (cardsData?.cards || [])
+    .filter((c) => c.analysis?.canHardSplit || c.isSplitable)
+    .map(
+      (c): SplitCandidate => ({
+        noteId: c.noteId,
+        text: c.text,
+        analysis: {
+          canHardSplit: c.analysis.canHardSplit,
+          canSoftSplit: c.splitType === "soft",
+          clozeCount: c.analysis.clozeCount,
+        },
+      }),
+    );
 
   const difficultCards = (difficultData?.cards || []).map(
     mapDifficultToCandidate,
@@ -211,10 +240,12 @@ export function SplitWorkspace() {
               noteId: selectedCard.noteId,
               deckName: selectedDeck,
               originalContent: cardDetail?.text || selectedCard.text,
-              splitCards: previewData.splitCards.map((card) => ({
-                title: card.title,
-                content: card.content,
-              })),
+              splitCards: previewData.splitCards.map(
+                (card: { title: string; content: string }) => ({
+                  title: card.title,
+                  content: card.content,
+                }),
+              ),
               userAction: "approved",
               qualityChecks: null, // TODO: 실제 품질 검사 결과 연동
             });
@@ -249,18 +280,19 @@ export function SplitWorkspace() {
     mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">분할 작업</h1>
+    <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] flex flex-col">
+      {/* 헤더 — 모바일: 컴팩트 세로 스택, 데스크톱: 가로 배치 */}
+      <div className="mb-2 md:mb-4 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
+        {/* 모바일: 덱 셀렉트만 전체 폭으로 */}
+        <div className="flex items-center gap-3 md:gap-4">
+          <h1 className="text-lg md:text-2xl font-bold shrink-0">분할 작업</h1>
           <select
             value={selectedDeck || ""}
             onChange={(e) => {
               setSelectedDeck(e.target.value);
               handleSelectCard(null);
             }}
-            className="px-3 py-1.5 border rounded-md bg-background text-sm"
+            className="px-3 py-1.5 border rounded-md bg-background text-sm flex-1 min-w-0 md:flex-initial md:w-auto"
           >
             {decksData?.decks?.map((deck) => (
               <option key={deck} value={deck}>
@@ -269,10 +301,10 @@ export function SplitWorkspace() {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-4">
-          {/* 프롬프트 버전 선택 */}
+        {/* 프롬프트 버전 — 모바일에서 숨김 (Prompts 페이지에서 관리) */}
+        <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-muted-foreground" />
+            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
             <HelpTooltip helpKey="promptVersionSelect" />
             <select
               value={selectedVersionId || ""}
@@ -295,19 +327,39 @@ export function SplitWorkspace() {
               )}
             </select>
           </div>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
             {activeCount}개{" "}
             {mode === "candidates" ? "분할 후보" : "재분할 대상"}
           </span>
         </div>
       </div>
 
+      {/* 모바일 패널 탭 — 모드 토글 통합 */}
+      <MobilePanelTabs
+        activePanel={activePanel}
+        onChangePanel={setActivePanel}
+        hasCard={!!selectedCard}
+        hasPreview={!!previewData?.splitCards}
+        mode={mode}
+        onChangeMode={(m) => {
+          setMode(m);
+          handleSelectCard(null);
+        }}
+        activeCount={activeCount}
+      />
+
       {/* 3단 레이아웃 */}
-      <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 min-h-0">
         {/* 왼쪽: 후보 목록 */}
-        <div className="col-span-3 flex flex-col min-h-0">
+        <div
+          className={cn(
+            "md:col-span-3 flex flex-col min-h-0",
+            activePanel !== "candidates" && "hidden md:flex",
+          )}
+        >
           <Card className="flex-1 flex flex-col min-h-0">
-            <CardHeader className="py-3 px-4 border-b shrink-0">
+            {/* 모드 토글 — 모바일에서는 MobilePanelTabs에 통합되어 있으므로 숨김 */}
+            <CardHeader className="py-3 px-4 border-b shrink-0 hidden md:block">
               <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md">
                 <button
                   type="button"
@@ -448,7 +500,12 @@ export function SplitWorkspace() {
         </div>
 
         {/* 중앙: 원본 카드 */}
-        <div className="col-span-5 flex flex-col min-h-0 overflow-hidden">
+        <div
+          className={cn(
+            "md:col-span-5 flex flex-col min-h-0 overflow-hidden",
+            activePanel !== "original" && "hidden md:flex",
+          )}
+        >
           <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <CardHeader className="py-3 px-4 border-b shrink-0 flex flex-row items-center justify-between">
               <CardTitle className="text-sm">원본 카드</CardTitle>
@@ -458,7 +515,7 @@ export function SplitWorkspace() {
                     type="button"
                     onClick={() => setShowValidation(!showValidation)}
                     className={cn(
-                      "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
+                      "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors min-h-[44px] md:min-h-0",
                       showValidation
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted hover:bg-muted/80",
@@ -473,7 +530,10 @@ export function SplitWorkspace() {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto p-4 min-h-0">
+            <CardContent
+              ref={originalPanelRef}
+              className="flex-1 overflow-y-auto p-4 min-h-0"
+            >
               {selectedCard ? (
                 isLoadingDetail ? (
                   <div className="flex items-center justify-center h-full">
@@ -547,7 +607,12 @@ export function SplitWorkspace() {
         </div>
 
         {/* 오른쪽: 분할 미리보기 */}
-        <div className="col-span-4 flex flex-col min-h-0">
+        <div
+          className={cn(
+            "md:col-span-4 flex flex-col min-h-0",
+            activePanel !== "preview" && "hidden md:flex",
+          )}
+        >
           <Card className="flex-1 flex flex-col min-h-0">
             <CardHeader className="py-3 px-4 border-b shrink-0">
               <div className="flex items-center justify-between">
@@ -558,7 +623,7 @@ export function SplitWorkspace() {
                       type="button"
                       onClick={handleSwitchSplitType}
                       className={cn(
-                        "text-xs px-2 py-1 rounded transition-colors",
+                        "text-xs px-2 py-1 rounded transition-colors min-h-[44px] md:min-h-0",
                         splitType === "hard"
                           ? "bg-blue-100 text-blue-700"
                           : "bg-purple-100 text-purple-700",
@@ -632,13 +697,22 @@ export function SplitWorkspace() {
 
                   {/* 분할 카드 미리보기 */}
                   <div className="space-y-3">
-                    {previewData.splitCards.map((card, idx) => (
-                      <SplitPreviewCard
-                        key={`split-${card.title}-${idx}`}
-                        card={card}
-                        index={idx}
-                      />
-                    ))}
+                    {previewData.splitCards.map(
+                      (
+                        card: {
+                          title: string;
+                          content: string;
+                          isMainCard: boolean;
+                        },
+                        idx: number,
+                      ) => (
+                        <SplitPreviewCard
+                          key={`split-${card.title}-${idx}`}
+                          card={card}
+                          index={idx}
+                        />
+                      ),
+                    )}
                   </div>
                 </div>
               ) : splitType === "soft" ? (
@@ -664,9 +738,9 @@ export function SplitWorkspace() {
               ) : null}
             </CardContent>
 
-            {/* 적용 버튼 */}
+            {/* 적용 버튼 (데스크톱) */}
             {selectedCard && previewData && previewData.splitCards && (
-              <div className="px-4 py-3 border-t shrink-0">
+              <div className="px-4 py-3 border-t shrink-0 hidden md:block">
                 <Button
                   onClick={handleApply}
                   disabled={splitApply.isPending}
@@ -695,6 +769,35 @@ export function SplitWorkspace() {
           </Card>
         </div>
       </div>
+
+      {/* 모바일 sticky footer — 어떤 탭에서든 표시 */}
+      {selectedCard && previewData && previewData.splitCards && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-card p-4 md:hidden">
+          <Button
+            onClick={handleApply}
+            disabled={splitApply.isPending}
+            className="w-full"
+          >
+            {splitApply.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                적용 중...
+              </>
+            ) : (
+              <>
+                <Scissors className="w-4 h-4 mr-2" />
+                분할 적용 ({previewData.splitCards.length}개 카드)
+              </>
+            )}
+          </Button>
+          {splitApply.isSuccess && (
+            <p className="text-sm text-green-600 mt-2 flex items-center justify-center">
+              <Check className="w-4 h-4 mr-1" />
+              분할이 적용되었습니다
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

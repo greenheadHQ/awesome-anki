@@ -89,6 +89,10 @@ export function OnboardingTour({ run, onComplete }: OnboardingTourProps) {
   const isRunning = run !== undefined ? run : internalState.shouldRun;
   const handleComplete = onComplete || internalState.completeOnboarding;
 
+  // 모바일에서는 Sidebar 내 data-tour 타겟이 화면 밖이므로 비활성화
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  if (isMobile) return null;
+
   const handleCallback = (data: CallBackProps) => {
     const { status } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];

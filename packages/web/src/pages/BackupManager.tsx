@@ -309,9 +309,9 @@ export function BackupManager() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
             <History className="h-8 w-8" />
             백업 관리
           </h1>
