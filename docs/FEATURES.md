@@ -51,7 +51,7 @@
 
 ### API 인증
 - 서버는 `/api/health` 외 요청에 API Key를 요구한다.
-- 웹은 `VITE_API_KEY`를 자동 헤더 주입한다.
+- 웹은 브라우저 번들에 키를 넣지 않고, 개발 시 Vite 프록시가 `ANKI_SPLITTER_API_KEY`를 서버 사이드에서 헤더 주입한다.
 
 ### 프라이버시 모드
 - `standard`: 외부 전송 허용, 기본 마스킹 없음

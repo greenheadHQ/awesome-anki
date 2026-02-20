@@ -217,8 +217,7 @@ export function SplitWorkspace() {
       false,
       activeVersionId || undefined,
     );
-    const cached = cachedSoft || cachedHard;
-    if (cached) return "cached";
+    if (cachedSoft || cachedHard) return "cached";
     return "none";
   };
 
@@ -338,6 +337,10 @@ export function SplitWorkspace() {
 
   const handleApply = () => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
+    const historySplitType =
+      previewData.splitType === "hard" || previewData.splitType === "soft"
+        ? previewData.splitType
+        : splitType;
 
     splitApply.mutate(
       {
@@ -364,13 +367,11 @@ export function SplitWorkspace() {
                 splitCards: previewData.splitCards.map((c) => ({
                   title: c.title,
                   content: c.content,
-                  charCount: c.content.length,
-                  cardType: "cloze" as const,
+                  cardType: c.cardType ?? "cloze",
                 })),
                 userAction: "approved",
-                aiModel:
-                  splitType === "soft" ? "gemini-3-flash-preview" : undefined,
-                splitType,
+                aiModel: previewData.aiModel,
+                splitType: historySplitType,
                 splitReason: previewData.splitReason,
                 executionTimeMs: previewData.executionTimeMs,
                 tokenUsage: previewData.tokenUsage,
@@ -392,17 +393,25 @@ export function SplitWorkspace() {
           );
           handleSelectCard(nextCard || null);
         },
+        onError: (error) => {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          toast.error(`분할 적용 실패: ${message}`);
+        },
       },
     );
   };
 
   const handleReject = (rejectionReason: string) => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
-
     if (!activeVersionId) {
       toast.warning("반려를 기록하려면 프롬프트 버전이 필요합니다.");
       return;
     }
+    const historySplitType =
+      previewData.splitType === "hard" || previewData.splitType === "soft"
+        ? previewData.splitType
+        : splitType;
 
     addHistory.mutate(
       {
@@ -414,13 +423,12 @@ export function SplitWorkspace() {
         splitCards: previewData.splitCards.map((c) => ({
           title: c.title,
           content: c.content,
-          charCount: c.content.length,
-          cardType: "cloze" as const,
+          cardType: c.cardType ?? "cloze",
         })),
         userAction: "rejected",
         rejectionReason,
-        aiModel: "gemini-3-flash-preview",
-        splitType: "soft",
+        aiModel: previewData.aiModel,
+        splitType: historySplitType,
         splitReason: previewData.splitReason,
         executionTimeMs: previewData.executionTimeMs,
         tokenUsage: previewData.tokenUsage,

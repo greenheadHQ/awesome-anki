@@ -265,8 +265,13 @@ export function buildSplitPromptFromTemplate(
       replacements[moustacheKey ?? dollarKey ?? ""] ?? _match,
   );
 
+  const hasResponseSchema =
+    replaced.includes("응답 형식") ||
+    /```json/i.test(replaced) ||
+    /응답[^.\n]{0,40}json/i.test(replaced);
+
   // JSON 응답 형식이 템플릿에 없으면 기본 형식 추가
-  if (!replaced.includes("응답 형식") && !replaced.includes("JSON")) {
+  if (!hasResponseSchema) {
     return `${replaced}\n\n${SPLIT_RESPONSE_FORMAT(noteId)}`;
   }
   return replaced;

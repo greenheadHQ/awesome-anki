@@ -29,13 +29,13 @@
 ### 2.2 API 401 Unauthorized
 
 원인:
-- `ANKI_SPLITTER_API_KEY`와 `VITE_API_KEY` 불일치
-- API Key 헤더 누락
+- 서버 `ANKI_SPLITTER_API_KEY` 값 불일치
+- 개발 모드에서 Vite 프록시가 `X-API-Key`를 주입하지 못함
 
 해결:
-1. `.env`에서 두 키를 동일 값으로 설정
-2. `bun run dev`로 서버/웹 재시작
-3. 요청 헤더에 `X-API-Key` 또는 Bearer 포함 확인
+1. `.env`에 `ANKI_SPLITTER_API_KEY` 설정
+2. `bun run dev`로 서버/웹 재시작 (루트 스크립트가 웹 dev 프로세스에 키 전달)
+3. 필요 시 요청 헤더에 `X-API-Key` 또는 Bearer 포함 확인
 
 ---
 

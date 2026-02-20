@@ -40,33 +40,45 @@ const HTML_ENTITY_MAP: Record<string, string> = {
   quot: '"',
   apos: "'",
   nbsp: " ",
-  "#39": "'",
 };
 
-function stripHtmlAndDecodeEntities(content: string): string {
-  const decodeCodePoint = (value: number, fallback: string): string => {
-    if (!Number.isFinite(value) || value < 0 || value > 0x10ffff) {
-      return fallback;
-    }
-    return String.fromCodePoint(value);
-  };
+function decodeCodePoint(codePoint: number): string {
+  if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+    return "";
+  }
+  return String.fromCodePoint(codePoint);
+}
 
-  const withoutTags = content.replace(/<[^>]*>/g, "");
-  return withoutTags.replace(
-    /&(#x?[0-9A-Fa-f]+|[A-Za-z]+);/g,
-    (match, entity: string) => {
-      const lowered = entity.toLowerCase();
+function stripHtmlAndDecodeEntities(content: string): string {
+  const withoutHtml = content.replace(/<[^>]*>/g, "");
+
+  return withoutHtml.replace(
+    /&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z]+);/g,
+    (_match, rawEntity: string) => {
+      const lowered = rawEntity.toLowerCase();
+
       if (lowered.startsWith("#x")) {
-        const codePoint = Number.parseInt(lowered.slice(2), 16);
-        return decodeCodePoint(codePoint, match);
+        return decodeCodePoint(Number.parseInt(lowered.slice(2), 16));
       }
+
       if (lowered.startsWith("#")) {
-        const codePoint = Number.parseInt(lowered.slice(1), 10);
-        return decodeCodePoint(codePoint, match);
+        return decodeCodePoint(Number.parseInt(lowered.slice(1), 10));
       }
-      return HTML_ENTITY_MAP[lowered] ?? match;
+
+      return HTML_ENTITY_MAP[lowered] ?? `&${rawEntity};`;
     },
   );
+}
+
+function normalizeSplitCard(
+  card: SplitHistoryEntry["splitCards"][number],
+): SplitHistoryEntry["splitCards"][number] {
+  return {
+    ...card,
+    charCount:
+      card.charCount ?? stripHtmlAndDecodeEntities(card.content).length,
+    cardType: card.cardType ?? "cloze",
+  };
 }
 
 // ============================================================================
@@ -276,9 +288,13 @@ prompts.get("/history", async (c) => {
   // 페이지네이션
   const totalCount = history.length;
   const paginatedHistory = history.slice(offset, offset + limit);
+  const normalizedHistory = paginatedHistory.map((entry) => ({
+    ...entry,
+    splitCards: entry.splitCards.map((card) => normalizeSplitCard(card)),
+  }));
 
   return c.json({
-    history: paginatedHistory,
+    history: normalizedHistory,
     totalCount,
     limit,
     offset,
@@ -349,11 +365,7 @@ prompts.post("/history", async (c) => {
     originalContent: body.originalContent,
     originalCharCount: body.originalContent.length,
     originalTags: body.originalTags,
-    splitCards: (body.splitCards || []).map((c) => ({
-      ...c,
-      charCount: c.charCount ?? stripHtmlAndDecodeEntities(c.content).length,
-      cardType: c.cardType ?? "cloze",
-    })),
+    splitCards: (body.splitCards || []).map((card) => normalizeSplitCard(card)),
     userAction: body.userAction,
     rejectionReason: body.rejectionReason,
     modificationDetails: body.modificationDetails,

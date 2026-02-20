@@ -81,6 +81,41 @@ describe("backup storage integrity", () => {
     }
   });
 
+  test("updateBackupWithCreatedNotes는 백업 ID를 찾지 못하면 실패한다", async () => {
+    resetBackupDir();
+
+    writeFileSync(
+      backupFilePath,
+      JSON.stringify(
+        {
+          version: 1,
+          entries: [
+            {
+              id: "note-existing",
+              timestamp: new Date().toISOString(),
+              deckName: "test-deck",
+              originalNoteId: 1,
+              originalContent: {
+                noteId: 1,
+                fields: { Text: { value: "original", order: 0 } },
+                tags: [],
+                modelName: "Cloze",
+              },
+              createdNoteIds: [],
+              splitType: "soft",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    await expect(
+      backupModule.updateBackupWithCreatedNotes("missing-id", [999]),
+    ).rejects.toThrow("백업 ID missing-id를 찾을 수 없습니다.");
+  });
+
   test("손상된 백업 파일은 격리하고 빈 목록으로 복구한다", () => {
     resetBackupDir();
     writeFileSync(backupFilePath, "{ not-valid-json");

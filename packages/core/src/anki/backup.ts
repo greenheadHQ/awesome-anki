@@ -77,6 +77,14 @@ function listBackupFiles(): string[] {
     .map((file) => join(backupDir, file));
 }
 
+function getBackupFileCandidates(): string[] {
+  const todayFilePath = getBackupFilePath();
+  return [
+    todayFilePath,
+    ...listBackupFiles().filter((path) => path !== todayFilePath),
+  ];
+}
+
 function isBackupFile(data: unknown): data is BackupFile {
   if (typeof data !== "object" || data === null) {
     return false;
@@ -132,6 +140,23 @@ async function appendBackupEntry(entry: BackupEntry): Promise<void> {
     backupFile.entries.push(entry);
     saveBackupFile(filePath, backupFile);
   });
+}
+
+async function findBackupFileContainingEntry(
+  backupId: string,
+): Promise<string | null> {
+  for (const filePath of getBackupFileCandidates()) {
+    const hasEntry = await withFileMutex(filePath, async () => {
+      const backupFile = loadBackupFile(filePath);
+      return backupFile.entries.some((entry) => entry.id === backupId);
+    });
+
+    if (hasEntry) {
+      return filePath;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -215,13 +240,7 @@ export async function updateBackupWithCreatedNotes(
   backupId: string,
   createdNoteIds: number[],
 ): Promise<void> {
-  const todayFilePath = getBackupFilePath();
-  const candidates = [
-    todayFilePath,
-    ...listBackupFiles().filter((path) => path !== todayFilePath),
-  ];
-
-  for (const filePath of candidates) {
+  for (const filePath of getBackupFileCandidates()) {
     const updated = await withFileMutex(filePath, async () => {
       const backupFile = loadBackupFile(filePath);
       const entry = backupFile.entries.find(
@@ -243,6 +262,8 @@ export async function updateBackupWithCreatedNotes(
       return;
     }
   }
+
+  throw new Error(`백업 ID ${backupId}를 찾을 수 없습니다.`);
 }
 
 /**
@@ -260,10 +281,7 @@ export async function rollback(backupId: string): Promise<{
   warning?: string;
   error?: string;
 }> {
-  const filePath = listBackupFiles().find((path) => {
-    const backupFile = loadBackupFile(path);
-    return backupFile.entries.some((entry) => entry.id === backupId);
-  });
+  const filePath = await findBackupFileContainingEntry(backupId);
 
   if (!filePath) {
     return { success: false, error: `백업 ID ${backupId}를 찾을 수 없습니다.` };

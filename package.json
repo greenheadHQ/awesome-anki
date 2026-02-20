@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "concurrently \"bun run dev:server\" \"bun run dev:web\"",
     "dev:server": "bun run --watch packages/server/src/index.ts",
-    "dev:web": "VITE_API_KEY=${ANKI_SPLITTER_API_KEY:-} bun run --cwd packages/web dev",
+    "dev:web": "ANKI_SPLITTER_API_KEY=${ANKI_SPLITTER_API_KEY:-} bun run --cwd packages/web dev",
     "lint": "bun run lint:root && bun run lint:core && bun run lint:server && bun run lint:web",
     "lint:root": "bunx @biomejs/biome check src scripts",
     "lint:core": "bun run --cwd packages/core lint",

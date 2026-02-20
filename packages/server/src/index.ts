@@ -2,6 +2,7 @@
  * Anki Card Splitter - API Server
  */
 import "dotenv/config";
+import { timingSafeEqual } from "node:crypto";
 import { AppError } from "@anki-splitter/core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -18,6 +19,22 @@ import validate from "./routes/validate.js";
 
 const app = new Hono();
 const API_KEY = process.env.ANKI_SPLITTER_API_KEY;
+
+function timingSafeKeyEqual(left: string, right: string): boolean {
+  const leftBytes = Buffer.from(left, "utf8");
+  const rightBytes = Buffer.from(right, "utf8");
+  const maxLength = Math.max(leftBytes.length, rightBytes.length, 1);
+  const leftBuffer = Buffer.alloc(maxLength);
+  const rightBuffer = Buffer.alloc(maxLength);
+
+  leftBytes.copy(leftBuffer);
+  rightBytes.copy(rightBuffer);
+
+  return (
+    timingSafeEqual(leftBuffer, rightBuffer) &&
+    leftBytes.length === rightBytes.length
+  );
+}
 
 // Middleware
 app.use("*", logger());
@@ -46,13 +63,13 @@ app.use("/api/*", async (c, next) => {
     );
   }
 
-  const headerApiKey = c.req.header("x-api-key");
+  const headerApiKey = c.req.header("x-api-key")?.trim();
   const authHeader = c.req.header("authorization");
-  const bearerMatch = authHeader?.match(/^bearer\s+(.+)$/i);
+  const bearerMatch = authHeader?.match(/^bearer\s+(\S+)\s*$/i);
   const bearerToken = bearerMatch?.[1] ?? null;
   const providedKey = headerApiKey || bearerToken;
 
-  if (providedKey !== API_KEY) {
+  if (!providedKey || !timingSafeKeyEqual(providedKey, API_KEY)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 

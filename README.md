@@ -184,7 +184,9 @@ anki-claude-code/
 - **Anki 프로필**: 반드시 `test` 프로필에서 작업 (`open -a Anki --args -p test`)
 - **AnkiConnect**: localhost:8765에서 실행 중이어야 함
 - **API 키**: Soft Split, 검증 기능 사용 시 `GEMINI_API_KEY` 필요
-- **API 인증**: 서버/웹 통신을 위해 `ANKI_SPLITTER_API_KEY`와 `VITE_API_KEY`를 동일하게 설정
+- **API 인증**: 서버는 `ANKI_SPLITTER_API_KEY`가 필요합니다.
+- **웹 개발 모드**: 브라우저 번들에는 API 키를 넣지 않고, Vite 프록시가 `ANKI_SPLITTER_API_KEY`를 서버 사이드에서 `X-API-Key`로 주입합니다.
+- **원격 API 연결**: `VITE_API_URL`을 외부 주소로 지정할 경우, API Key 주입은 리버스 프록시/게이트웨이에서 처리해야 합니다.
 
 ## 프라이버시 모드
 

@@ -5,6 +5,7 @@
 import {
   applySplitResult,
   cloneSchedulingAfterSplit,
+  detectCardType,
   extractTags,
   extractTextField,
   findCardsByNote,
@@ -21,6 +22,7 @@ import {
 import { Hono } from "hono";
 
 const app = new Hono();
+const SOFT_SPLIT_MODEL = "gemini-3-flash-preview";
 
 /**
  * POST /api/split/preview
@@ -57,8 +59,9 @@ app.post("/preview", async (c) => {
           title: card.title,
           content: card.content,
           isMainCard: card.isMainCard,
+          cardType: detectCardType(card.content),
         })),
-        mainCardIndex: hardResult.findIndex((c) => c.isMainCard),
+        mainCardIndex: hardResult.findIndex((card) => card.isMainCard),
       });
     }
 
@@ -104,11 +107,14 @@ app.post("/preview", async (c) => {
         title: card.title,
         content: card.content,
         isMainCard: idx === geminiResult.mainCardIndex,
+        cardType: card.cardType ?? detectCardType(card.content),
+        charCount: card.charCount,
       })),
       mainCardIndex: geminiResult.mainCardIndex,
       splitReason: geminiResult.splitReason,
       executionTimeMs,
       tokenUsage: geminiResult.tokenUsage,
+      aiModel: SOFT_SPLIT_MODEL,
     });
   }
 
@@ -120,6 +126,7 @@ app.post("/preview", async (c) => {
       "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
     executionTimeMs,
     tokenUsage: geminiResult.tokenUsage,
+    aiModel: SOFT_SPLIT_MODEL,
   });
 });
 
@@ -196,6 +203,7 @@ app.post("/apply", async (c) => {
     return c.json({
       success: true,
       backupId,
+      splitType,
       mainNoteId: applied.mainNoteId,
       newNoteIds: applied.newNoteIds,
       ...(schedulingWarning && { warning: schedulingWarning }),

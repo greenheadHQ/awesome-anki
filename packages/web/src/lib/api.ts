@@ -1,11 +1,9 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-const API_KEY = import.meta.env.VITE_API_KEY;
+const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const { headers: optionHeaders, ...restOptions } = options ?? {};
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
     ...(optionHeaders || {}),
   };
 
@@ -67,11 +65,14 @@ export interface SplitPreviewResult {
     title: string;
     content: string;
     isMainCard: boolean;
+    cardType?: "cloze" | "basic";
+    charCount?: number;
   }>;
   mainCardIndex?: number;
   splitReason?: string;
   reason?: string;
   executionTimeMs?: number;
+  aiModel?: string;
   tokenUsage?: {
     promptTokens?: number;
     completionTokens?: number;
@@ -85,6 +86,7 @@ export type SplitPreview = SplitPreviewResult;
 export interface SplitApplyResult {
   success: boolean;
   backupId: string;
+  splitType?: "hard" | "soft";
   mainNoteId: number;
   newNoteIds: number[];
   warning?: string;
@@ -191,6 +193,7 @@ export interface EmbeddingGenerateResult {
 }
 
 export type PrivacyMode = "standard" | "balanced" | "strict";
+// NOTE: Canonical privacy type definitions live in packages/core/src/privacy/index.ts.
 
 export interface FeaturePrivacyPolicy {
   enabled: boolean;
@@ -512,7 +515,10 @@ export const api = {
       ),
     history: (opts?: { page?: number; limit?: number; versionId?: string }) => {
       const params = new URLSearchParams();
-      if (opts?.page) params.set("page", String(opts.page));
+      const effectiveLimit = opts?.limit ?? 100;
+      if (opts?.page && opts.page > 1) {
+        params.set("offset", String((opts.page - 1) * effectiveLimit));
+      }
       if (opts?.limit) params.set("limit", String(opts.limit));
       if (opts?.versionId) params.set("versionId", opts.versionId);
       const query = params.toString();
