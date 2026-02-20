@@ -116,12 +116,28 @@ describe("backup storage integrity", () => {
     ).rejects.toThrow("백업 ID missing-id를 찾을 수 없습니다.");
   });
 
-  test("손상된 백업 파일은 격리하고 빈 목록으로 복구한다", () => {
+  test("listBackups는 손상된 백업 파일을 격리하지 않고 건너뛴다", () => {
     resetBackupDir();
     writeFileSync(backupFilePath, "{ not-valid-json");
 
     const backups = backupModule.listBackups();
     expect(backups).toEqual([]);
+
+    const files = readdirSync(backupDir);
+    const quarantined = files.find((file) =>
+      file.startsWith(`backup-${today}.json.corrupt-`),
+    );
+
+    expect(quarantined).toBeUndefined();
+  });
+
+  test("쓰기 경로는 손상된 백업 파일을 격리한다", async () => {
+    resetBackupDir();
+    writeFileSync(backupFilePath, "{ not-valid-json");
+
+    await expect(
+      backupModule.updateBackupWithCreatedNotes("missing-id", [999]),
+    ).rejects.toThrow("백업 ID missing-id를 찾을 수 없습니다.");
 
     const files = readdirSync(backupDir);
     const quarantined = files.find(

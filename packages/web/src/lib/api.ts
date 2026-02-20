@@ -519,7 +519,7 @@ export const api = {
       if (opts?.page && opts.page > 1) {
         params.set("offset", String((opts.page - 1) * effectiveLimit));
       }
-      if (opts?.limit) params.set("limit", String(opts.limit));
+      params.set("limit", String(effectiveLimit));
       if (opts?.versionId) params.set("versionId", opts.versionId);
       const query = params.toString();
       return fetchJson<{

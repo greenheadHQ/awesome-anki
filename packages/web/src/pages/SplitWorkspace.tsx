@@ -47,6 +47,8 @@ import type {
 import { queryKeys } from "../lib/query-keys";
 import { cn } from "../lib/utils";
 
+// NOTE: core의 REJECTION_REASONS는 런타임 import 시 브라우저 번들 경계를 넘기 때문에
+// web 패키지에서 동일 스키마를 로컬 상수로 유지한다.
 const REJECTION_REASONS = [
   { id: "too-granular", label: "분할이 너무 세분화" },
   { id: "context-missing", label: "맥락 태그 부적절" },
@@ -446,16 +448,15 @@ export function SplitWorkspace() {
           });
           splitPreview.reset();
           toast.info("분할 결과가 반려되었습니다");
+          setRejectDropdownOpen(false);
+          setShowOtherInput(false);
+          setOtherReasonText("");
         },
         onError: () => {
           toast.warning("반려 기록 실패");
         },
       },
     );
-
-    setRejectDropdownOpen(false);
-    setShowOtherInput(false);
-    setOtherReasonText("");
   };
 
   const handleSwitchSplitType = () => {
@@ -894,10 +895,10 @@ export function SplitWorkspace() {
                         {previewData.splitReason}
                       </p>
                     )}
-                    {previewData.executionTimeMs && (
+                    {previewData.executionTimeMs != null && (
                       <p className="text-muted-foreground text-xs mt-1">
                         {(previewData.executionTimeMs / 1000).toFixed(1)}s
-                        {previewData.tokenUsage?.totalTokens &&
+                        {previewData.tokenUsage?.totalTokens != null &&
                           ` | ${previewData.tokenUsage.totalTokens} tokens`}
                       </p>
                     )}

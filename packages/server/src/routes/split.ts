@@ -22,7 +22,6 @@ import {
 import { Hono } from "hono";
 
 const app = new Hono();
-const SOFT_SPLIT_MODEL = "gemini-3-flash-preview";
 
 /**
  * POST /api/split/preview
@@ -114,7 +113,7 @@ app.post("/preview", async (c) => {
       splitReason: geminiResult.splitReason,
       executionTimeMs,
       tokenUsage: geminiResult.tokenUsage,
-      aiModel: SOFT_SPLIT_MODEL,
+      aiModel: geminiResult.modelName,
     });
   }
 
@@ -126,7 +125,7 @@ app.post("/preview", async (c) => {
       "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
     executionTimeMs,
     tokenUsage: geminiResult.tokenUsage,
-    aiModel: SOFT_SPLIT_MODEL,
+    aiModel: geminiResult.modelName,
   });
 });
 

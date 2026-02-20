@@ -94,10 +94,18 @@ function isBackupFile(data: unknown): data is BackupFile {
   return parsed.version === 1 && Array.isArray(parsed.entries);
 }
 
-function quarantineCorruptedBackup(filePath: string): string {
+function quarantineCorruptedBackup(filePath: string): string | null {
   const quarantinedPath = `${filePath}.corrupt-${Date.now()}`;
-  renameSync(filePath, quarantinedPath);
-  return quarantinedPath;
+  try {
+    renameSync(filePath, quarantinedPath);
+    return quarantinedPath;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `손상된 백업 파일 격리에 실패했습니다: ${filePath} (${reason})`,
+    );
+    return null;
+  }
 }
 
 /**
@@ -107,9 +115,9 @@ function loadBackupFile(filePath: string): BackupFile {
   if (!existsSync(filePath)) {
     return { version: 1, entries: [] };
   }
-  const content = readFileSync(filePath, "utf-8");
 
   try {
+    const content = readFileSync(filePath, "utf-8");
     const parsed: unknown = JSON.parse(content);
     if (!isBackupFile(parsed)) {
       throw new Error("백업 파일 포맷이 올바르지 않습니다.");
@@ -118,9 +126,34 @@ function loadBackupFile(filePath: string): BackupFile {
   } catch (error) {
     const quarantinedPath = quarantineCorruptedBackup(filePath);
     const reason = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `손상된 백업 파일을 격리했습니다: ${quarantinedPath} (${reason})`,
-    );
+    if (quarantinedPath) {
+      console.warn(
+        `손상된 백업 파일을 격리했습니다: ${quarantinedPath} (${reason})`,
+      );
+    } else {
+      console.warn(
+        `손상된 백업 파일을 읽지 못해 빈 백업으로 대체합니다: ${filePath} (${reason})`,
+      );
+    }
+    return { version: 1, entries: [] };
+  }
+}
+
+function loadBackupFileNoQuarantine(filePath: string): BackupFile {
+  if (!existsSync(filePath)) {
+    return { version: 1, entries: [] };
+  }
+
+  try {
+    const content = readFileSync(filePath, "utf-8");
+    const parsed: unknown = JSON.parse(content);
+    if (!isBackupFile(parsed)) {
+      throw new Error("백업 파일 포맷이 올바르지 않습니다.");
+    }
+    return parsed;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`손상된 백업 파일을 건너뜁니다: ${filePath} (${reason})`);
     return { version: 1, entries: [] };
   }
 }
@@ -295,7 +328,7 @@ export async function rollback(backupId: string): Promise<{
     if (!target) {
       return null;
     }
-    return JSON.parse(JSON.stringify(target)) as BackupEntry;
+    return structuredClone(target);
   });
 
   if (!entry) {
@@ -362,7 +395,7 @@ export async function rollback(backupId: string): Promise<{
 export function listBackups(): BackupEntry[] {
   const allEntries: BackupEntry[] = [];
   for (const path of listBackupFiles()) {
-    const backupFile = loadBackupFile(path);
+    const backupFile = loadBackupFileNoQuarantine(path);
     allEntries.push(...backupFile.entries);
   }
 

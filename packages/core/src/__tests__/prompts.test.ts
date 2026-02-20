@@ -40,4 +40,15 @@ describe("buildSplitPromptFromTemplate", () => {
     expect(prompt).toContain("JSON 데이터를 비교 설명해 주세요. note=404");
     expect(formatBlocks).toHaveLength(1);
   });
+
+  test("cardText 달러 별칭도 본문으로 치환된다", () => {
+    const template =
+      "note=$" + "{noteId} text=$" + "{cardText} tags=$" + "{tags}";
+
+    const prompt = buildSplitPromptFromTemplate(template, 505, "본문", ["t1"]);
+    const formatBlocks = prompt.match(/## 응답 형식 \(JSON\)/g) ?? [];
+
+    expect(prompt).toContain("note=505 text=본문 tags=t1");
+    expect(formatBlocks).toHaveLength(1);
+  });
 });

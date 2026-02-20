@@ -21,6 +21,11 @@ export interface TokenUsage {
   totalTokens?: number;
 }
 
+export interface SplitRequestMetadata {
+  tokenUsage?: TokenUsage;
+  modelName: string;
+}
+
 let genAI: GoogleGenAI | null = null;
 
 function getClient(): GoogleGenAI {
@@ -52,7 +57,7 @@ export interface CardForSplit {
 export async function requestCardSplit(
   card: CardForSplit,
   prompts?: { systemPrompt: string; splitPromptTemplate: string },
-): Promise<SplitResponse & { tokenUsage?: TokenUsage }> {
+): Promise<SplitResponse & SplitRequestMetadata> {
   assertExternalAIEnabled("split");
 
   const client = getClient();
@@ -96,7 +101,7 @@ export async function requestCardSplit(
   // JSON 파싱 및 검증
   const parsed = JSON.parse(text);
   const validated = validateSplitResponse(parsed);
-  return { ...validated, tokenUsage };
+  return { ...validated, tokenUsage, modelName: MODEL_NAME };
 }
 
 /**
