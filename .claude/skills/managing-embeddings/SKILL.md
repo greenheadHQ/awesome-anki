@@ -3,7 +3,8 @@ name: managing-embeddings
 description: |
   This skill should be used when users request embedding generation or analysis.
   Triggers: "임베딩 생성", "코사인 유사도", "캐시 어디에",
-  "임베딩 상태", "의미 유사도", "embedding-001", "벡터 차원".
+  "임베딩 상태", "의미 유사도", "embedding-001",
+  "gemini-embedding-001", "벡터 차원".
   Covers Gemini embedding API, file-based cache strategy, and text preprocessing.
 ---
 
