@@ -177,8 +177,11 @@ export function CardBrowser() {
 
   return (
     <div className="flex gap-6">
-      {/* Main Content */}
-      <div className="flex-1 space-y-4">
+      {/* Main Content — 모바일 상세 오버레이 열릴 때 inert로 접근성 차단 */}
+      <div
+        className="flex-1 space-y-4"
+        inert={!!(selectedNoteId && cardDetail) || undefined}
+      >
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">카드 브라우저</h1>
