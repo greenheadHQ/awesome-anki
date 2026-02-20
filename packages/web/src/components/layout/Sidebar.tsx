@@ -35,10 +35,10 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
           <button
             type="button"
             onClick={onNavClick}
-            className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted md:hidden"
             aria-label="메뉴 닫기"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         )}
       </div>
@@ -83,10 +83,19 @@ export function Sidebar({
 }) {
   const location = useLocation();
 
-  // 라우트 변경 시 Drawer 닫기
+  // 라우트 변경 시 Drawer 닫기 (이미 닫혀 있으면 무시)
   useEffect(() => {
-    onClose();
+    if (open) onClose();
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Body scroll lock — 모바일 Drawer 열릴 때 배경 스크롤 방지
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   // ESC 키로 Drawer 닫기
   useEffect(() => {
@@ -113,12 +122,7 @@ export function Sidebar({
             className="fixed inset-0 z-40 bg-black/50 md:hidden"
             style={{ touchAction: "none" }}
             onClick={onClose}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") onClose();
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label="메뉴 닫기"
+            aria-hidden="true"
           />
           {/* Drawer — z-50: backdrop 위 */}
           <aside

@@ -9,7 +9,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { Button } from "../components/ui/Button";
@@ -133,6 +133,16 @@ export function CardBrowser() {
     filter: filter === "splitable" ? "splitable" : "all",
   });
   const { data: cardDetail } = useCardDetail(selectedNoteId);
+
+  // ESC 키로 상세 패널 닫기
+  useEffect(() => {
+    if (!selectedNoteId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedNoteId(null);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNoteId]);
 
   const { getValidation, getValidationStatuses, cacheSize } =
     useValidationCache();
@@ -330,14 +340,9 @@ export function CardBrowser() {
           <div
             className="fixed inset-0 z-30 bg-black/50 md:hidden"
             onClick={() => setSelectedNoteId(null)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") setSelectedNoteId(null);
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label="상세 패널 닫기"
+            aria-hidden="true"
           />
-          <Card className="fixed inset-0 z-40 overflow-y-auto md:static md:inset-auto md:z-auto md:w-96 md:shrink-0 md:overflow-visible">
+          <Card className="fixed inset-0 z-40 overflow-y-auto md:static md:inset-auto md:z-auto md:w-96 md:shrink-0">
             <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-card z-10 md:static">
               <CardTitle className="text-lg">카드 상세</CardTitle>
               <Button

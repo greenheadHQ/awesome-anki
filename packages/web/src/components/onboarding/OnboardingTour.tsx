@@ -90,6 +90,7 @@ export function OnboardingTour({ run, onComplete }: OnboardingTourProps) {
   const handleComplete = onComplete || internalState.completeOnboarding;
 
   // 모바일에서는 사이드바 nav target이 없어 Joyride 비활성화
+  // 정적 체크: 온보딩은 1회성 flow이므로 리사이즈 리스너 불필요
   const isDesktop =
     typeof window !== "undefined" &&
     window.matchMedia("(min-width: 768px)").matches;

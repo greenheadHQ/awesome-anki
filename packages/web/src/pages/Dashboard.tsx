@@ -96,7 +96,7 @@ export function Dashboard() {
             <p className="text-muted-foreground">로딩 중...</p>
           ) : (
             <select
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-md border bg-background px-3 py-2 text-base md:text-sm"
               value={selectedDeck || ""}
               onChange={(e) => setSelectedDeck(e.target.value || null)}
             >

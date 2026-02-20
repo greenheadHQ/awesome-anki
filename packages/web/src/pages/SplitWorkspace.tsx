@@ -988,6 +988,7 @@ export function SplitWorkspace() {
     { id: "preview", label: "미리보기" },
   ];
 
+  // 높이 계산: 모바일 h-14 헤더 + p-3 패딩 x2 = 5rem (dvh: iOS 주소창 대응), 데스크톱 p-6 패딩 x2 ≈ 4rem
   return (
     <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
