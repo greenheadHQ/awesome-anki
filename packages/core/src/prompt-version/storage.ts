@@ -321,6 +321,9 @@ async function updateVersionMetrics(
   versionId: string,
   entry: SplitHistoryEntry,
 ): Promise<void> {
+  // Hard Split은 프롬프트 성능과 무관 — 메트릭에서 제외
+  if (entry.splitType === "hard") return;
+
   const version = await getVersion(versionId);
   if (!version) return;
 
@@ -371,9 +374,9 @@ async function updateVersionMetrics(
         ) / 10
       : entry.splitCards.length;
 
-  // 평균 글자 수
+  // 평균 글자 수 (charCount가 undefined/NaN이면 content.length 폴백)
   const totalChars = entry.splitCards.reduce(
-    (sum, card) => sum + card.charCount,
+    (sum, card) => sum + (card.charCount || card.content.length),
     0,
   );
   const avgChars =
@@ -497,7 +500,10 @@ export async function completeExperiment(
             controlHistory.reduce(
               (sum, h) =>
                 sum +
-                h.splitCards.reduce((s, c) => s + c.charCount, 0) /
+                h.splitCards.reduce(
+                  (s, c) => s + (c.charCount || c.content.length),
+                  0,
+                ) /
                   h.splitCards.length,
               0,
             ) / controlHistory.length,
@@ -522,7 +528,10 @@ export async function completeExperiment(
             treatmentHistory.reduce(
               (sum, h) =>
                 sum +
-                h.splitCards.reduce((s, c) => s + c.charCount, 0) /
+                h.splitCards.reduce(
+                  (s, c) => s + (c.charCount || c.content.length),
+                  0,
+                ) /
                   h.splitCards.length,
               0,
             ) / treatmentHistory.length,

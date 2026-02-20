@@ -6,7 +6,9 @@
 import {
   BarChart3,
   Check,
+  ChevronDown,
   ChevronRight,
+  Clock,
   Edit,
   FileText,
   FlaskConical,
@@ -17,6 +19,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { useState } from "react";
+import { ContentRenderer } from "../components/card/ContentRenderer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/Button";
 import {
@@ -63,7 +66,7 @@ export function PromptManager() {
       id: "history" as const,
       label: "히스토리",
       icon: History,
-      count: historyData?.total || 0,
+      count: historyData?.totalCount || 0,
       helpKey: "promptHistory" as const,
     },
     {
@@ -133,7 +136,7 @@ export function PromptManager() {
         )}
         {activeTab === "history" && (
           <HistoryTab
-            entries={historyData?.entries || []}
+            entries={historyData?.history || []}
             isLoading={isLoadingHistory}
           />
         )}
@@ -421,6 +424,8 @@ interface HistoryTabProps {
 }
 
 function HistoryTab({ entries, isLoading }: HistoryTabProps) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -443,6 +448,7 @@ function HistoryTab({ entries, isLoading }: HistoryTabProps) {
           <table className="w-full text-sm">
             <thead className="bg-muted sticky top-0">
               <tr>
+                <th className="text-left px-4 py-2 w-6" />
                 <th className="text-left px-4 py-2">시간</th>
                 <th className="text-left px-4 py-2">Note ID</th>
                 <th className="text-left px-4 py-2">버전</th>
@@ -451,47 +457,194 @@ function HistoryTab({ entries, isLoading }: HistoryTabProps) {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {entries.map((entry) => (
-                <tr key={entry.id} className="hover:bg-muted/50">
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {new Date(entry.timestamp).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 font-mono">{entry.noteId}</td>
-                  <td className="px-4 py-2">{entry.promptVersionId}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={cn(
-                        "px-1.5 py-0.5 rounded text-xs flex items-center gap-1 w-fit",
-                        entry.userAction === "approved" &&
-                          "bg-green-100 text-green-700",
-                        entry.userAction === "modified" &&
-                          "bg-yellow-100 text-yellow-700",
-                        entry.userAction === "rejected" &&
-                          "bg-red-100 text-red-700",
-                      )}
-                    >
-                      {entry.userAction === "approved" && (
-                        <ThumbsUp className="w-3 h-3" />
-                      )}
-                      {entry.userAction === "modified" && (
-                        <Edit className="w-3 h-3" />
-                      )}
-                      {entry.userAction === "rejected" && (
-                        <ThumbsDown className="w-3 h-3" />
-                      )}
-                      {entry.userAction}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">
-                    {entry.splitCards?.length || 0}개
-                  </td>
-                </tr>
-              ))}
+              {entries.map((entry) => {
+                const isExpanded = expandedId === entry.id;
+                return (
+                  <HistoryRow
+                    key={entry.id}
+                    entry={entry}
+                    isExpanded={isExpanded}
+                    onToggle={() => setExpandedId(isExpanded ? null : entry.id)}
+                  />
+                );
+              })}
             </tbody>
           </table>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+const REJECTION_REASON_LABELS: Record<string, string> = {
+  "too-granular": "분할이 너무 세분화",
+  "context-missing": "맥락 태그 부적절",
+  "char-exceeded": "글자수 초과",
+  "cloze-inappropriate": "Cloze 위치/내용 부적절",
+  "quality-low": "전반적 품질 미달",
+  other: "기타",
+};
+
+function HistoryRow({
+  entry,
+  isExpanded,
+  onToggle,
+}: {
+  entry: SplitHistoryEntry;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+      <tr className="hover:bg-muted/50 cursor-pointer" onClick={onToggle}>
+        <td className="pl-4 py-2">
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          )}
+        </td>
+        <td className="px-4 py-2 text-muted-foreground">
+          {new Date(entry.timestamp).toLocaleString()}
+        </td>
+        <td className="px-4 py-2 font-mono">{entry.noteId}</td>
+        <td className="px-4 py-2">{entry.promptVersionId}</td>
+        <td className="px-4 py-2">
+          <span
+            className={cn(
+              "px-1.5 py-0.5 rounded text-xs flex items-center gap-1 w-fit",
+              entry.userAction === "approved" && "bg-green-100 text-green-700",
+              entry.userAction === "modified" &&
+                "bg-yellow-100 text-yellow-700",
+              entry.userAction === "rejected" && "bg-red-100 text-red-700",
+            )}
+          >
+            {entry.userAction === "approved" && (
+              <ThumbsUp className="w-3 h-3" />
+            )}
+            {entry.userAction === "modified" && <Edit className="w-3 h-3" />}
+            {entry.userAction === "rejected" && (
+              <ThumbsDown className="w-3 h-3" />
+            )}
+            {entry.userAction}
+          </span>
+        </td>
+        <td className="px-4 py-2">{entry.splitCards?.length || 0}개</td>
+      </tr>
+      {isExpanded && (
+        <tr>
+          <td colSpan={6} className="bg-muted/30 px-6 py-4">
+            <div className="space-y-3 text-sm">
+              {/* 메타 정보 */}
+              <div className="flex flex-wrap gap-4 text-muted-foreground">
+                {entry.splitType && (
+                  <span>
+                    분할 방식:{" "}
+                    <b className="text-foreground">{entry.splitType}</b>
+                  </span>
+                )}
+                {entry.aiModel && (
+                  <span>
+                    AI 모델: <b className="text-foreground">{entry.aiModel}</b>
+                  </span>
+                )}
+                {entry.executionTimeMs != null && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {(entry.executionTimeMs / 1000).toFixed(1)}s
+                  </span>
+                )}
+                {entry.tokenUsage?.totalTokens != null && (
+                  <span>
+                    토큰:{" "}
+                    <b className="text-foreground">
+                      {entry.tokenUsage.totalTokens.toLocaleString()}
+                    </b>
+                  </span>
+                )}
+                <span>
+                  원본 글자수:{" "}
+                  <b className="text-foreground">{entry.originalCharCount}</b>
+                </span>
+              </div>
+
+              {/* 반려 사유 */}
+              {entry.rejectionReason && (
+                <div className="bg-red-50 border border-red-200 rounded px-3 py-2">
+                  <span className="text-red-700 font-medium">반려 사유: </span>
+                  <span className="text-red-600">
+                    {REJECTION_REASON_LABELS[entry.rejectionReason] ||
+                      entry.rejectionReason}
+                  </span>
+                </div>
+              )}
+
+              {/* 분할 이유 */}
+              {entry.splitReason && (
+                <div className="text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    분할 이유:{" "}
+                  </span>
+                  {entry.splitReason}
+                </div>
+              )}
+
+              {/* 원본 카드 */}
+              {entry.originalContent && (
+                <details className="group">
+                  <summary className="font-medium cursor-pointer select-none flex items-center gap-1">
+                    <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                    원본 카드
+                  </summary>
+                  <div className="mt-2 bg-background border rounded p-4 max-h-80 overflow-y-auto">
+                    <ContentRenderer
+                      content={entry.originalContent}
+                      showToggle={true}
+                      className="text-sm"
+                    />
+                  </div>
+                </details>
+              )}
+
+              {/* 분할 카드 목록 */}
+              {entry.splitCards && entry.splitCards.length > 0 && (
+                <div>
+                  <p className="font-medium mb-2">
+                    분할 카드 ({entry.splitCards.length}개)
+                  </p>
+                  <div className="space-y-2">
+                    {entry.splitCards.map((card, idx) => (
+                      <div
+                        key={`${entry.id}-card-${idx}`}
+                        className="bg-background rounded border overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 border-b">
+                          <span className="font-medium text-xs">
+                            #{idx + 1} {card.title}
+                          </span>
+                          {card.charCount != null && (
+                            <span className="text-xs text-muted-foreground">
+                              {card.charCount}자
+                            </span>
+                          )}
+                        </div>
+                        <div className="px-3 py-2">
+                          <ContentRenderer
+                            content={card.content}
+                            showToggle={false}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 

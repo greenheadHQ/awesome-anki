@@ -7,15 +7,18 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   ChevronRight,
   FileText,
   Loader2,
   Scissors,
   Shield,
   Sparkles,
+  X,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
@@ -36,10 +39,27 @@ import {
   useSplitApply,
   useSplitPreview,
 } from "../hooks/useSplit";
-import type { DifficultCard, SplitPreviewResult } from "../lib/api";
+import type {
+  CardSummary,
+  DifficultCard,
+  SplitPreviewResult,
+} from "../lib/api";
+import { queryKeys } from "../lib/query-keys";
 import { cn } from "../lib/utils";
 
+// NOTE: core의 REJECTION_REASONS는 런타임 import 시 브라우저 번들 경계를 넘기 때문에
+// web 패키지에서 동일 스키마를 로컬 상수로 유지한다.
+const REJECTION_REASONS = [
+  { id: "too-granular", label: "분할이 너무 세분화" },
+  { id: "context-missing", label: "맥락 태그 부적절" },
+  { id: "char-exceeded", label: "글자수 초과" },
+  { id: "cloze-inappropriate", label: "Cloze 위치/내용 부적절" },
+  { id: "quality-low", label: "전반적 품질 미달" },
+  { id: "other", label: "기타" },
+] as const;
+
 type WorkspaceMode = "candidates" | "difficult";
+type CardAnalysisStatus = "pending" | "cached" | "error" | "none";
 
 interface SplitCandidate {
   noteId: number;
@@ -79,6 +99,33 @@ function mapDifficultToCandidate(card: DifficultCard): SplitCandidate {
   };
 }
 
+function mapCardSummaryToCandidate(card: CardSummary): SplitCandidate {
+  return {
+    noteId: card.noteId,
+    text: card.text,
+    analysis: {
+      canHardSplit: card.analysis.canHardSplit,
+      canSoftSplit:
+        card.analysis.canSoftSplit ??
+        (!card.analysis.canHardSplit && card.analysis.clozeCount > 3),
+      clozeCount: card.analysis.clozeCount,
+    },
+  };
+}
+
+function CardStatusIcon({ status }: { status: CardAnalysisStatus }) {
+  switch (status) {
+    case "pending":
+      return <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-500" />;
+    case "cached":
+      return <Check className="w-3.5 h-3.5 text-green-600" />;
+    case "error":
+      return <AlertTriangle className="w-3.5 h-3.5 text-red-500" />;
+    default:
+      return null;
+  }
+}
+
 export function SplitWorkspace() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
@@ -89,22 +136,39 @@ export function SplitWorkspace() {
   );
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
 
-  const queryClient = useQueryClient();
-  const { data: decksData } = useDecks();
-  const { data: cardsData, isLoading: isLoadingCards } = useCards(
-    selectedDeck,
-    {
-      limit: 500,
-      filter: "all",
-    },
+  // 분석 상태 추적
+  const [pendingAnalyses, setPendingAnalyses] = useState<Set<number>>(
+    new Set(),
+  );
+  const [errorAnalyses, setErrorAnalyses] = useState<Map<number, string>>(
+    new Map(),
   );
 
+  // 반려 드롭다운
+  const [rejectDropdownOpen, setRejectDropdownOpen] = useState(false);
+  const [otherReasonText, setOtherReasonText] = useState("");
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const rejectDropdownRef = useRef<HTMLDivElement>(null);
+
+  const queryClient = useQueryClient();
+  const { data: decksData } = useDecks();
+  const activeDeck = selectedDeck ?? decksData?.decks?.[0] ?? null;
+  const { data: cardsData, isLoading: isLoadingCards } = useCards(activeDeck, {
+    limit: 500,
+    filter: "all",
+  });
+
   const { data: difficultData, isLoading: isLoadingDifficult } =
-    useDifficultCards(selectedDeck, { limit: 200 });
+    useDifficultCards(activeDeck, { limit: 200 });
 
   // 프롬프트 버전 관련
   const { data: promptVersionsData, isLoading: isLoadingVersions } =
     usePromptVersions();
+  const activeVersionId =
+    selectedVersionId ??
+    promptVersionsData?.activeVersionId ??
+    promptVersionsData?.versions?.[0]?.id ??
+    null;
   const addHistory = useAddPromptHistory();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
@@ -121,6 +185,7 @@ export function SplitWorkspace() {
         queryClient,
         selectedCard.noteId,
         splitType === "soft",
+        activeVersionId || undefined,
       )
     : undefined;
 
@@ -133,92 +198,195 @@ export function SplitWorkspace() {
     splitPreview.isPending &&
     splitPreview.variables?.noteId === selectedCard?.noteId;
 
-  // 덱 선택 시 첫 번째 덱 자동 선택
-  useEffect(() => {
-    if (decksData?.decks && decksData.decks.length > 0 && !selectedDeck) {
-      setSelectedDeck(decksData.decks[0]);
-    }
-  }, [decksData, selectedDeck]);
+  // 현재 선택된 카드의 에러 메시지 확인
+  const currentCardError = selectedCard
+    ? errorAnalyses.get(selectedCard.noteId)
+    : undefined;
 
-  // 활성 버전 자동 선택
-  useEffect(() => {
-    if (promptVersionsData?.activeVersionId && !selectedVersionId) {
-      setSelectedVersionId(promptVersionsData.activeVersionId);
-    } else if (promptVersionsData?.versions?.length && !selectedVersionId) {
-      // 활성 버전이 없으면 첫 번째 버전 선택
-      setSelectedVersionId(promptVersionsData.versions[0].id);
-    }
-  }, [promptVersionsData, selectedVersionId]);
+  // 카드 상태 헬퍼
+  const getCardStatus = (noteId: number): CardAnalysisStatus => {
+    if (pendingAnalyses.has(noteId)) return "pending";
+    if (errorAnalyses.has(noteId)) return "error";
+    const cachedSoft = getCachedSplitPreview(
+      queryClient,
+      noteId,
+      true,
+      activeVersionId || undefined,
+    );
+    const cachedHard = getCachedSplitPreview(
+      queryClient,
+      noteId,
+      false,
+      activeVersionId || undefined,
+    );
+    if (cachedSoft || cachedHard) return "cached";
+    return "none";
+  };
 
-  // 카드 선택 핸들러 — useEffect 대신 이벤트 핸들러에서 직접 처리하여
-  // splitPreview 참조 불안정으로 인한 무한 렌더 루프 방지
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        rejectDropdownRef.current &&
+        !rejectDropdownRef.current.contains(event.target as Node)
+      ) {
+        setRejectDropdownOpen(false);
+        setShowOtherInput(false);
+        setOtherReasonText("");
+      }
+    }
+    if (rejectDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [rejectDropdownOpen]);
+
+  // 카드 선택 핸들러
   const handleSelectCard = (card: SplitCandidate | null) => {
     setSelectedCard(card);
     if (card) {
-      // mutation 상태 초기화 (이전 카드 결과 제거)
       splitPreview.reset();
-
-      // 분할 타입 자동 선택
       const type = card.analysis.canHardSplit ? "hard" : "soft";
       setSplitType(type);
 
-      // 캐시 확인
       const cached = getCachedSplitPreview(
         queryClient,
         card.noteId,
         type === "soft",
+        activeVersionId || undefined,
       );
 
-      // 캐시 없고 Hard Split이면 자동 요청 (Gemini 비용 없음)
       if (!cached && card.analysis.canHardSplit) {
         splitPreview.mutate({ noteId: card.noteId, useGemini: false });
       }
-      // Soft Split은 사용자가 명시적으로 요청해야 함 (캐시된 결과 있으면 바로 표시)
     }
+  };
+
+  // noteId로 카드를 찾아 선택 (toast action에서 사용 — stale closure 방지)
+  const handleSelectByNoteId = (noteId: number) => {
+    const list = mode === "candidates" ? candidates : difficultCards;
+    const found = list.find((c) => c.noteId === noteId);
+    if (found) handleSelectCard(found);
   };
 
   // Soft Split 분석 요청 핸들러
   const handleRequestSoftSplit = () => {
-    if (selectedCard) {
-      splitPreview.mutate({ noteId: selectedCard.noteId, useGemini: true });
-    }
+    if (!selectedCard) return;
+    // 연타 방지
+    if (pendingAnalyses.has(selectedCard.noteId)) return;
+
+    const noteId = selectedCard.noteId;
+
+    // 상태 전이: pending 추가, error 제거
+    setPendingAnalyses((prev) => {
+      const next = new Set(prev);
+      next.add(noteId);
+      return next;
+    });
+    setErrorAnalyses((prev) => {
+      const next = new Map(prev);
+      next.delete(noteId);
+      return next;
+    });
+
+    splitPreview.mutate(
+      {
+        noteId,
+        useGemini: true,
+        versionId: activeVersionId || undefined,
+      },
+      {
+        onSuccess: () => {
+          setPendingAnalyses((prev) => {
+            const next = new Set(prev);
+            next.delete(noteId);
+            return next;
+          });
+          toast.success(`카드 ${noteId} 분석 완료`, {
+            action: {
+              label: "보기",
+              onClick: () => handleSelectByNoteId(noteId),
+            },
+          });
+        },
+        onError: (error) => {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          setPendingAnalyses((prev) => {
+            const next = new Set(prev);
+            next.delete(noteId);
+            return next;
+          });
+          setErrorAnalyses((prev) => {
+            const next = new Map(prev);
+            next.set(noteId, message);
+            return next;
+          });
+          toast.error(`카드 ${noteId} 분석 실패: ${message}`);
+        },
+      },
+    );
   };
 
-  const candidates = (cardsData?.cards || []).filter(
-    (c: { analysis?: { canHardSplit?: boolean; canSoftSplit?: boolean } }) =>
-      c.analysis?.canHardSplit || c.analysis?.canSoftSplit,
-  ) as SplitCandidate[];
+  const candidates = (cardsData?.cards || [])
+    .map(mapCardSummaryToCandidate)
+    .filter((card) => card.analysis.canHardSplit || card.analysis.canSoftSplit);
 
   const difficultCards = (difficultData?.cards || []).map(
     mapDifficultToCandidate,
   );
 
   const handleApply = () => {
-    if (!selectedCard || !selectedDeck || !previewData?.splitCards) return;
+    if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
+    const historySplitType =
+      previewData.splitType === "hard" || previewData.splitType === "soft"
+        ? previewData.splitType
+        : splitType;
 
     splitApply.mutate(
       {
         noteId: selectedCard.noteId,
+        deckName: activeDeck,
+        splitCards: previewData.splitCards.map((c) => ({
+          title: c.title,
+          content: c.content,
+        })),
+        mainCardIndex: previewData.mainCardIndex ?? 0,
         splitType,
-        deckName: selectedDeck,
       },
       {
         onSuccess: () => {
-          // 히스토리 자동 기록
-          if (selectedVersionId && previewData?.splitCards) {
-            addHistory.mutate({
-              promptVersionId: selectedVersionId,
-              noteId: selectedCard.noteId,
-              deckName: selectedDeck,
-              originalContent: cardDetail?.text || selectedCard.text,
-              splitCards: previewData.splitCards.map((card) => ({
-                title: card.title,
-                content: card.content,
-              })),
-              userAction: "approved",
-              qualityChecks: null, // TODO: 실제 품질 검사 결과 연동
-            });
+          // 히스토리 자동 기록 (확장 필드 포함)
+          if (activeVersionId && previewData?.splitCards) {
+            addHistory.mutate(
+              {
+                promptVersionId: activeVersionId,
+                noteId: selectedCard.noteId,
+                deckName: activeDeck,
+                originalContent: cardDetail?.text || selectedCard.text,
+                originalTags: cardDetail?.tags ?? [],
+                splitCards: previewData.splitCards.map((c) => ({
+                  title: c.title,
+                  content: c.content,
+                  cardType: c.cardType ?? "cloze",
+                })),
+                userAction: "approved",
+                aiModel: previewData.aiModel,
+                splitType: historySplitType,
+                splitReason: previewData.splitReason,
+                executionTimeMs: previewData.executionTimeMs,
+                tokenUsage: previewData.tokenUsage,
+                qualityChecks: null,
+              },
+              {
+                onError: () => {
+                  toast.warning("히스토리 기록 실패 (분할은 정상 적용됨)");
+                },
+              },
+            );
           }
+          toast.success("분할이 적용되었습니다");
           // 성공 후 목록에서 제거하고 다음 카드 선택
           const activeList =
             mode === "candidates" ? candidates : difficultCards;
@@ -226,6 +394,66 @@ export function SplitWorkspace() {
             (c) => c.noteId !== selectedCard.noteId,
           );
           handleSelectCard(nextCard || null);
+        },
+        onError: (error) => {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          toast.error(`분할 적용 실패: ${message}`);
+        },
+      },
+    );
+  };
+
+  const handleReject = (rejectionReason: string) => {
+    if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
+    if (!activeVersionId) {
+      toast.warning("반려를 기록하려면 프롬프트 버전이 필요합니다.");
+      return;
+    }
+    const historySplitType =
+      previewData.splitType === "hard" || previewData.splitType === "soft"
+        ? previewData.splitType
+        : splitType;
+
+    addHistory.mutate(
+      {
+        promptVersionId: activeVersionId,
+        noteId: selectedCard.noteId,
+        deckName: activeDeck,
+        originalContent: cardDetail?.text || selectedCard.text,
+        originalTags: cardDetail?.tags ?? [],
+        splitCards: previewData.splitCards.map((c) => ({
+          title: c.title,
+          content: c.content,
+          cardType: c.cardType ?? "cloze",
+        })),
+        userAction: "rejected",
+        rejectionReason,
+        aiModel: previewData.aiModel,
+        splitType: historySplitType,
+        splitReason: previewData.splitReason,
+        executionTimeMs: previewData.executionTimeMs,
+        tokenUsage: previewData.tokenUsage,
+        qualityChecks: null,
+      },
+      {
+        onSuccess: () => {
+          // 캐시 삭제 → reset (순서 중요)
+          queryClient.removeQueries({
+            queryKey: queryKeys.split.preview(
+              selectedCard.noteId,
+              true,
+              activeVersionId,
+            ),
+          });
+          splitPreview.reset();
+          toast.info("분할 결과가 반려되었습니다");
+          setRejectDropdownOpen(false);
+          setShowOtherInput(false);
+          setOtherReasonText("");
+        },
+        onError: () => {
+          toast.warning("반려 기록 실패");
         },
       },
     );
@@ -235,7 +463,6 @@ export function SplitWorkspace() {
     const newType = splitType === "hard" ? "soft" : "hard";
     setSplitType(newType);
     if (selectedCard) {
-      // Hard로 전환 시만 자동 요청, Soft는 별도 버튼으로
       if (newType === "hard") {
         splitPreview.mutate({ noteId: selectedCard.noteId, useGemini: false });
       }
@@ -248,6 +475,109 @@ export function SplitWorkspace() {
   const activeCount =
     mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
 
+  const isBusy = addHistory.isPending || splitApply.isPending;
+  const canReject =
+    !!selectedCard &&
+    !!activeDeck &&
+    !!previewData?.splitCards &&
+    !!activeVersionId &&
+    !isBusy;
+
+  // 카드 리스트 아이템 렌더러
+  const renderCardListItem = (card: SplitCandidate) => {
+    const status = getCardStatus(card.noteId);
+    return (
+      <button
+        type="button"
+        key={card.noteId}
+        onClick={() => handleSelectCard(card)}
+        className={cn(
+          "w-full text-left px-4 py-3 hover:bg-muted transition-colors",
+          selectedCard?.noteId === card.noteId && "bg-primary/10",
+        )}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium truncate">{card.noteId}</p>
+              <CardStatusIcon status={status} />
+            </div>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {card.text.slice(0, 60)}
+              {card.text.length > 60 ? "..." : ""}
+            </p>
+          </div>
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            {card.analysis.canHardSplit && (
+              <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+                <Zap className="w-3 h-3 inline mr-0.5" />
+                Hard
+              </span>
+            )}
+            {card.analysis.canSoftSplit && (
+              <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
+                <Sparkles className="w-3 h-3 inline mr-0.5" />
+                Soft
+              </span>
+            )}
+          </div>
+        </div>
+      </button>
+    );
+  };
+
+  const renderDifficultCardListItem = (card: SplitCandidate) => {
+    const status = getCardStatus(card.noteId);
+    return (
+      <button
+        type="button"
+        key={card.noteId}
+        onClick={() => handleSelectCard(card)}
+        className={cn(
+          "w-full text-left px-4 py-3 hover:bg-muted transition-colors",
+          selectedCard?.noteId === card.noteId && "bg-primary/10",
+        )}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium truncate">{card.noteId}</p>
+              <CardStatusIcon status={status} />
+            </div>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {card.text.slice(0, 60)}
+              {card.text.length > 60 ? "..." : ""}
+            </p>
+            <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+              <span>lapses: {card.difficulty?.lapses}</span>
+              <span>
+                ease:{" "}
+                {card.difficulty
+                  ? (card.difficulty.easeFactor / 10).toFixed(0)
+                  : 0}
+                %
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0">
+            <span
+              className={cn(
+                "text-xs px-1.5 py-0.5 rounded font-medium",
+                (card.difficulty?.score ?? 0) > 70
+                  ? "bg-red-100 text-red-700"
+                  : (card.difficulty?.score ?? 0) > 40
+                    ? "bg-orange-100 text-orange-700"
+                    : "bg-yellow-100 text-yellow-700",
+              )}
+            >
+              {card.difficulty?.score ?? 0}
+            </span>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
@@ -255,9 +585,9 @@ export function SplitWorkspace() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">분할 작업</h1>
           <select
-            value={selectedDeck || ""}
+            value={activeDeck || ""}
             onChange={(e) => {
-              setSelectedDeck(e.target.value);
+              setSelectedDeck(e.target.value || null);
               handleSelectCard(null);
             }}
             className="px-3 py-1.5 border rounded-md bg-background text-sm"
@@ -275,8 +605,8 @@ export function SplitWorkspace() {
             <FileText className="w-4 h-4 text-muted-foreground" />
             <HelpTooltip helpKey="promptVersionSelect" />
             <select
-              value={selectedVersionId || ""}
-              onChange={(e) => setSelectedVersionId(e.target.value)}
+              value={activeVersionId || ""}
+              onChange={(e) => setSelectedVersionId(e.target.value || null)}
               disabled={isLoadingVersions}
               className="px-3 py-1.5 border rounded-md bg-background text-sm min-w-[140px]"
             >
@@ -356,91 +686,11 @@ export function SplitWorkspace() {
                 </div>
               ) : mode === "candidates" ? (
                 <div className="divide-y">
-                  {candidates.map((card) => (
-                    <button
-                      type="button"
-                      key={card.noteId}
-                      onClick={() => handleSelectCard(card)}
-                      className={cn(
-                        "w-full text-left px-4 py-3 hover:bg-muted transition-colors",
-                        selectedCard?.noteId === card.noteId && "bg-primary/10",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {card.noteId}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {card.text.slice(0, 60)}...
-                          </p>
-                        </div>
-                        <div className="shrink-0 flex flex-col items-end gap-1">
-                          {card.analysis.canHardSplit && (
-                            <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
-                              <Zap className="w-3 h-3 inline mr-0.5" />
-                              Hard
-                            </span>
-                          )}
-                          {card.analysis.canSoftSplit && (
-                            <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
-                              <Sparkles className="w-3 h-3 inline mr-0.5" />
-                              Soft
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                  {candidates.map(renderCardListItem)}
                 </div>
               ) : (
                 <div className="divide-y">
-                  {difficultCards.map((card) => (
-                    <button
-                      type="button"
-                      key={card.noteId}
-                      onClick={() => handleSelectCard(card)}
-                      className={cn(
-                        "w-full text-left px-4 py-3 hover:bg-muted transition-colors",
-                        selectedCard?.noteId === card.noteId && "bg-primary/10",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {card.noteId}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {card.text.slice(0, 60)}...
-                          </p>
-                          <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-                            <span>lapses: {card.difficulty?.lapses}</span>
-                            <span>
-                              ease:{" "}
-                              {card.difficulty
-                                ? (card.difficulty.easeFactor / 10).toFixed(0)
-                                : 0}
-                              %
-                            </span>
-                          </div>
-                        </div>
-                        <div className="shrink-0">
-                          <span
-                            className={cn(
-                              "text-xs px-1.5 py-0.5 rounded font-medium",
-                              (card.difficulty?.score ?? 0) > 70
-                                ? "bg-red-100 text-red-700"
-                                : (card.difficulty?.score ?? 0) > 40
-                                  ? "bg-orange-100 text-orange-700"
-                                  : "bg-yellow-100 text-yellow-700",
-                            )}
-                          >
-                            {card.difficulty?.score ?? 0}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                  {difficultCards.map(renderDifficultCardListItem)}
                 </div>
               )}
             </CardContent>
@@ -526,10 +776,10 @@ export function SplitWorkspace() {
                       defaultView="rendered"
                     />
                     {/* 검증 패널 */}
-                    {showValidation && selectedDeck && (
+                    {showValidation && activeDeck && (
                       <ValidationPanel
                         noteId={selectedCard.noteId}
-                        deckName={selectedDeck}
+                        deckName={activeDeck}
                       />
                     )}
                   </div>
@@ -589,6 +839,22 @@ export function SplitWorkspace() {
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
+              ) : currentCardError ? (
+                <div className="flex flex-col items-center justify-center h-full text-destructive">
+                  <AlertTriangle className="w-8 h-8 mb-3" />
+                  <span className="font-medium mb-2">분할 분석 실패</span>
+                  <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
+                    {currentCardError}
+                  </p>
+                  <Button
+                    onClick={handleRequestSoftSplit}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                  >
+                    다시 시도
+                  </Button>
+                </div>
               ) : splitPreview.isError &&
                 splitPreview.variables?.noteId === selectedCard.noteId ? (
                 <div className="flex flex-col items-center justify-center h-full text-destructive">
@@ -614,9 +880,10 @@ export function SplitWorkspace() {
                 <div className="space-y-4">
                   {/* 캐시 표시 */}
                   {cachedPreview && (
-                    <div className="text-xs text-muted-foreground bg-green-50 px-2 py-1 rounded inline-block">
+                    <span className="text-xs text-muted-foreground bg-green-50 px-2 py-1 rounded">
                       {"\u2713"} 캐시된 결과
-                    </div>
+                      {activeVersionId && ` (${activeVersionId})`}
+                    </span>
                   )}
                   {/* 분할 요약 */}
                   <div className="p-3 bg-muted rounded-lg text-sm">
@@ -626,6 +893,13 @@ export function SplitWorkspace() {
                     {previewData.splitReason && (
                       <p className="text-muted-foreground text-xs">
                         {previewData.splitReason}
+                      </p>
+                    )}
+                    {previewData.executionTimeMs != null && (
+                      <p className="text-muted-foreground text-xs mt-1">
+                        {(previewData.executionTimeMs / 1000).toFixed(1)}s
+                        {previewData.tokenUsage?.totalTokens != null &&
+                          ` | ${previewData.tokenUsage.totalTokens} tokens`}
                       </p>
                     )}
                   </div>
@@ -654,6 +928,10 @@ export function SplitWorkspace() {
                   </p>
                   <Button
                     onClick={handleRequestSoftSplit}
+                    disabled={
+                      splitPreview.isPending ||
+                      pendingAnalyses.has(selectedCard?.noteId ?? -1)
+                    }
                     variant="outline"
                     className="bg-purple-50 hover:bg-purple-100 border-purple-200"
                   >
@@ -664,32 +942,112 @@ export function SplitWorkspace() {
               ) : null}
             </CardContent>
 
-            {/* 적용 버튼 */}
+            {/* 하단 액션 영역 */}
             {selectedCard && previewData && previewData.splitCards && (
               <div className="px-4 py-3 border-t shrink-0">
-                <Button
-                  onClick={handleApply}
-                  disabled={splitApply.isPending}
-                  className="w-full"
-                >
-                  {splitApply.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      적용 중...
-                    </>
-                  ) : (
-                    <>
-                      <Scissors className="w-4 h-4 mr-2" />
-                      분할 적용
-                    </>
+                <div className="flex gap-2">
+                  {/* 반려 버튼 (Soft Split만) */}
+                  {splitType === "soft" && (
+                    <div className="relative" ref={rejectDropdownRef}>
+                      <Button
+                        onClick={() =>
+                          setRejectDropdownOpen(!rejectDropdownOpen)
+                        }
+                        disabled={!canReject}
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        분할 반려
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+
+                      {/* 드롭다운 메뉴 (위 방향) */}
+                      {rejectDropdownOpen && (
+                        <div className="absolute bottom-full left-0 mb-1 w-56 bg-background border rounded-md shadow-lg z-50">
+                          <div className="py-1">
+                            {REJECTION_REASONS.filter(
+                              (r) => r.id !== "other",
+                            ).map((reason) => (
+                              <button
+                                key={reason.id}
+                                type="button"
+                                onClick={() => handleReject(reason.id)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                              >
+                                {reason.label}
+                              </button>
+                            ))}
+                            <div className="border-t">
+                              {showOtherInput ? (
+                                <div className="p-2">
+                                  <textarea
+                                    value={otherReasonText}
+                                    onChange={(e) =>
+                                      setOtherReasonText(e.target.value)
+                                    }
+                                    placeholder="반려 사유를 입력하세요..."
+                                    className="w-full text-sm border rounded p-2 resize-none"
+                                    rows={2}
+                                    onKeyDown={(e) => {
+                                      if (
+                                        e.key === "Enter" &&
+                                        !e.shiftKey &&
+                                        otherReasonText.trim()
+                                      ) {
+                                        e.preventDefault();
+                                        handleReject(otherReasonText.trim());
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      if (otherReasonText.trim()) {
+                                        handleReject(otherReasonText.trim());
+                                      }
+                                    }}
+                                    disabled={!otherReasonText.trim()}
+                                    className="mt-1 w-full"
+                                  >
+                                    전송
+                                  </Button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowOtherInput(true)}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                                >
+                                  기타...
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </Button>
-                {splitApply.isSuccess && (
-                  <p className="text-sm text-green-600 mt-2 flex items-center">
-                    <Check className="w-4 h-4 mr-1" />
-                    분할이 적용되었습니다
-                  </p>
-                )}
+
+                  {/* 적용 버튼 */}
+                  <Button
+                    onClick={handleApply}
+                    disabled={isBusy}
+                    className="flex-1"
+                  >
+                    {splitApply.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        적용 중...
+                      </>
+                    ) : (
+                      <>
+                        <Scissors className="w-4 h-4 mr-2" />
+                        분할 적용
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </Card>

@@ -3,8 +3,28 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
-import { buildSplitPrompt, SYSTEM_PROMPT } from "./prompts.js";
+import {
+  assertExternalAIEnabled,
+  sanitizeForExternalAI,
+  sanitizeListForExternalAI,
+} from "../privacy/index.js";
+import {
+  buildSplitPrompt,
+  buildSplitPromptFromTemplate,
+  SYSTEM_PROMPT,
+} from "./prompts.js";
 import { type SplitResponse, validateSplitResponse } from "./validator.js";
+
+export interface TokenUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+export interface SplitRequestMetadata {
+  tokenUsage?: TokenUsage;
+  modelName: string;
+}
 
 let genAI: GoogleGenAI | null = null;
 
@@ -31,18 +51,34 @@ export interface CardForSplit {
 
 /**
  * 단일 카드 분할 요청
+ * @param card - 분할할 카드 정보
+ * @param prompts - resolve된 프롬프트 (버전별 A/B 테스트용). 없으면 기본 프롬프트 사용.
  */
 export async function requestCardSplit(
   card: CardForSplit,
-): Promise<SplitResponse> {
+  prompts?: { systemPrompt: string; splitPromptTemplate: string },
+): Promise<SplitResponse & SplitRequestMetadata> {
+  assertExternalAIEnabled("split");
+
   const client = getClient();
-  const prompt = buildSplitPrompt(card.noteId, card.text);
+  const sanitizedText = sanitizeForExternalAI(card.text, "split");
+  const sanitizedTags = sanitizeListForExternalAI(card.tags, "split");
+
+  const systemPrompt = prompts?.systemPrompt ?? SYSTEM_PROMPT;
+  const userPrompt = prompts
+    ? buildSplitPromptFromTemplate(
+        prompts.splitPromptTemplate,
+        card.noteId,
+        sanitizedText,
+        sanitizedTags,
+      )
+    : buildSplitPrompt(card.noteId, sanitizedText);
 
   const response = await client.models.generateContent({
     model: MODEL_NAME,
-    contents: prompt,
+    contents: userPrompt,
     config: {
-      systemInstruction: SYSTEM_PROMPT,
+      systemInstruction: systemPrompt,
       responseMimeType: "application/json",
     },
   });
@@ -52,9 +88,20 @@ export async function requestCardSplit(
     throw new Error("Gemini 응답이 비어있습니다.");
   }
 
+  // usageMetadata에서 토큰 사용량 추출
+  const usage = response.usageMetadata;
+  const tokenUsage: TokenUsage | undefined = usage
+    ? {
+        promptTokens: usage.promptTokenCount,
+        completionTokens: usage.candidatesTokenCount,
+        totalTokens: usage.totalTokenCount,
+      }
+    : undefined;
+
   // JSON 파싱 및 검증
   const parsed = JSON.parse(text);
-  return validateSplitResponse(parsed);
+  const validated = validateSplitResponse(parsed);
+  return { ...validated, tokenUsage, modelName: MODEL_NAME };
 }
 
 /**
@@ -106,7 +153,10 @@ export async function analyzeCardForSplit(card: CardForSplit): Promise<{
   reason: string;
   suggestedSplitCount: number;
 }> {
+  assertExternalAIEnabled("split");
+
   const client = getClient();
+  const sanitizedText = sanitizeForExternalAI(card.text, "split");
 
   const analysisPrompt = `
 다음 Anki 카드가 분할이 필요한지 분석해주세요.
@@ -123,7 +173,7 @@ export async function analyzeCardForSplit(card: CardForSplit): Promise<{
 3. ::: toggle todo 블록 (미완성 상태)
 
 ## 카드 내용:
-${card.text}
+${sanitizedText}
 
 ## 응답 형식 (JSON):
 {

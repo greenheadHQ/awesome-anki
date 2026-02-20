@@ -33,6 +33,54 @@ import { Hono } from "hono";
 
 const prompts = new Hono();
 
+const HTML_ENTITY_MAP: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+function decodeCodePoint(codePoint: number): string {
+  if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+    return "";
+  }
+  return String.fromCodePoint(codePoint);
+}
+
+function stripHtmlAndDecodeEntities(content: string): string {
+  const withoutHtml = content.replace(/<[^>]*>/g, "");
+
+  return withoutHtml.replace(
+    /&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z]+);/g,
+    (_match, rawEntity: string) => {
+      const lowered = rawEntity.toLowerCase();
+
+      if (lowered.startsWith("#x")) {
+        return decodeCodePoint(Number.parseInt(lowered.slice(2), 16));
+      }
+
+      if (lowered.startsWith("#")) {
+        return decodeCodePoint(Number.parseInt(lowered.slice(1), 10));
+      }
+
+      return HTML_ENTITY_MAP[lowered] ?? `&${rawEntity};`;
+    },
+  );
+}
+
+function normalizeSplitCard(
+  card: SplitHistoryEntry["splitCards"][number],
+): SplitHistoryEntry["splitCards"][number] {
+  return {
+    ...card,
+    charCount:
+      card.charCount ?? stripHtmlAndDecodeEntities(card.content).length,
+    cardType: card.cardType ?? "cloze",
+  };
+}
+
 // ============================================================================
 // 버전 관리
 // ============================================================================
@@ -240,9 +288,13 @@ prompts.get("/history", async (c) => {
   // 페이지네이션
   const totalCount = history.length;
   const paginatedHistory = history.slice(offset, offset + limit);
+  const normalizedHistory = paginatedHistory.map((entry) => ({
+    ...entry,
+    splitCards: entry.splitCards.map((card) => normalizeSplitCard(card)),
+  }));
 
   return c.json({
-    history: paginatedHistory,
+    history: normalizedHistory,
     totalCount,
     limit,
     offset,
@@ -260,14 +312,16 @@ prompts.post("/history", async (c) => {
     noteId: number;
     deckName: string;
     originalContent: string;
+    originalTags?: string[];
     splitCards: Array<{
       title: string;
       content: string;
-      charCount: number;
-      cardType: "cloze" | "basic";
+      charCount?: number;
+      cardType?: "cloze" | "basic";
       contextTag?: string;
     }>;
     userAction: "approved" | "modified" | "rejected";
+    rejectionReason?: string;
     modificationDetails?: {
       lengthReduced: boolean;
       contextAdded: boolean;
@@ -282,6 +336,15 @@ prompts.post("/history", async (c) => {
       noEnumerations: boolean;
       allContextTagsPresent: boolean;
     } | null;
+    aiModel?: string;
+    splitType?: "hard" | "soft";
+    splitReason?: string;
+    executionTimeMs?: number;
+    tokenUsage?: {
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+    };
   }>();
 
   if (
@@ -301,10 +364,17 @@ prompts.post("/history", async (c) => {
     deckName: body.deckName || "",
     originalContent: body.originalContent,
     originalCharCount: body.originalContent.length,
-    splitCards: body.splitCards || [],
+    originalTags: body.originalTags,
+    splitCards: (body.splitCards || []).map((card) => normalizeSplitCard(card)),
     userAction: body.userAction,
+    rejectionReason: body.rejectionReason,
     modificationDetails: body.modificationDetails,
     qualityChecks: body.qualityChecks ?? null,
+    aiModel: body.aiModel,
+    splitType: body.splitType,
+    splitReason: body.splitReason,
+    executionTimeMs: body.executionTimeMs,
+    tokenUsage: body.tokenUsage,
     timestamp: new Date().toISOString(),
   });
 

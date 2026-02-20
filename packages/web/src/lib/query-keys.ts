@@ -12,8 +12,14 @@ export const queryKeys = {
   },
 
   split: {
-    preview: (noteId: number, useGemini?: boolean) =>
-      ["split", "preview", noteId, useGemini] as const,
+    preview: (noteId: number, useGemini?: boolean, versionId?: string) =>
+      [
+        "split",
+        "preview",
+        noteId,
+        useGemini,
+        useGemini ? versionId : undefined,
+      ] as const,
   },
 
   backups: {
@@ -32,4 +38,5 @@ export const queryKeys = {
   },
 
   health: ["health"] as const,
+  privacyStatus: ["privacy", "status"] as const,
 };

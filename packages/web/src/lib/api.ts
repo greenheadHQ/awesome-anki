@@ -1,9 +1,15 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
+  const { headers: optionHeaders, ...restOptions } = options ?? {};
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(optionHeaders || {}),
+  };
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
+    ...restOptions,
+    headers,
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: res.statusText }));
@@ -28,6 +34,7 @@ export interface CardSummary {
   modelName: string;
   analysis: {
     canHardSplit: boolean;
+    canSoftSplit?: boolean;
     clozeCount: number;
   };
   clozeStats: {
@@ -50,7 +57,7 @@ export interface CardDetail extends CardSummary {
   }>;
 }
 
-export interface SplitPreview {
+export interface SplitPreviewResult {
   noteId: number;
   splitType: "hard" | "soft" | "none";
   originalText?: string;
@@ -58,10 +65,31 @@ export interface SplitPreview {
     title: string;
     content: string;
     isMainCard: boolean;
+    cardType?: "cloze" | "basic";
+    charCount?: number;
   }>;
   mainCardIndex?: number;
   splitReason?: string;
   reason?: string;
+  executionTimeMs?: number;
+  aiModel?: string;
+  tokenUsage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+}
+
+/** @deprecated Use SplitPreviewResult instead */
+export type SplitPreview = SplitPreviewResult;
+
+export interface SplitApplyResult {
+  success: boolean;
+  backupId: string;
+  splitType?: "hard" | "soft";
+  mainNoteId: number;
+  newNoteIds: number[];
+  warning?: string;
 }
 
 export interface BackupEntry {
@@ -164,6 +192,25 @@ export interface EmbeddingGenerateResult {
   lastUpdated: string;
 }
 
+export type PrivacyMode = "standard" | "balanced" | "strict";
+// NOTE: Canonical privacy type definitions live in packages/core/src/privacy/index.ts.
+
+export interface FeaturePrivacyPolicy {
+  enabled: boolean;
+  maskSensitive: boolean;
+  maxChars: number;
+}
+
+export interface PrivacyStatus {
+  mode: PrivacyMode;
+  description: string;
+  featurePolicies: {
+    split: FeaturePrivacyPolicy;
+    validation: FeaturePrivacyPolicy;
+    embedding: FeaturePrivacyPolicy;
+  };
+}
+
 // Prompt Version types
 export interface PromptVersion {
   id: string;
@@ -210,6 +257,7 @@ export interface SplitHistoryEntry {
   deckName: string;
   originalContent: string;
   originalCharCount: number;
+  originalTags?: string[];
   splitCards: Array<{
     title: string;
     content: string;
@@ -217,6 +265,7 @@ export interface SplitHistoryEntry {
     cardType?: "cloze" | "basic";
   }>;
   userAction: "approved" | "modified" | "rejected";
+  rejectionReason?: string;
   modificationDetails?: {
     lengthReduced: boolean;
     contextAdded: boolean;
@@ -224,6 +273,15 @@ export interface SplitHistoryEntry {
     cardsMerged: boolean;
     cardsSplit: boolean;
     hintAdded: boolean;
+  };
+  aiModel?: string;
+  splitType?: "hard" | "soft";
+  splitReason?: string;
+  executionTimeMs?: number;
+  tokenUsage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
   };
   timestamp: string;
 }
@@ -323,23 +381,26 @@ export const api = {
   },
 
   split: {
-    preview: (noteId: number, useGemini = false) =>
-      fetchJson<SplitPreview>("/split/preview", {
+    preview: (noteId: number, useGemini = false, versionId?: string) =>
+      fetchJson<SplitPreviewResult>("/split/preview", {
         method: "POST",
-        body: JSON.stringify({ noteId, useGemini }),
+        body: JSON.stringify({ noteId, useGemini, versionId }),
       }),
     apply: (data: {
       noteId: number;
       deckName: string;
-      splitCards: Array<{ title: string; content: string }>;
+      splitCards: Array<{
+        title: string;
+        content: string;
+        inheritImages?: string[];
+        inheritTags?: string[];
+        preservedLinks?: string[];
+        backLinks?: string[];
+      }>;
       mainCardIndex: number;
+      splitType?: "hard" | "soft";
     }) =>
-      fetchJson<{
-        success: boolean;
-        backupId: string;
-        mainNoteId: number;
-        newNoteIds: number[];
-      }>("/split/apply", {
+      fetchJson<SplitApplyResult>("/split/apply", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -353,11 +414,18 @@ export const api = {
         success: boolean;
         restoredNoteId?: number;
         deletedNoteIds?: number[];
+        restoredFieldNames?: string[];
+        restoredTags?: string[];
+        warning?: string;
         error?: string;
       }>(`/backup/${backupId}/rollback`, { method: "POST" }),
   },
 
   health: () => fetchJson<{ status: string; timestamp: string }>("/health"),
+
+  privacy: {
+    status: () => fetchJson<PrivacyStatus>("/privacy/status"),
+  },
 
   validate: {
     factCheck: (noteId: number, thorough = false) =>
@@ -447,16 +515,19 @@ export const api = {
       ),
     history: (opts?: { page?: number; limit?: number; versionId?: string }) => {
       const params = new URLSearchParams();
-      if (opts?.page) params.set("page", String(opts.page));
-      if (opts?.limit) params.set("limit", String(opts.limit));
+      const effectiveLimit = opts?.limit ?? 100;
+      if (opts?.page && opts.page > 1) {
+        params.set("offset", String((opts.page - 1) * effectiveLimit));
+      }
+      params.set("limit", String(effectiveLimit));
       if (opts?.versionId) params.set("versionId", opts.versionId);
       const query = params.toString();
       return fetchJson<{
-        entries: SplitHistoryEntry[];
-        total: number;
-        page: number;
+        history: SplitHistoryEntry[];
+        totalCount: number;
+        offset: number;
         limit: number;
-        totalPages: number;
+        hasMore: boolean;
       }>(`/prompts/history${query ? `?${query}` : ""}`);
     },
     addHistory: (data: {
@@ -464,6 +535,7 @@ export const api = {
       noteId: number;
       deckName: string;
       originalContent: string;
+      originalTags?: string[];
       splitCards: Array<{
         title: string;
         content: string;
@@ -471,6 +543,7 @@ export const api = {
         cardType?: "cloze" | "basic";
       }>;
       userAction: "approved" | "modified" | "rejected";
+      rejectionReason?: string;
       modificationDetails?: {
         lengthReduced: boolean;
         contextAdded: boolean;
@@ -485,6 +558,15 @@ export const api = {
         noEnumerations: boolean;
         allContextTagsPresent: boolean;
       } | null;
+      aiModel?: string;
+      splitType?: "hard" | "soft";
+      splitReason?: string;
+      executionTimeMs?: number;
+      tokenUsage?: {
+        promptTokens?: number;
+        completionTokens?: number;
+        totalTokens?: number;
+      };
     }) =>
       fetchJson<SplitHistoryEntry>("/prompts/history", {
         method: "POST",

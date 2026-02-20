@@ -40,35 +40,64 @@ function ValidationIcon({
 
   if (status === null) {
     return (
-      <HelpCircle className={cn(sizeClass, "text-gray-300")} title="미검증" />
+      <span
+        className="inline-flex"
+        role="img"
+        aria-label="미검증"
+        title="미검증"
+      >
+        <HelpCircle className={cn(sizeClass, "text-gray-300")} aria-hidden="true" />
+      </span>
     );
   }
 
   switch (status) {
     case "valid":
       return (
-        <CheckCircle
-          className={cn(sizeClass, "text-green-500")}
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="검증 통과"
           title="검증 통과"
-        />
+        >
+          <CheckCircle className={cn(sizeClass, "text-green-500")} aria-hidden="true" />
+        </span>
       );
     case "warning":
       return (
-        <AlertTriangle
-          className={cn(sizeClass, "text-yellow-500")}
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="검토 필요"
           title="검토 필요"
-        />
+        >
+          <AlertTriangle
+            className={cn(sizeClass, "text-yellow-500")}
+            aria-hidden="true"
+          />
+        </span>
       );
     case "error":
       return (
-        <XCircle className={cn(sizeClass, "text-red-500")} title="문제 발견" />
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="문제 발견"
+          title="문제 발견"
+        >
+          <XCircle className={cn(sizeClass, "text-red-500")} aria-hidden="true" />
+        </span>
       );
     default:
       return (
-        <HelpCircle
-          className={cn(sizeClass, "text-gray-400")}
-          title="알 수 없음"
-        />
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="상태 불명"
+          title="상태 불명"
+        >
+          <HelpCircle className={cn(sizeClass, "text-gray-400")} aria-hidden="true" />
+        </span>
       );
   }
 }
@@ -96,32 +125,28 @@ export function CardBrowser() {
   const { getValidation, getValidationStatuses, cacheSize } =
     useValidationCache();
   const validateMutation = useValidateCard(selectedDeck);
+  const cards = useMemo(() => cardsData?.cards ?? [], [cardsData]);
 
   // 카드 목록에서 검증 상태 가져오기
   const validationStatuses = useMemo(() => {
-    if (!cardsData?.cards) return new Map<number, ValidationStatus | null>();
-    return getValidationStatuses(cardsData.cards.map((c) => c.noteId));
-  }, [cardsData?.cards, getValidationStatuses]);
+    return getValidationStatuses(cards.map((c) => c.noteId));
+  }, [cards, getValidationStatuses]);
 
   // 필터링된 카드 목록
   const filteredCards = useMemo(() => {
-    if (!cardsData?.cards) return [];
-
     if (filter === "unvalidated") {
-      return cardsData.cards.filter(
-        (card) => !validationStatuses.get(card.noteId),
-      );
+      return cards.filter((card) => !validationStatuses.get(card.noteId));
     }
 
     if (filter === "needs-review") {
-      return cardsData.cards.filter((card) => {
+      return cards.filter((card) => {
         const status = validationStatuses.get(card.noteId);
         return status === "warning" || status === "error";
       });
     }
 
-    return cardsData.cards;
-  }, [cardsData?.cards, filter, validationStatuses]);
+    return cards;
+  }, [cards, filter, validationStatuses]);
 
   // 현재 선택된 카드의 검증 결과
   const selectedCardValidation = selectedNoteId

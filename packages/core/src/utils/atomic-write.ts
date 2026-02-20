@@ -69,7 +69,7 @@ export async function withFileMutex<T>(
   const key = resolve(filePath);
   const existing = fileLocks.get(key) ?? Promise.resolve();
 
-  let release: () => void;
+  let release: (() => void) | undefined;
   const lock = new Promise<void>((r) => {
     release = r;
   });

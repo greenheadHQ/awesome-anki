@@ -99,6 +99,20 @@ export interface PromptVersion {
 }
 
 /**
+ * 분할 반려 사유
+ */
+export const REJECTION_REASONS = [
+  { id: "too-granular", label: "분할이 너무 세분화" },
+  { id: "context-missing", label: "맥락 태그 부적절" },
+  { id: "char-exceeded", label: "글자수 초과" },
+  { id: "cloze-inappropriate", label: "Cloze 위치/내용 부적절" },
+  { id: "quality-low", label: "전반적 품질 미달" },
+  { id: "other", label: "기타" },
+] as const;
+
+export type RejectionReasonId = (typeof REJECTION_REASONS)[number]["id"];
+
+/**
  * 분할 히스토리 항목
  */
 export interface SplitHistoryEntry {
@@ -111,18 +125,20 @@ export interface SplitHistoryEntry {
   // 입력
   originalContent: string; // 원본 카드 내용
   originalCharCount: number; // 원본 글자 수
+  originalTags?: string[]; // 원본 카드 태그
 
   // 출력
   splitCards: Array<{
     title: string;
     content: string;
-    cardType: "cloze" | "basic";
-    charCount: number;
+    cardType?: "cloze" | "basic";
+    charCount?: number;
     contextTag?: string;
   }>;
 
   // 사용자 액션
   userAction: "approved" | "modified" | "rejected";
+  rejectionReason?: string; // 반려 사유 (RejectionReasonId 또는 자유 텍스트)
   modificationDetails?: {
     lengthReduced: boolean;
     contextAdded: boolean;
@@ -130,6 +146,17 @@ export interface SplitHistoryEntry {
     cardsMerged: boolean;
     cardsSplit: boolean;
     hintAdded: boolean;
+  };
+
+  // AI 메타데이터
+  aiModel?: string; // "gemini-3-flash-preview"
+  splitType?: "hard" | "soft"; // 분할 방식
+  splitReason?: string; // Gemini가 제시한 분할 이유
+  executionTimeMs?: number; // Gemini API 호출 소요 시간
+  tokenUsage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
   };
 
   // 품질 체크

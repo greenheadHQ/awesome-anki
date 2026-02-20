@@ -1,0 +1,75 @@
+# Features
+
+## 1. 핵심 기능 개요
+
+| 영역 | 기능 | 설명 |
+|------|------|------|
+| Split | Hard Split | `####`, `---` 구조 기반 규칙 분할 |
+| Split | Soft Split | Gemini 기반 의미 분할 |
+| Split | Preview + Apply | 분할 미리보기 후 명시적 적용 |
+| Safety | Backup + Rollback | 분할 전 백업, 실패/수동 롤백 |
+| Validation | Fact/Freshness/Context/Similarity | 카드 신뢰도 검증 |
+| Prompt Ops | Prompt Version/History/Experiment | 프롬프트 버전 운영 및 실험 |
+| Embedding | 캐시 기반 임베딩 생성 | 유사도 성능 향상 |
+| Security | API 인증 | API Key 기반 접근 제어 |
+| Privacy | 모드별 외부 전송 정책 | `standard/balanced/strict` |
+
+## 2. Split 상세
+
+### Hard Split
+- 장점: 빠르고 예측 가능
+- 기준: 헤더/구분자 기반 분리
+- 적합: 구조가 명확한 카드
+
+### Soft Split
+- 장점: 비정형 카드 처리
+- 단점: 외부 API 비용/지연
+- 적합: 복합 개념이 섞인 카드
+
+### Apply 안전장치
+- 분할 적용 전 `preBackup`
+- 적용 실패 시 자동 롤백
+- 적용 성공 후 생성 노트 ID 백업 반영
+
+## 3. Validation 상세
+
+| 검증 | 목적 | 처리 방식 |
+|------|------|----------|
+| Fact Check | 사실 정확도 확인 | Gemini 결과를 정확도 점수로 변환 |
+| Freshness | 정보 최신성 확인 | outdated 항목과 심각도 분류 |
+| Similarity | 중복 탐지 | Jaccard 기본 + 임베딩 옵션 |
+| Context | 링크 카드 일관성 확인 | nid 링크 기반 관련 카드 비교 |
+
+## 4. 백업/롤백 상세
+
+- 백업 저장은 파일 단위 mutex로 직렬화된다.
+- 손상 파일은 자동 격리하고 서비스는 계속 동작한다.
+- 롤백은 원본 필드/태그를 복원하며, 생성된 노트를 삭제한다.
+- 롤백 응답에는 복원 필드/태그 개수 및 경고 메시지가 포함된다.
+
+## 5. 프라이버시/보안 기능
+
+### API 인증
+- 서버는 `/api/health` 외 요청에 API Key를 요구한다.
+- 웹은 브라우저 번들에 키를 넣지 않고, 개발 시 Vite 프록시가 `ANKI_SPLITTER_API_KEY`를 서버 사이드에서 헤더 주입한다.
+
+### 프라이버시 모드
+- `standard`: 외부 전송 허용, 기본 마스킹 없음
+- `balanced`: 외부 전송 허용, 민감정보 마스킹/길이 제한 적용
+- `strict`: 외부 전송 차단
+
+## 6. UI 주요 페이지
+
+| 페이지 | 경로 | 목적 |
+|--------|------|------|
+| Dashboard | `/` | 덱/통계/프라이버시 모드/빠른 작업 |
+| Split Workspace | `/split` | 후보 선택, 분할 미리보기, 적용 |
+| Card Browser | `/browse` | 카드 탐색 및 검증 |
+| Backup Manager | `/backups` | 백업 조회, 롤백 실행 |
+| Prompt Manager | `/prompts` | 프롬프트 버전/이력/실험 |
+
+## 7. 비기능 특성
+
+- 품질 게이트: `bun run check:quick`, `bun run check`
+- CI: GitHub Actions에서 동일 검증 수행
+- 로컬 파일 기반 저장: 경량 운영, 단일 사용자/로컬 환경 최적화

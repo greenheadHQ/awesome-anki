@@ -115,8 +115,9 @@ export function useValidationCache() {
   // 검증 결과 삭제
   const clearValidation = useCallback((noteId: number) => {
     updateGlobalCache((prev) => {
-      const { [noteId]: _, ...rest } = prev.entries;
-      return { ...prev, entries: rest };
+      const nextEntries = { ...prev.entries };
+      delete nextEntries[noteId];
+      return { ...prev, entries: nextEntries };
     });
   }, []);
 
