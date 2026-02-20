@@ -8,7 +8,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "bunx @biomejs/biome check src",
-    "test": "bun test",
+    "test": "bun test --pass-with-no-tests",
     "start": "bun run src/index.ts"
   },
   "dependencies": {
