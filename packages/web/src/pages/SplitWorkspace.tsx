@@ -82,12 +82,12 @@ interface SplitCandidate {
 }
 
 function useIsMobile() {
-  // Tailwind md: breakpoint (min-width: 768px)와 정확히 일치
+  // SplitWorkspace는 3열 그리드에 충분한 너비가 필요하므로 lg: (1024px) 사용
   const [isMobile, setIsMobile] = useState(
-    () => !window.matchMedia("(min-width: 768px)").matches,
+    () => !window.matchMedia("(min-width: 1024px)").matches,
   );
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
+    const mq = window.matchMedia("(min-width: 1024px)");
     const handler = (e: MediaQueryListEvent) => setIsMobile(!e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
@@ -988,20 +988,20 @@ export function SplitWorkspace() {
     { id: "preview", label: "미리보기" },
   ];
 
-  // 높이 계산: 모바일 h-14 헤더 + p-3 패딩 x2 = 5rem (dvh: iOS 주소창 대응), 데스크톱 p-6 패딩 x2 ≈ 4rem
+  // 높이: 모바일/태블릿 dvh-5rem (h-14 헤더 + p-3 x2), 데스크톱(lg) vh-4rem (p-6 x2)
   return (
-    <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100dvh-5rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-        <div className="flex items-center gap-2 md:gap-4">
-          <h1 className="text-xl md:text-2xl font-bold">분할 작업</h1>
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-4">
+        <div className="flex items-center gap-2 lg:gap-4">
+          <h1 className="text-xl lg:text-2xl font-bold">분할 작업</h1>
           <select
             value={activeDeck || ""}
             onChange={(e) => {
               setSelectedDeck(e.target.value || null);
               handleSelectCard(null);
             }}
-            className="px-3 py-1.5 border rounded-md bg-background text-base md:text-sm min-w-0 flex-1 md:flex-initial"
+            className="px-3 py-1.5 border rounded-md bg-background text-base md:text-sm min-w-0 flex-1 lg:flex-initial"
           >
             {decksData?.decks?.map((deck) => (
               <option key={deck} value={deck}>
@@ -1010,16 +1010,16 @@ export function SplitWorkspace() {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 lg:gap-4">
           {/* 프롬프트 버전 선택 */}
-          <div className="flex items-center gap-2 min-w-0 flex-1 md:flex-initial">
+          <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
             <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
             <HelpTooltip helpKey="promptVersionSelect" />
             <select
               value={activeVersionId || ""}
               onChange={(e) => setSelectedVersionId(e.target.value || null)}
               disabled={isLoadingVersions}
-              className="px-3 py-1.5 border rounded-md bg-background text-base md:text-sm min-w-0 md:min-w-[140px]"
+              className="px-3 py-1.5 border rounded-md bg-background text-base md:text-sm min-w-0 lg:min-w-[140px]"
             >
               {isLoadingVersions ? (
                 <option>로딩 중...</option>
@@ -1036,7 +1036,7 @@ export function SplitWorkspace() {
               )}
             </select>
           </div>
-          <span className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">
+          <span className="text-xs lg:text-sm text-muted-foreground whitespace-nowrap">
             {activeCount}개{" "}
             {mode === "candidates" ? "분할 후보" : "재분할 대상"}
           </span>
