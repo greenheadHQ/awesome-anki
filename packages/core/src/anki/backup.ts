@@ -20,9 +20,12 @@ import {
   updateNoteFields,
 } from "./client.js";
 
-const BACKUP_DIR =
-  process.env.ANKI_SPLITTER_BACKUP_DIR ||
-  join(process.cwd(), "output", "backups");
+function getBackupDir(): string {
+  return (
+    process.env.ANKI_SPLITTER_BACKUP_DIR ||
+    join(process.cwd(), "output", "backups")
+  );
+}
 
 export interface BackupEntry {
   id: string;
@@ -48,8 +51,9 @@ export interface BackupFile {
  * 백업 디렉토리 확인/생성
  */
 function ensureBackupDir(): void {
-  if (!existsSync(BACKUP_DIR)) {
-    mkdirSync(BACKUP_DIR, { recursive: true });
+  const backupDir = getBackupDir();
+  if (!existsSync(backupDir)) {
+    mkdirSync(backupDir, { recursive: true });
   }
 }
 
@@ -57,18 +61,20 @@ function ensureBackupDir(): void {
  * 백업 파일 경로 생성
  */
 function getBackupFilePath(): string {
+  const backupDir = getBackupDir();
   const date = new Date().toISOString().split("T")[0];
-  return join(BACKUP_DIR, `backup-${date}.json`);
+  return join(backupDir, `backup-${date}.json`);
 }
 
 /**
  * 백업 파일 목록 조회 (절대 경로)
  */
 function listBackupFiles(): string[] {
+  const backupDir = getBackupDir();
   ensureBackupDir();
-  return readdirSync(BACKUP_DIR)
+  return readdirSync(backupDir)
     .filter((file) => file.startsWith("backup-") && file.endsWith(".json"))
-    .map((file) => join(BACKUP_DIR, file));
+    .map((file) => join(backupDir, file));
 }
 
 function isBackupFile(data: unknown): data is BackupFile {

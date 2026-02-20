@@ -33,6 +33,42 @@ import { Hono } from "hono";
 
 const prompts = new Hono();
 
+const HTML_ENTITY_MAP: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+  "#39": "'",
+};
+
+function stripHtmlAndDecodeEntities(content: string): string {
+  const decodeCodePoint = (value: number, fallback: string): string => {
+    if (!Number.isFinite(value) || value < 0 || value > 0x10ffff) {
+      return fallback;
+    }
+    return String.fromCodePoint(value);
+  };
+
+  const withoutTags = content.replace(/<[^>]*>/g, "");
+  return withoutTags.replace(
+    /&(#x?[0-9A-Fa-f]+|[A-Za-z]+);/g,
+    (match, entity: string) => {
+      const lowered = entity.toLowerCase();
+      if (lowered.startsWith("#x")) {
+        const codePoint = Number.parseInt(lowered.slice(2), 16);
+        return decodeCodePoint(codePoint, match);
+      }
+      if (lowered.startsWith("#")) {
+        const codePoint = Number.parseInt(lowered.slice(1), 10);
+        return decodeCodePoint(codePoint, match);
+      }
+      return HTML_ENTITY_MAP[lowered] ?? match;
+    },
+  );
+}
+
 // ============================================================================
 // 버전 관리
 // ============================================================================
@@ -315,7 +351,7 @@ prompts.post("/history", async (c) => {
     originalTags: body.originalTags,
     splitCards: (body.splitCards || []).map((c) => ({
       ...c,
-      charCount: c.charCount ?? c.content.length,
+      charCount: c.charCount ?? stripHtmlAndDecodeEntities(c.content).length,
       cardType: c.cardType ?? "cloze",
     })),
     userAction: body.userAction,

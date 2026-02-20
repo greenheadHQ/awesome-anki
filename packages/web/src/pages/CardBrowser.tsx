@@ -39,18 +39,66 @@ function ValidationIcon({
   const sizeClass = size === "sm" ? "w-4 h-4" : "w-5 h-5";
 
   if (status === null) {
-    return <HelpCircle className={cn(sizeClass, "text-gray-300")} />;
+    return (
+      <span
+        className="inline-flex"
+        role="img"
+        aria-label="미검증"
+        title="미검증"
+      >
+        <HelpCircle className={cn(sizeClass, "text-gray-300")} aria-hidden="true" />
+      </span>
+    );
   }
 
   switch (status) {
     case "valid":
-      return <CheckCircle className={cn(sizeClass, "text-green-500")} />;
+      return (
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="검증 통과"
+          title="검증 통과"
+        >
+          <CheckCircle className={cn(sizeClass, "text-green-500")} aria-hidden="true" />
+        </span>
+      );
     case "warning":
-      return <AlertTriangle className={cn(sizeClass, "text-yellow-500")} />;
+      return (
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="검토 필요"
+          title="검토 필요"
+        >
+          <AlertTriangle
+            className={cn(sizeClass, "text-yellow-500")}
+            aria-hidden="true"
+          />
+        </span>
+      );
     case "error":
-      return <XCircle className={cn(sizeClass, "text-red-500")} />;
+      return (
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="문제 발견"
+          title="문제 발견"
+        >
+          <XCircle className={cn(sizeClass, "text-red-500")} aria-hidden="true" />
+        </span>
+      );
     default:
-      return <HelpCircle className={cn(sizeClass, "text-gray-400")} />;
+      return (
+        <span
+          className="inline-flex"
+          role="img"
+          aria-label="상태 불명"
+          title="상태 불명"
+        >
+          <HelpCircle className={cn(sizeClass, "text-gray-400")} aria-hidden="true" />
+        </span>
+      );
   }
 }
 
@@ -77,7 +125,7 @@ export function CardBrowser() {
   const { getValidation, getValidationStatuses, cacheSize } =
     useValidationCache();
   const validateMutation = useValidateCard(selectedDeck);
-  const cards = useMemo(() => cardsData?.cards ?? [], [cardsData?.cards]);
+  const cards = useMemo(() => cardsData?.cards ?? [], [cardsData]);
 
   // 카드 목록에서 검증 상태 가져오기
   const validationStatuses = useMemo(() => {

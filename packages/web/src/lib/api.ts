@@ -386,7 +386,14 @@ export const api = {
     apply: (data: {
       noteId: number;
       deckName: string;
-      splitCards: Array<{ title: string; content: string }>;
+      splitCards: Array<{
+        title: string;
+        content: string;
+        inheritImages?: string[];
+        inheritTags?: string[];
+        preservedLinks?: string[];
+        backLinks?: string[];
+      }>;
       mainCardIndex: number;
       splitType?: "hard" | "soft";
     }) =>

@@ -32,6 +32,10 @@ export interface NoteInfo {
   cards: number[];
 }
 
+/**
+ * 모델별 필드 확장을 허용하는 유연한 맵.
+ * 호출자는 카드 모델의 필수 필드(일반적으로 `Text`, 필요 시 `Back Extra`)를 포함해야 한다.
+ */
 export interface NoteFields {
   [fieldName: string]: string;
 }

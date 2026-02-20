@@ -65,7 +65,8 @@ app.post("/preview", async (c) => {
     return c.json({
       noteId,
       splitType: "none",
-      reason: "Hard split not applicable. Enable useGemini for soft split.",
+      reason:
+        "하드 분할을 적용할 수 없습니다. 소프트 분할을 사용하려면 useGemini를 활성화하세요.",
     });
   }
 
@@ -75,12 +76,19 @@ app.post("/preview", async (c) => {
     | undefined;
   if (versionId) {
     const version = await getPromptVersion(versionId);
-    if (version) {
-      prompts = {
-        systemPrompt: version.systemPrompt,
-        splitPromptTemplate: version.splitPromptTemplate,
-      };
+    if (!version) {
+      return c.json(
+        {
+          error: `프롬프트 버전 '${versionId}'을 찾을 수 없습니다.`,
+          requestedVersionId: versionId,
+        },
+        404,
+      );
     }
+    prompts = {
+      systemPrompt: version.systemPrompt,
+      splitPromptTemplate: version.splitPromptTemplate,
+    };
   }
 
   const startTime = Date.now();
@@ -107,7 +115,9 @@ app.post("/preview", async (c) => {
   return c.json({
     noteId,
     splitType: "none",
-    reason: geminiResult.splitReason || "Gemini determined split is not needed",
+    reason:
+      geminiResult.splitReason ||
+      "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
     executionTimeMs,
     tokenUsage: geminiResult.tokenUsage,
   });

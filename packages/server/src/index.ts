@@ -48,9 +48,8 @@ app.use("/api/*", async (c, next) => {
 
   const headerApiKey = c.req.header("x-api-key");
   const authHeader = c.req.header("authorization");
-  const bearerToken = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : null;
+  const bearerMatch = authHeader?.match(/^bearer\s+(.+)$/i);
+  const bearerToken = bearerMatch?.[1] ?? null;
   const providedKey = headerApiKey || bearerToken;
 
   if (providedKey !== API_KEY) {

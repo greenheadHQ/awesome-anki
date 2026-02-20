@@ -205,12 +205,19 @@ export function SplitWorkspace() {
   const getCardStatus = (noteId: number): CardAnalysisStatus => {
     if (pendingAnalyses.has(noteId)) return "pending";
     if (errorAnalyses.has(noteId)) return "error";
-    const cached = getCachedSplitPreview(
+    const cachedSoft = getCachedSplitPreview(
       queryClient,
       noteId,
       true,
       activeVersionId || undefined,
     );
+    const cachedHard = getCachedSplitPreview(
+      queryClient,
+      noteId,
+      false,
+      activeVersionId || undefined,
+    );
+    const cached = cachedSoft || cachedHard;
     if (cached) return "cached";
     return "none";
   };
@@ -390,13 +397,12 @@ export function SplitWorkspace() {
   };
 
   const handleReject = (rejectionReason: string) => {
-    if (
-      !selectedCard ||
-      !activeDeck ||
-      !previewData?.splitCards ||
-      !activeVersionId
-    )
+    if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
+
+    if (!activeVersionId) {
+      toast.warning("반려를 기록하려면 프롬프트 버전이 필요합니다.");
       return;
+    }
 
     addHistory.mutate(
       {
@@ -461,6 +467,12 @@ export function SplitWorkspace() {
     mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
 
   const isBusy = addHistory.isPending || splitApply.isPending;
+  const canReject =
+    !!selectedCard &&
+    !!activeDeck &&
+    !!previewData?.splitCards &&
+    !!activeVersionId &&
+    !isBusy;
 
   // 카드 리스트 아이템 렌더러
   const renderCardListItem = (card: SplitCandidate) => {
@@ -482,7 +494,8 @@ export function SplitWorkspace() {
               <CardStatusIcon status={status} />
             </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5">
-              {card.text.slice(0, 60)}...
+              {card.text.slice(0, 60)}
+              {card.text.length > 60 ? "..." : ""}
             </p>
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1">
@@ -523,7 +536,8 @@ export function SplitWorkspace() {
               <CardStatusIcon status={status} />
             </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5">
-              {card.text.slice(0, 60)}...
+              {card.text.slice(0, 60)}
+              {card.text.length > 60 ? "..." : ""}
             </p>
             <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
               <span>lapses: {card.difficulty?.lapses}</span>
@@ -930,7 +944,7 @@ export function SplitWorkspace() {
                         onClick={() =>
                           setRejectDropdownOpen(!rejectDropdownOpen)
                         }
-                        disabled={isBusy}
+                        disabled={!canReject}
                         variant="outline"
                         className="border-red-200 text-red-600 hover:bg-red-50"
                       >

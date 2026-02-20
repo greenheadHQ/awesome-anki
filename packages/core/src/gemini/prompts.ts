@@ -253,15 +253,17 @@ export function buildSplitPromptFromTemplate(
   tags?: string[],
 ): string {
   const tagsStr = tags?.join(", ") ?? "";
-  const replaced = template
-    // {{var}} 문법 (신규 권장)
-    .replace(/\{\{noteId\}\}/g, String(noteId))
-    .replace(/\{\{text\}\}/g, text)
-    .replace(/\{\{tags\}\}/g, tagsStr)
-    // ${var} 문법 (기존 저장된 템플릿 호환)
-    .replace(/\$\{noteId\}/g, String(noteId))
-    .replace(/\$\{cardText\}/g, text)
-    .replace(/\$\{tags\}/g, tagsStr);
+  const replacements: Record<string, string> = {
+    noteId: String(noteId),
+    text,
+    cardText: text,
+    tags: tagsStr,
+  };
+  const replaced = template.replace(
+    /\{\{(noteId|text|tags)\}\}|\$\{(noteId|cardText|tags)\}/g,
+    (_match, moustacheKey: string | undefined, dollarKey: string | undefined) =>
+      replacements[moustacheKey ?? dollarKey ?? ""] ?? _match,
+  );
 
   // JSON 응답 형식이 템플릿에 없으면 기본 형식 추가
   if (!replaced.includes("응답 형식") && !replaced.includes("JSON")) {

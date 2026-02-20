@@ -100,8 +100,39 @@ export function getPrivacyStatus(): PrivacyStatus {
   };
 }
 
+function isLuhnValid(digits: string): boolean {
+  if (digits.length < 13 || digits.length > 19) return false;
+
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let i = digits.length - 1; i >= 0; i--) {
+    const char = digits[i];
+    const digit = Number.parseInt(char, 10);
+    if (!Number.isFinite(digit)) return false;
+
+    let value = digit;
+    if (shouldDouble) {
+      value *= 2;
+      if (value > 9) value -= 9;
+    }
+
+    sum += value;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+}
+
+function maskCardLikeNumbers(text: string): string {
+  return text.replace(/\b(?:\d[ -]?){12,18}\d\b/g, (match) => {
+    const digitsOnly = match.replace(/[^\d]/g, "");
+    return isLuhnValid(digitsOnly) ? "[REDACTED_ID]" : match;
+  });
+}
+
 function maskSensitiveData(text: string): string {
-  return text
+  const masked = text
     .replace(
       /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
       "[REDACTED_EMAIL]",
@@ -111,7 +142,9 @@ function maskSensitiveData(text: string): string {
       "[REDACTED_PHONE]",
     )
     .replace(/https?:\/\/[^\s)]+/g, "[REDACTED_URL]")
-    .replace(/\b\d{13,}\b/g, "[REDACTED_ID]");
+    .replace(/\b\d{6}-\d{7}\b/g, "[REDACTED_ID]");
+
+  return maskCardLikeNumbers(masked);
 }
 
 export function sanitizeForExternalAI(
