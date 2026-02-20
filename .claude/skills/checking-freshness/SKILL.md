@@ -1,9 +1,9 @@
 ---
 name: checking-freshness
 description: |
-  This skill should be used when the user asks about "문서 오래됐어",
-  "스킬 최신화", "git log 수정일", "코드 문서 동기화",
-  "스킬 업데이트 필요해", "references 최신화".
+  This skill should be used when users request documentation freshness checks.
+  Triggers: "문서 오래됐어", "스킬 최신화", "git log 수정일",
+  "코드 문서 동기화", "스킬 업데이트 필요해", "references 최신화".
   Covers documentation freshness checking using git diff mechanism.
 ---
 
@@ -58,3 +58,4 @@ pre-commit hook (`.claude/scripts/check-docs-freshness.sh`)이 staged 파일 중
 ## 상세 참조
 
 - `references/git-diff-mechanism.md` — git log 기반 수정일 추출 상세
+- `references/troubleshooting.md` — 최신성 점검 시 자주 발생하는 오류 해결
