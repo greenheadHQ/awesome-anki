@@ -11,3 +11,9 @@ dist/
 output/backups/
 output/embeddings/
 !output/prompts/
+
+# Codex harness projection artifacts
+.agents/
+.codex/
+AGENTS.md
+AGENTS.override.md
