@@ -24,7 +24,7 @@ export function Layout() {
           <span className="ml-2 text-lg font-bold">Anki Splitter</span>
         </header>
 
-        <div className="container mx-auto pt-14 p-3 md:pt-6 md:p-6">
+        <div className="container mx-auto pt-14 p-3 md:pt-5 md:px-6 md:pb-6">
           <Outlet />
         </div>
       </main>

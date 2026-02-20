@@ -96,7 +96,7 @@ export function PromptManager() {
       </div>
 
       {/* 탭 네비게이션 */}
-      <div className="flex border-b mb-4 overflow-x-auto whitespace-nowrap">
+      <div className="flex overflow-x-auto whitespace-nowrap mb-4">
         {tabs.map((tab) => (
           <button
             type="button"
@@ -106,7 +106,7 @@ export function PromptManager() {
               "flex items-center gap-2 px-4 py-2 border-b-2 transition-colors shrink-0",
               activeTab === tab.id
                 ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
             <tab.icon className="w-4 h-4" />

@@ -27,7 +27,7 @@ const navItems = [
 
 function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full w-full flex-col">
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b px-6">
         <h1 className="text-xl font-bold">Anki Splitter</h1>
