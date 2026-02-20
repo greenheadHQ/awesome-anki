@@ -43,7 +43,7 @@ function RollbackConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <Card className="w-full max-w-md mx-4">
+      <Card className="w-full max-w-md mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-orange-600">
             <AlertTriangle className="h-5 w-5" />
@@ -132,7 +132,7 @@ function RollbackResultDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <Card className="w-full max-w-md mx-4">
+      <Card className="w-full max-w-md mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <CardHeader>
           <CardTitle
             className={cn(
@@ -333,7 +333,7 @@ export function BackupManager() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <History className="h-8 w-8" />

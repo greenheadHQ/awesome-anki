@@ -89,6 +89,11 @@ export function OnboardingTour({ run, onComplete }: OnboardingTourProps) {
   const isRunning = run !== undefined ? run : internalState.shouldRun;
   const handleComplete = onComplete || internalState.completeOnboarding;
 
+  // 모바일에서는 사이드바 nav target이 없어 Joyride 비활성화
+  const isDesktop =
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 768px)").matches;
+
   const handleCallback = (data: CallBackProps) => {
     const { status } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
@@ -101,7 +106,7 @@ export function OnboardingTour({ run, onComplete }: OnboardingTourProps) {
   return (
     <Joyride
       steps={steps}
-      run={isRunning}
+      run={isRunning && isDesktop}
       continuous
       showSkipButton
       showProgress
