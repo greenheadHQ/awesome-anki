@@ -165,7 +165,7 @@ app.post("/apply", async (c) => {
     const applied = await applySplitResult(deckName, splitResult, []);
 
     // Critical Step 3: 백업 업데이트
-    updateBackupWithCreatedNotes(backupId, applied.newNoteIds);
+    await updateBackupWithCreatedNotes(backupId, applied.newNoteIds);
 
     // Non-critical: 학습 데이터 복제 (실패해도 롤백하지 않음)
     let schedulingWarning: string | undefined;

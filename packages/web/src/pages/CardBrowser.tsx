@@ -39,37 +39,18 @@ function ValidationIcon({
   const sizeClass = size === "sm" ? "w-4 h-4" : "w-5 h-5";
 
   if (status === null) {
-    return (
-      <HelpCircle className={cn(sizeClass, "text-gray-300")} title="미검증" />
-    );
+    return <HelpCircle className={cn(sizeClass, "text-gray-300")} />;
   }
 
   switch (status) {
     case "valid":
-      return (
-        <CheckCircle
-          className={cn(sizeClass, "text-green-500")}
-          title="검증 통과"
-        />
-      );
+      return <CheckCircle className={cn(sizeClass, "text-green-500")} />;
     case "warning":
-      return (
-        <AlertTriangle
-          className={cn(sizeClass, "text-yellow-500")}
-          title="검토 필요"
-        />
-      );
+      return <AlertTriangle className={cn(sizeClass, "text-yellow-500")} />;
     case "error":
-      return (
-        <XCircle className={cn(sizeClass, "text-red-500")} title="문제 발견" />
-      );
+      return <XCircle className={cn(sizeClass, "text-red-500")} />;
     default:
-      return (
-        <HelpCircle
-          className={cn(sizeClass, "text-gray-400")}
-          title="알 수 없음"
-        />
-      );
+      return <HelpCircle className={cn(sizeClass, "text-gray-400")} />;
   }
 }
 
@@ -96,32 +77,28 @@ export function CardBrowser() {
   const { getValidation, getValidationStatuses, cacheSize } =
     useValidationCache();
   const validateMutation = useValidateCard(selectedDeck);
+  const cards = useMemo(() => cardsData?.cards ?? [], [cardsData?.cards]);
 
   // 카드 목록에서 검증 상태 가져오기
   const validationStatuses = useMemo(() => {
-    if (!cardsData?.cards) return new Map<number, ValidationStatus | null>();
-    return getValidationStatuses(cardsData.cards.map((c) => c.noteId));
-  }, [cardsData?.cards, getValidationStatuses]);
+    return getValidationStatuses(cards.map((c) => c.noteId));
+  }, [cards, getValidationStatuses]);
 
   // 필터링된 카드 목록
   const filteredCards = useMemo(() => {
-    if (!cardsData?.cards) return [];
-
     if (filter === "unvalidated") {
-      return cardsData.cards.filter(
-        (card) => !validationStatuses.get(card.noteId),
-      );
+      return cards.filter((card) => !validationStatuses.get(card.noteId));
     }
 
     if (filter === "needs-review") {
-      return cardsData.cards.filter((card) => {
+      return cards.filter((card) => {
         const status = validationStatuses.get(card.noteId);
         return status === "warning" || status === "error";
       });
     }
 
-    return cardsData.cards;
-  }, [cardsData?.cards, filter, validationStatuses]);
+    return cards;
+  }, [cards, filter, validationStatuses]);
 
   // 현재 선택된 카드의 검증 결과
   const selectedCardValidation = selectedNoteId

@@ -33,8 +33,7 @@ export interface NoteInfo {
 }
 
 export interface NoteFields {
-  Text: string;
-  "Back Extra"?: string;
+  [fieldName: string]: string;
 }
 
 /**
@@ -196,6 +195,13 @@ export async function addNotes(
  */
 export async function addTags(notes: number[], tags: string): Promise<null> {
   return ankiConnect<null>("addTags", { notes, tags });
+}
+
+/**
+ * 노트 태그 제거
+ */
+export async function removeTags(notes: number[], tags: string): Promise<null> {
+  return ankiConnect<null>("removeTags", { notes, tags });
 }
 
 /**

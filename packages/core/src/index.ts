@@ -106,6 +106,17 @@ export {
 } from "./gemini/validator.js";
 // Parser exports
 export * from "./parser/index.js";
+// Privacy exports
+export {
+  assertExternalAIEnabled,
+  type FeaturePrivacyPolicy,
+  getPrivacyStatus,
+  type PrivacyFeature,
+  type PrivacyMode,
+  type PrivacyStatus,
+  sanitizeForExternalAI,
+  sanitizeListForExternalAI,
+} from "./privacy/index.js";
 export {
   // History
   addHistoryEntry,

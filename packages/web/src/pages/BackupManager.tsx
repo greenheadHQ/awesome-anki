@@ -115,12 +115,18 @@ function RollbackResultDialog({
   success,
   restoredNoteId,
   deletedNoteIds,
+  restoredFieldNames,
+  restoredTags,
+  warning,
   error,
   onClose,
 }: {
   success: boolean;
   restoredNoteId?: number;
   deletedNoteIds?: number[];
+  restoredFieldNames?: string[];
+  restoredTags?: string[];
+  warning?: string;
   error?: string;
   onClose: () => void;
 }) {
@@ -162,7 +168,22 @@ function RollbackResultDialog({
                   <span className="text-muted-foreground">삭제된 카드:</span>{" "}
                   {deletedNoteIds?.length || 0}개
                 </div>
+                <div>
+                  <span className="text-muted-foreground">복원 필드:</span>{" "}
+                  {restoredFieldNames?.length || 0}개
+                </div>
+                <div>
+                  <span className="text-muted-foreground">복원 태그:</span>{" "}
+                  {restoredTags?.length || 0}개
+                </div>
               </div>
+              {warning && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    {warning}
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 p-3">
@@ -285,6 +306,9 @@ export function BackupManager() {
     success: boolean;
     restoredNoteId?: number;
     deletedNoteIds?: number[];
+    restoredFieldNames?: string[];
+    restoredTags?: string[];
+    warning?: string;
     error?: string;
   } | null>(null);
 

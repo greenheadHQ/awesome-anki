@@ -39,7 +39,11 @@ import {
   useSplitApply,
   useSplitPreview,
 } from "../hooks/useSplit";
-import type { DifficultCard, SplitPreviewResult } from "../lib/api";
+import type {
+  CardSummary,
+  DifficultCard,
+  SplitPreviewResult,
+} from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { cn } from "../lib/utils";
 
@@ -93,6 +97,20 @@ function mapDifficultToCandidate(card: DifficultCard): SplitCandidate {
   };
 }
 
+function mapCardSummaryToCandidate(card: CardSummary): SplitCandidate {
+  return {
+    noteId: card.noteId,
+    text: card.text,
+    analysis: {
+      canHardSplit: card.analysis.canHardSplit,
+      canSoftSplit:
+        card.analysis.canSoftSplit ??
+        (!card.analysis.canHardSplit && card.analysis.clozeCount > 3),
+      clozeCount: card.analysis.clozeCount,
+    },
+  };
+}
+
 function CardStatusIcon({ status }: { status: CardAnalysisStatus }) {
   switch (status) {
     case "pending":
@@ -132,20 +150,23 @@ export function SplitWorkspace() {
 
   const queryClient = useQueryClient();
   const { data: decksData } = useDecks();
-  const { data: cardsData, isLoading: isLoadingCards } = useCards(
-    selectedDeck,
-    {
-      limit: 500,
-      filter: "all",
-    },
-  );
+  const activeDeck = selectedDeck ?? decksData?.decks?.[0] ?? null;
+  const { data: cardsData, isLoading: isLoadingCards } = useCards(activeDeck, {
+    limit: 500,
+    filter: "all",
+  });
 
   const { data: difficultData, isLoading: isLoadingDifficult } =
-    useDifficultCards(selectedDeck, { limit: 200 });
+    useDifficultCards(activeDeck, { limit: 200 });
 
   // 프롬프트 버전 관련
   const { data: promptVersionsData, isLoading: isLoadingVersions } =
     usePromptVersions();
+  const activeVersionId =
+    selectedVersionId ??
+    promptVersionsData?.activeVersionId ??
+    promptVersionsData?.versions?.[0]?.id ??
+    null;
   const addHistory = useAddPromptHistory();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
@@ -162,7 +183,7 @@ export function SplitWorkspace() {
         queryClient,
         selectedCard.noteId,
         splitType === "soft",
-        selectedVersionId || undefined,
+        activeVersionId || undefined,
       )
     : undefined;
 
@@ -188,27 +209,11 @@ export function SplitWorkspace() {
       queryClient,
       noteId,
       true,
-      selectedVersionId || undefined,
+      activeVersionId || undefined,
     );
     if (cached) return "cached";
     return "none";
   };
-
-  // 덱 선택 시 첫 번째 덱 자동 선택
-  useEffect(() => {
-    if (decksData?.decks && decksData.decks.length > 0 && !selectedDeck) {
-      setSelectedDeck(decksData.decks[0]);
-    }
-  }, [decksData, selectedDeck]);
-
-  // 활성 버전 자동 선택
-  useEffect(() => {
-    if (promptVersionsData?.activeVersionId && !selectedVersionId) {
-      setSelectedVersionId(promptVersionsData.activeVersionId);
-    } else if (promptVersionsData?.versions?.length && !selectedVersionId) {
-      setSelectedVersionId(promptVersionsData.versions[0].id);
-    }
-  }, [promptVersionsData, selectedVersionId]);
 
   // 드롭다운 외부 클릭 감지
   useEffect(() => {
@@ -241,7 +246,7 @@ export function SplitWorkspace() {
         queryClient,
         card.noteId,
         type === "soft",
-        selectedVersionId || undefined,
+        activeVersionId || undefined,
       );
 
       if (!cached && card.analysis.canHardSplit) {
@@ -281,7 +286,7 @@ export function SplitWorkspace() {
       {
         noteId,
         useGemini: true,
-        versionId: selectedVersionId || undefined,
+        versionId: activeVersionId || undefined,
       },
       {
         onSuccess: () => {
@@ -316,22 +321,21 @@ export function SplitWorkspace() {
     );
   };
 
-  const candidates = (cardsData?.cards || []).filter(
-    (c: { analysis?: { canHardSplit?: boolean; canSoftSplit?: boolean } }) =>
-      c.analysis?.canHardSplit || c.analysis?.canSoftSplit,
-  ) as SplitCandidate[];
+  const candidates = (cardsData?.cards || [])
+    .map(mapCardSummaryToCandidate)
+    .filter((card) => card.analysis.canHardSplit || card.analysis.canSoftSplit);
 
   const difficultCards = (difficultData?.cards || []).map(
     mapDifficultToCandidate,
   );
 
   const handleApply = () => {
-    if (!selectedCard || !selectedDeck || !previewData?.splitCards) return;
+    if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
 
     splitApply.mutate(
       {
         noteId: selectedCard.noteId,
-        deckName: selectedDeck,
+        deckName: activeDeck,
         splitCards: previewData.splitCards.map((c) => ({
           title: c.title,
           content: c.content,
@@ -342,12 +346,12 @@ export function SplitWorkspace() {
       {
         onSuccess: () => {
           // 히스토리 자동 기록 (확장 필드 포함)
-          if (selectedVersionId && previewData?.splitCards) {
+          if (activeVersionId && previewData?.splitCards) {
             addHistory.mutate(
               {
-                promptVersionId: selectedVersionId,
+                promptVersionId: activeVersionId,
                 noteId: selectedCard.noteId,
-                deckName: selectedDeck,
+                deckName: activeDeck,
                 originalContent: cardDetail?.text || selectedCard.text,
                 originalTags: cardDetail?.tags ?? [],
                 splitCards: previewData.splitCards.map((c) => ({
@@ -388,17 +392,17 @@ export function SplitWorkspace() {
   const handleReject = (rejectionReason: string) => {
     if (
       !selectedCard ||
-      !selectedDeck ||
+      !activeDeck ||
       !previewData?.splitCards ||
-      !selectedVersionId
+      !activeVersionId
     )
       return;
 
     addHistory.mutate(
       {
-        promptVersionId: selectedVersionId,
+        promptVersionId: activeVersionId,
         noteId: selectedCard.noteId,
-        deckName: selectedDeck,
+        deckName: activeDeck,
         originalContent: cardDetail?.text || selectedCard.text,
         originalTags: cardDetail?.tags ?? [],
         splitCards: previewData.splitCards.map((c) => ({
@@ -423,7 +427,7 @@ export function SplitWorkspace() {
             queryKey: queryKeys.split.preview(
               selectedCard.noteId,
               true,
-              selectedVersionId,
+              activeVersionId,
             ),
           });
           splitPreview.reset();
@@ -558,9 +562,9 @@ export function SplitWorkspace() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">분할 작업</h1>
           <select
-            value={selectedDeck || ""}
+            value={activeDeck || ""}
             onChange={(e) => {
-              setSelectedDeck(e.target.value);
+              setSelectedDeck(e.target.value || null);
               handleSelectCard(null);
             }}
             className="px-3 py-1.5 border rounded-md bg-background text-sm"
@@ -578,8 +582,8 @@ export function SplitWorkspace() {
             <FileText className="w-4 h-4 text-muted-foreground" />
             <HelpTooltip helpKey="promptVersionSelect" />
             <select
-              value={selectedVersionId || ""}
-              onChange={(e) => setSelectedVersionId(e.target.value)}
+              value={activeVersionId || ""}
+              onChange={(e) => setSelectedVersionId(e.target.value || null)}
               disabled={isLoadingVersions}
               className="px-3 py-1.5 border rounded-md bg-background text-sm min-w-[140px]"
             >
@@ -749,10 +753,10 @@ export function SplitWorkspace() {
                       defaultView="rendered"
                     />
                     {/* 검증 패널 */}
-                    {showValidation && selectedDeck && (
+                    {showValidation && activeDeck && (
                       <ValidationPanel
                         noteId={selectedCard.noteId}
-                        deckName={selectedDeck}
+                        deckName={activeDeck}
                       />
                     )}
                   </div>
@@ -855,7 +859,7 @@ export function SplitWorkspace() {
                   {cachedPreview && (
                     <span className="text-xs text-muted-foreground bg-green-50 px-2 py-1 rounded">
                       {"\u2713"} 캐시된 결과
-                      {selectedVersionId && ` (${selectedVersionId})`}
+                      {activeVersionId && ` (${activeVersionId})`}
                     </span>
                   )}
                   {/* 분할 요약 */}

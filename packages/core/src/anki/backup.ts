@@ -2,17 +2,27 @@
  * 백업 및 롤백 관리
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { atomicWriteFileSync } from "../utils/atomic-write.js";
 import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+} from "node:fs";
+import { join } from "node:path";
+import { atomicWriteFileSync, withFileMutex } from "../utils/atomic-write.js";
+import {
+  addTags,
   deleteNotes,
   getNotesInfo,
   type NoteInfo,
+  removeTags,
   updateNoteFields,
 } from "./client.js";
 
-const BACKUP_DIR = join(process.cwd(), "output", "backups");
+const BACKUP_DIR =
+  process.env.ANKI_SPLITTER_BACKUP_DIR ||
+  join(process.cwd(), "output", "backups");
 
 export interface BackupEntry {
   id: string;
@@ -52,6 +62,31 @@ function getBackupFilePath(): string {
 }
 
 /**
+ * 백업 파일 목록 조회 (절대 경로)
+ */
+function listBackupFiles(): string[] {
+  ensureBackupDir();
+  return readdirSync(BACKUP_DIR)
+    .filter((file) => file.startsWith("backup-") && file.endsWith(".json"))
+    .map((file) => join(BACKUP_DIR, file));
+}
+
+function isBackupFile(data: unknown): data is BackupFile {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+
+  const parsed = data as Partial<BackupFile>;
+  return parsed.version === 1 && Array.isArray(parsed.entries);
+}
+
+function quarantineCorruptedBackup(filePath: string): string {
+  const quarantinedPath = `${filePath}.corrupt-${Date.now()}`;
+  renameSync(filePath, quarantinedPath);
+  return quarantinedPath;
+}
+
+/**
  * 백업 파일 로드
  */
 function loadBackupFile(filePath: string): BackupFile {
@@ -59,7 +94,21 @@ function loadBackupFile(filePath: string): BackupFile {
     return { version: 1, entries: [] };
   }
   const content = readFileSync(filePath, "utf-8");
-  return JSON.parse(content);
+
+  try {
+    const parsed: unknown = JSON.parse(content);
+    if (!isBackupFile(parsed)) {
+      throw new Error("백업 파일 포맷이 올바르지 않습니다.");
+    }
+    return parsed;
+  } catch (error) {
+    const quarantinedPath = quarantineCorruptedBackup(filePath);
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `손상된 백업 파일을 격리했습니다: ${quarantinedPath} (${reason})`,
+    );
+    return { version: 1, entries: [] };
+  }
 }
 
 /**
@@ -68,6 +117,15 @@ function loadBackupFile(filePath: string): BackupFile {
 function saveBackupFile(filePath: string, data: BackupFile): void {
   ensureBackupDir();
   atomicWriteFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+async function appendBackupEntry(entry: BackupEntry): Promise<void> {
+  const filePath = getBackupFilePath();
+  await withFileMutex(filePath, async () => {
+    const backupFile = loadBackupFile(filePath);
+    backupFile.entries.push(entry);
+    saveBackupFile(filePath, backupFile);
+  });
 }
 
 /**
@@ -102,10 +160,7 @@ export async function createBackup(
     splitType,
   };
 
-  const filePath = getBackupFilePath();
-  const backupFile = loadBackupFile(filePath);
-  backupFile.entries.push(entry);
-  saveBackupFile(filePath, backupFile);
+  await appendBackupEntry(entry);
 
   return backupId;
 }
@@ -142,10 +197,7 @@ export async function preBackup(
     splitType,
   };
 
-  const filePath = getBackupFilePath();
-  const backupFile = loadBackupFile(filePath);
-  backupFile.entries.push(entry);
-  saveBackupFile(filePath, backupFile);
+  await appendBackupEntry(entry);
 
   return { backupId, originalNote };
 }
@@ -153,17 +205,37 @@ export async function preBackup(
 /**
  * 백업 엔트리에 생성된 노트 ID 추가
  */
-export function updateBackupWithCreatedNotes(
+export async function updateBackupWithCreatedNotes(
   backupId: string,
   createdNoteIds: number[],
-): void {
-  const filePath = getBackupFilePath();
-  const backupFile = loadBackupFile(filePath);
+): Promise<void> {
+  const todayFilePath = getBackupFilePath();
+  const candidates = [
+    todayFilePath,
+    ...listBackupFiles().filter((path) => path !== todayFilePath),
+  ];
 
-  const entry = backupFile.entries.find((e) => e.id === backupId);
-  if (entry) {
-    entry.createdNoteIds = createdNoteIds;
-    saveBackupFile(filePath, backupFile);
+  for (const filePath of candidates) {
+    const updated = await withFileMutex(filePath, async () => {
+      const backupFile = loadBackupFile(filePath);
+      const entry = backupFile.entries.find(
+        (current) => current.id === backupId,
+      );
+
+      if (!entry) {
+        return false;
+      }
+
+      entry.createdNoteIds = Array.from(
+        new Set([...entry.createdNoteIds, ...createdNoteIds]),
+      );
+      saveBackupFile(filePath, backupFile);
+      return true;
+    });
+
+    if (updated) {
+      return;
+    }
   }
 }
 
@@ -177,26 +249,32 @@ export async function rollback(backupId: string): Promise<{
   success: boolean;
   restoredNoteId?: number;
   deletedNoteIds?: number[];
+  restoredFieldNames?: string[];
+  restoredTags?: string[];
+  warning?: string;
   error?: string;
 }> {
-  // 모든 백업 파일에서 검색
-  ensureBackupDir();
-  const files = readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-"));
-
-  let entry: BackupEntry | undefined;
-  let filePath: string | undefined;
-
-  for (const file of files) {
-    const path = join(BACKUP_DIR, file);
+  const filePath = listBackupFiles().find((path) => {
     const backupFile = loadBackupFile(path);
-    entry = backupFile.entries.find((e) => e.id === backupId);
-    if (entry) {
-      filePath = path;
-      break;
-    }
+    return backupFile.entries.some((entry) => entry.id === backupId);
+  });
+
+  if (!filePath) {
+    return { success: false, error: `백업 ID ${backupId}를 찾을 수 없습니다.` };
   }
 
-  if (!entry || !filePath) {
+  const entry = await withFileMutex(filePath, async () => {
+    const backupFile = loadBackupFile(filePath);
+    const target = backupFile.entries.find(
+      (current) => current.id === backupId,
+    );
+    if (!target) {
+      return null;
+    }
+    return JSON.parse(JSON.stringify(target)) as BackupEntry;
+  });
+
+  if (!entry) {
     return { success: false, error: `백업 ID ${backupId}를 찾을 수 없습니다.` };
   }
 
@@ -212,20 +290,39 @@ export async function rollback(backupId: string): Promise<{
       originalFields[key] = value.value;
     }
 
-    await updateNoteFields(entry.originalNoteId, {
-      Text: originalFields.Text || "",
-      "Back Extra": originalFields["Back Extra"] || "",
-    });
+    await updateNoteFields(entry.originalNoteId, originalFields);
+
+    const [currentNote] = await getNotesInfo([entry.originalNoteId]);
+    if (!currentNote) {
+      throw new Error(
+        `롤백 대상 노트 ${entry.originalNoteId}를 찾을 수 없습니다.`,
+      );
+    }
+
+    if (currentNote.tags.length > 0) {
+      await removeTags([entry.originalNoteId], currentNote.tags.join(" "));
+    }
+    if (entry.originalContent.tags.length > 0) {
+      await addTags(
+        [entry.originalNoteId],
+        entry.originalContent.tags.join(" "),
+      );
+    }
 
     // 백업 엔트리 제거 (롤백 완료 표시)
-    const backupFile = loadBackupFile(filePath);
-    backupFile.entries = backupFile.entries.filter((e) => e.id !== backupId);
-    saveBackupFile(filePath, backupFile);
+    await withFileMutex(filePath, async () => {
+      const backupFile = loadBackupFile(filePath);
+      backupFile.entries = backupFile.entries.filter((e) => e.id !== backupId);
+      saveBackupFile(filePath, backupFile);
+    });
 
     return {
       success: true,
       restoredNoteId: entry.originalNoteId,
       deletedNoteIds: entry.createdNoteIds,
+      restoredFieldNames: Object.keys(originalFields),
+      restoredTags: entry.originalContent.tags,
+      warning: "카드 스케줄링 메타데이터는 자동 복원되지 않습니다.",
     };
   } catch (error) {
     return {
@@ -239,12 +336,8 @@ export async function rollback(backupId: string): Promise<{
  * 백업 목록 조회
  */
 export function listBackups(): BackupEntry[] {
-  ensureBackupDir();
-  const files = readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-"));
-
   const allEntries: BackupEntry[] = [];
-  for (const file of files) {
-    const path = join(BACKUP_DIR, file);
+  for (const path of listBackupFiles()) {
     const backupFile = loadBackupFile(path);
     allEntries.push(...backupFile.entries);
   }

@@ -1,9 +1,17 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
+  const { headers: optionHeaders, ...restOptions } = options ?? {};
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+    ...(optionHeaders || {}),
+  };
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
+    ...restOptions,
+    headers,
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: res.statusText }));
@@ -28,6 +36,7 @@ export interface CardSummary {
   modelName: string;
   analysis: {
     canHardSplit: boolean;
+    canSoftSplit?: boolean;
     clozeCount: number;
   };
   clozeStats: {
@@ -179,6 +188,24 @@ export interface EmbeddingGenerateResult {
   removedCount: number;
   errorCount: number;
   lastUpdated: string;
+}
+
+export type PrivacyMode = "standard" | "balanced" | "strict";
+
+export interface FeaturePrivacyPolicy {
+  enabled: boolean;
+  maskSensitive: boolean;
+  maxChars: number;
+}
+
+export interface PrivacyStatus {
+  mode: PrivacyMode;
+  description: string;
+  featurePolicies: {
+    split: FeaturePrivacyPolicy;
+    validation: FeaturePrivacyPolicy;
+    embedding: FeaturePrivacyPolicy;
+  };
 }
 
 // Prompt Version types
@@ -377,11 +404,18 @@ export const api = {
         success: boolean;
         restoredNoteId?: number;
         deletedNoteIds?: number[];
+        restoredFieldNames?: string[];
+        restoredTags?: string[];
+        warning?: string;
         error?: string;
       }>(`/backup/${backupId}/rollback`, { method: "POST" }),
   },
 
   health: () => fetchJson<{ status: string; timestamp: string }>("/health"),
+
+  privacy: {
+    status: () => fetchJson<PrivacyStatus>("/privacy/status"),
+  },
 
   validate: {
     factCheck: (noteId: number, thorough = false) =>

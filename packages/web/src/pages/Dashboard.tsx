@@ -6,6 +6,7 @@ import {
   Loader2,
   RotateCcw,
   Scissors,
+  Shield,
   Sparkles,
 } from "lucide-react";
 import { useState } from "react";
@@ -42,6 +43,13 @@ export function Dashboard() {
     queryFn: () => api.embedding.status(selectedDeck as string),
     enabled: !!selectedDeck,
     staleTime: 30000,
+  });
+
+  // 프라이버시 상태 조회
+  const { data: privacyStatus, isLoading: isLoadingPrivacy } = useQuery({
+    queryKey: ["privacy", "status"],
+    queryFn: () => api.privacy.status(),
+    staleTime: 60 * 1000,
   });
 
   // 임베딩 생성 뮤테이션
@@ -99,6 +107,29 @@ export function Dashboard() {
                 </option>
               ))}
             </select>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Shield className="h-4 w-4 text-emerald-600" />
+            프라이버시 모드
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingPrivacy ? (
+            <div className="text-sm text-muted-foreground">로딩 중...</div>
+          ) : (
+            <div className="space-y-1">
+              <div className="text-base font-semibold">
+                {privacyStatus?.mode ?? "unknown"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {privacyStatus?.description ?? "상태를 불러올 수 없습니다."}
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

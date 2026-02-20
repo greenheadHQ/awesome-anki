@@ -4,6 +4,11 @@
 
 import { GoogleGenAI } from "@google/genai";
 import {
+  assertExternalAIEnabled,
+  sanitizeForExternalAI,
+  sanitizeListForExternalAI,
+} from "../privacy/index.js";
+import {
   buildSplitPrompt,
   buildSplitPromptFromTemplate,
   SYSTEM_PROMPT,
@@ -48,17 +53,21 @@ export async function requestCardSplit(
   card: CardForSplit,
   prompts?: { systemPrompt: string; splitPromptTemplate: string },
 ): Promise<SplitResponse & { tokenUsage?: TokenUsage }> {
+  assertExternalAIEnabled("split");
+
   const client = getClient();
+  const sanitizedText = sanitizeForExternalAI(card.text, "split");
+  const sanitizedTags = sanitizeListForExternalAI(card.tags, "split");
 
   const systemPrompt = prompts?.systemPrompt ?? SYSTEM_PROMPT;
   const userPrompt = prompts
     ? buildSplitPromptFromTemplate(
         prompts.splitPromptTemplate,
         card.noteId,
-        card.text,
-        card.tags,
+        sanitizedText,
+        sanitizedTags,
       )
-    : buildSplitPrompt(card.noteId, card.text);
+    : buildSplitPrompt(card.noteId, sanitizedText);
 
   const response = await client.models.generateContent({
     model: MODEL_NAME,
@@ -139,7 +148,10 @@ export async function analyzeCardForSplit(card: CardForSplit): Promise<{
   reason: string;
   suggestedSplitCount: number;
 }> {
+  assertExternalAIEnabled("split");
+
   const client = getClient();
+  const sanitizedText = sanitizeForExternalAI(card.text, "split");
 
   const analysisPrompt = `
 다음 Anki 카드가 분할이 필요한지 분석해주세요.
@@ -156,7 +168,7 @@ export async function analyzeCardForSplit(card: CardForSplit): Promise<{
 3. ::: toggle todo 블록 (미완성 상태)
 
 ## 카드 내용:
-${card.text}
+${sanitizedText}
 
 ## 응답 형식 (JSON):
 {

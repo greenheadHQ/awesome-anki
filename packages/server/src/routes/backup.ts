@@ -62,6 +62,9 @@ app.post("/:id/rollback", async (c) => {
     success: true,
     restoredNoteId: result.restoredNoteId,
     deletedNoteIds: result.deletedNoteIds,
+    restoredFieldNames: result.restoredFieldNames,
+    restoredTags: result.restoredTags,
+    warning: result.warning,
   });
 });
 

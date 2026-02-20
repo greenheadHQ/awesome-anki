@@ -54,7 +54,7 @@ bun install
 
 # 환경 변수 설정
 cp .env.example .env
-# .env 파일에 GEMINI_API_KEY 설정
+# .env 파일에 GEMINI_API_KEY, ANKI_SPLITTER_API_KEY, ANKI_SPLITTER_PRIVACY_MODE 설정
 ```
 
 ## 실행
@@ -90,6 +90,39 @@ bun run cli split --note <noteId>
 # 백업/롤백
 bun run cli backups
 bun run cli rollback <backupId>
+```
+
+## 개발 품질 검증
+
+모든 검증은 **루트 디렉터리에서 실행**합니다. 기본 루틴은 아래 두 명령입니다.
+
+```bash
+# 빠른 검증 (PR 전 최소 권장)
+bun run check:quick
+
+# 전체 검증 (릴리스 전 권장)
+bun run check
+```
+
+GitHub Pull Request에서도 동일한 검증이 `.github/workflows/ci.yml`의 `quality-gate` 잡으로 자동 실행됩니다.
+
+### 검증 명령 구성
+
+| 명령 | 범위 | 설명 |
+|------|------|------|
+| `bun run lint` | root + core + server + web | 코드 스타일/정적 규칙 점검 |
+| `bun run typecheck` | root + core + server + web | TypeScript 타입 검사 |
+| `bun run test` | core + server + web | Bun 테스트 실행 (테스트 없는 패키지는 스캔만 수행) |
+| `bun run build` | core + server + web | 패키지 빌드 산출 가능성 검증 |
+| `bun run check:quick` | lint + typecheck | 개발 중 반복 실행용 |
+| `bun run check` (`check:full`) | lint + typecheck + test + build | 머지/릴리스 전 최종 검증용 |
+
+### 패키지 단독 검증
+
+```bash
+bun run --cwd packages/core typecheck
+bun run --cwd packages/server typecheck
+bun run --cwd packages/web typecheck
 ```
 
 ## 프로젝트 구조
@@ -144,12 +177,38 @@ anki-claude-code/
 | POST | /api/validate/similarity | 유사성 검사 |
 | POST | /api/validate/context | 문맥 일관성 검사 |
 | POST | /api/embedding/generate | 덱 임베딩 생성 |
+| GET | /api/privacy/status | 프라이버시 모드/정책 조회 |
 
 ## 주의사항
 
 - **Anki 프로필**: 반드시 `test` 프로필에서 작업 (`open -a Anki --args -p test`)
 - **AnkiConnect**: localhost:8765에서 실행 중이어야 함
 - **API 키**: Soft Split, 검증 기능 사용 시 `GEMINI_API_KEY` 필요
+- **API 인증**: 서버/웹 통신을 위해 `ANKI_SPLITTER_API_KEY`와 `VITE_API_KEY`를 동일하게 설정
+
+## 프라이버시 모드
+
+`ANKI_SPLITTER_PRIVACY_MODE`로 외부 전송 정책을 제어합니다.
+
+| 모드 | split(Gemini) | validation(Gemini) | embedding(Gemini) | 기본 마스킹 |
+|------|---------------|--------------------|-------------------|------------|
+| `standard` | 허용 | 허용 | 허용 | 비활성 |
+| `balanced` | 허용 | 허용 | 허용 | 활성 |
+| `strict` | 차단 | 차단 | 차단 | 활성 |
+
+### 외부 전송 데이터 정책
+
+| 기능 | 전송 대상 데이터 | 기본 길이 제한 | 마스킹 대상 |
+|------|------------------|---------------|------------|
+| Split(soft) | 카드 본문, 태그(프롬프트 입력) | `6000`자 (`balanced`) | 이메일/전화/URL/긴 숫자 ID |
+| Validation | 카드 본문(정규화 텍스트) | `4000`자 (`balanced`) | 이메일/전화/URL/긴 숫자 ID |
+| Embedding | 전처리된 카드 텍스트 | `2000`자 (`balanced`) | 이메일/전화/URL/긴 숫자 ID |
+
+길이 제한은 아래 환경 변수로 조정할 수 있습니다.
+
+- `ANKI_SPLITTER_PRIVACY_SPLIT_MAX_CHARS`
+- `ANKI_SPLITTER_PRIVACY_VALIDATION_MAX_CHARS`
+- `ANKI_SPLITTER_PRIVACY_EMBEDDING_MAX_CHARS`
 
 ## 문서
 

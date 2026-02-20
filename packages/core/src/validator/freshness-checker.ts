@@ -3,6 +3,10 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import {
+  assertExternalAIEnabled,
+  sanitizeForExternalAI,
+} from "../privacy/index.js";
 import type { FreshnessResult, OutdatedItem } from "./types.js";
 
 const MODEL_NAME = "gemini-2.0-flash";
@@ -64,6 +68,8 @@ export async function checkFreshness(
   cardContent: string,
   options: FreshnessCheckOptions = {},
 ): Promise<FreshnessResult> {
+  assertExternalAIEnabled("validation");
+
   const client = getClient();
 
   // Cloze 마크업 제거
@@ -73,6 +79,7 @@ export async function checkFreshness(
     .replace(/:::\s*\w+[^\n]*\n?/g, "")
     .replace(/^:::\s*$/gm, "")
     .trim();
+  const sanitizedContent = sanitizeForExternalAI(cleanContent, "validation");
 
   const currentDate =
     options.checkDate || new Date().toISOString().split("T")[0];
@@ -83,7 +90,7 @@ ${FRESHNESS_CHECK_PROMPT}
 ## 기준 날짜: ${currentDate}
 
 ## 검사할 카드 내용:
-${cleanContent}
+${sanitizedContent}
 `;
 
   try {

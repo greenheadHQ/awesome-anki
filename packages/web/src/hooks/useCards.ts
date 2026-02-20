@@ -24,7 +24,7 @@ export function useCardDetail(noteId: number | null) {
 
 export function useBackups() {
   return useQuery({
-    queryKey: queryKeys.backups,
+    queryKey: queryKeys.backups.all,
     queryFn: () => api.backup.list(),
     staleTime: 30 * 1000,
   });
@@ -36,7 +36,7 @@ export function useRollback() {
   return useMutation({
     mutationFn: (backupId: string) => api.backup.rollback(backupId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.backups });
+      queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
     },
   });

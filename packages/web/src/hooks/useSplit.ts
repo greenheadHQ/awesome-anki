@@ -59,7 +59,7 @@ export function useSplitApply() {
       mainCardIndex: number;
       splitType?: "hard" | "soft";
     }) => api.split.apply(data),
-    onSuccess: (_, _variables) => {
+    onSuccess: () => {
       // 카드 목록 캐시 무효화
       queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
       // 백업 목록도 새로고침
