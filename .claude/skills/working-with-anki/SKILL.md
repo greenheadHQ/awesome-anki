@@ -1,9 +1,10 @@
 ---
 name: working-with-anki
 description: |
-  This skill should be used when the user asks about "AnkiConnect 연결 안 돼",
-  "test 프로필", "ease factor 복제", "카드 정보 조회", "학습 데이터",
-  "AnkiConnect API", "Anki 프로필", "카드 모델".
+  This skill should be used when users request AnkiConnect operations.
+  Triggers: "AnkiConnect 연결 안 돼", "test 프로필", "ease factor 복제",
+  "카드 정보 조회", "학습 데이터", "AnkiConnect API", "Anki 프로필",
+  "카드 모델".
   Covers AnkiConnect API wrapper, test profile safety, and scheduling data replication.
 ---
 

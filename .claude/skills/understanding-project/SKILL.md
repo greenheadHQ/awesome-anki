@@ -1,8 +1,9 @@
 ---
 name: understanding-project
 description: |
-  This skill should be used when the user asks about "모노레포 구조가 어떻게 돼",
-  "기술 스택", "export 충돌", "패키지 간 의존성", "프로젝트 구조", "어떤 패키지에 있어".
+  This skill should be used when users request project architecture guidance.
+  Triggers: "모노레포 구조가 어떻게 돼", "기술 스택", "export 충돌",
+  "패키지 간 의존성", "프로젝트 구조", "어떤 패키지에 있어".
   Covers the monorepo architecture, package roles, tech stack, and coding conventions.
 ---
 
@@ -78,3 +79,4 @@ bun run cli:split    # CLI 분할 미리보기
 - `references/architecture.md` — 모노레포 상세 구조, 패키지 역할
 - `references/tech-stack.md` — Bun, Hono, React 19, Tailwind v4 상세
 - `references/conventions.md` — export 규칙, 실행 방법, 모노레포 설정
+- `references/troubleshooting.md` — 구조/실행 관련 자주 발생하는 문제 해결

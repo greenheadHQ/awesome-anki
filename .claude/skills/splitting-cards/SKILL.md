@@ -1,9 +1,10 @@
 ---
 name: splitting-cards
 description: |
-  This skill should be used when the user asks about "Hard Split이 뭐야",
-  "Soft Split 결과가 이상해", "파서 버그", "분할 미리보기", "nid 승계",
-  "Cloze 번호 리셋", "컨테이너 파서", "카드 분할", "atomic card".
+  This skill should be used when users request card splitting behavior changes.
+  Triggers: "Hard Split이 뭐야", "Soft Split 결과가 이상해", "파서 버그",
+  "분할 미리보기", "nid 승계", "Cloze 번호 리셋", "컨테이너 파서",
+  "카드 분할", "atomic card".
   Covers Hard/Soft Split logic, nid inheritance strategy, and text parsers.
 ---
 

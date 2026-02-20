@@ -1,9 +1,9 @@
 ---
 name: tracking-todo
 description: |
-  This skill should be used when the user asks about "TODO 뭐 남았어",
-  "미구현 기능", "기술 부채", "다음에 뭐 해", "로드맵",
-  "리팩토링 필요한 거", "Phase 5".
+  This skill should be used when users request roadmap or debt tracking.
+  Triggers: "TODO 뭐 남았어", "미구현 기능", "기술 부채",
+  "다음에 뭐 해", "로드맵", "리팩토링 필요한 거", "Phase 5".
   Tracks unimplemented features, tech debt, and future roadmap.
 ---
 
@@ -64,3 +64,4 @@ description: |
 - `references/unimplemented.md` — 미구현 기능 상세 설명
 - `references/tech-debt.md` — 리팩토링 필요 항목 상세
 - `references/roadmap.md` — 향후 계획
+- `references/troubleshooting.md` — TODO 정합성 점검 및 운영 이슈 해결

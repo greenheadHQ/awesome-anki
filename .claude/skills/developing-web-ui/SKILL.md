@@ -1,9 +1,10 @@
 ---
 name: developing-web-ui
 description: |
-  This skill should be used when the user asks about "React 컴포넌트 추가",
-  "ContentRenderer 수정", "TanStack Query", "CSS 충돌", "웹 UI 버그",
-  "페이지 추가", "Tailwind 스타일", "렌더링 문제".
+  This skill should be used when users request web UI development or debugging.
+  Triggers: "React 컴포넌트 추가", "ContentRenderer 수정",
+  "TanStack Query", "CSS 충돌", "웹 UI 버그", "페이지 추가",
+  "Tailwind 스타일", "렌더링 문제".
   Covers the React frontend, components, query patterns, and UI troubleshooting.
 ---
 

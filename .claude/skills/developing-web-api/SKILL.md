@@ -1,9 +1,9 @@
 ---
 name: developing-web-api
 description: |
-  This skill should be used when the user asks about "API 라우트 추가",
-  "Hono 엔드포인트", "서버 에러", "REST API", "라우트 패턴",
-  "API 응답 형식", "서버 포트".
+  This skill should be used when users request web API implementation or fixes.
+  Triggers: "API 라우트 추가", "Hono 엔드포인트", "서버 에러",
+  "REST API", "라우트 패턴", "API 응답 형식", "서버 포트".
   Covers the Hono REST API server, route patterns, and error handling.
 ---
 
