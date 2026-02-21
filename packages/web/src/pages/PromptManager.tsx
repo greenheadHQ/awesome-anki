@@ -7,6 +7,7 @@ import {
   BarChart3,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Edit,
@@ -265,7 +266,7 @@ function VersionsTab({
                   onClick={() => onSelectVersion(null)}
                   className="md:hidden"
                 >
-                  <ChevronRight className="w-4 h-4 rotate-180" />
+                  <ChevronLeft className="w-4 h-4" />
                   뒤로
                 </Button>
                 <CardTitle className="text-sm">
@@ -465,7 +466,7 @@ function HistoryTab({ entries, isLoading }: HistoryTabProps) {
       <CardHeader className="py-3 px-4 border-b">
         <CardTitle className="text-sm">분할 히스토리</CardTitle>
       </CardHeader>
-      <CardContent className="p-0 overflow-y-auto">
+      <CardContent className="p-0 overflow-y-auto overflow-x-auto">
         {entries.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             히스토리가 없습니다
@@ -807,7 +808,7 @@ function MetricsTab({ versions }: MetricsTabProps) {
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm">버전별 성능 비교</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {versions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               버전 데이터가 없습니다

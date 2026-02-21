@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import Joyride, { type CallBackProps, STATUS, type Step } from "react-joyride";
 import { useOnboarding } from "../../hooks/useOnboarding";
 
@@ -90,10 +91,19 @@ export function OnboardingTour({ run, onComplete }: OnboardingTourProps) {
   const handleComplete = onComplete || internalState.completeOnboarding;
 
   // 모바일에서는 사이드바 nav target이 없어 Joyride 비활성화
-  // 정적 체크: 온보딩은 1회성 flow이므로 리사이즈 리스너 불필요
-  const isDesktop =
+  // useRef: 1회성 flow이므로 마운트 시점 스냅샷만 사용 (리사이즈 추적 불필요)
+  const isDesktop = useRef(
     typeof window !== "undefined" &&
-    window.matchMedia("(min-width: 768px)").matches;
+      window.matchMedia("(min-width: 768px)").matches,
+  ).current;
+
+  // 모바일에서 tour가 실행 대기 중이면 완료 처리하여
+  // 추후 데스크톱에서 예기치 않게 tour가 뜨는 것을 방지
+  useEffect(() => {
+    if (isRunning && !isDesktop) {
+      handleComplete();
+    }
+  }, [isRunning, isDesktop, handleComplete]);
 
   const handleCallback = (data: CallBackProps) => {
     const { status } = data;

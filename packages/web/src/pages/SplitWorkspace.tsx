@@ -206,6 +206,7 @@ function RejectPopover({
                   placeholder="반려 사유를 입력하세요..."
                   className="w-full text-sm border rounded p-2 resize-none"
                   rows={2}
+                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey && otherText.trim()) {
                       e.preventDefault();
@@ -991,7 +992,7 @@ export function SplitWorkspace() {
   // 높이: 모바일/태블릿 dvh-5rem (h-14 헤더 + p-3 x2), 데스크톱(lg) vh-4rem (p-6 x2)
   return (
     <div className="h-[calc(100dvh-5rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
-      {/* 헤더 */}
+      {/* 헤더 — md:text-sm은 iOS 줌 방지용으로 레이아웃 breakpoint(lg:)와 별도 */}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-4">
         <div className="flex items-center gap-2 lg:gap-4">
           <h1 className="text-xl lg:text-2xl font-bold">분할 작업</h1>

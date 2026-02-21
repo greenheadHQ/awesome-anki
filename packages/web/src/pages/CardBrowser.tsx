@@ -175,13 +175,16 @@ export function CardBrowser() {
     ? getValidation(selectedNoteId)
     : null;
 
+  // 모바일 전체화면 오버레이에서만 inert 적용 (데스크톱은 사이드 패널이므로 목록 선택 가능해야 함)
+  const isMobileOverlay =
+    !!(selectedNoteId && cardDetail) &&
+    typeof window !== "undefined" &&
+    !window.matchMedia("(min-width: 768px)").matches;
+
   return (
     <div className="flex gap-6">
       {/* Main Content — 모바일 상세 오버레이 열릴 때 inert로 접근성 차단 */}
-      <div
-        className="flex-1 space-y-4"
-        inert={!!(selectedNoteId && cardDetail) || undefined}
-      >
+      <div className="flex-1 space-y-4" inert={isMobileOverlay || undefined}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">카드 브라우저</h1>
@@ -352,6 +355,7 @@ export function CardBrowser() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setSelectedNoteId(null)}
+                aria-label="상세 패널 닫기"
               >
                 <X className="h-4 w-4" />
               </Button>

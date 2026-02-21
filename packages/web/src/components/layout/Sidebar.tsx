@@ -110,7 +110,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 border-r bg-card md:flex">
+      <aside className="fixed left-0 top-0 z-40 hidden h-dvh w-64 border-r bg-card md:flex">
         <NavContent />
       </aside>
 
@@ -126,7 +126,7 @@ export function Sidebar({
           />
           {/* Drawer — z-50: backdrop 위 */}
           <aside
-            className="fixed left-0 top-0 z-50 h-screen w-64 border-r bg-card md:hidden"
+            className="fixed left-0 top-0 z-50 h-dvh w-64 border-r bg-card md:hidden"
             style={{ overscrollBehavior: "contain" }}
           >
             <NavContent onNavClick={onClose} />

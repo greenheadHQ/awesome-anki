@@ -11,8 +11,8 @@ export function Layout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="md:pl-64" inert={sidebarOpen || undefined}>
-        {/* Mobile header — z-40: drawer backdrop과 같은 레이어 */}
-        <header className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center border-b bg-card px-3 md:hidden">
+        {/* Mobile header — z-30: drawer backdrop(z-40)보다 낮아 드로어 열 때 어두워짐 */}
+        <header className="fixed top-0 left-0 right-0 z-30 flex h-14 items-center border-b bg-card px-3 md:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}

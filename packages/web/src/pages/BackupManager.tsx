@@ -42,10 +42,19 @@ function RollbackConfirmDialog({
   const date = new Date(backup.timestamp).toLocaleString("ko-KR");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rollback-confirm-title"
+      onKeyDown={(e) => e.key === "Escape" && onCancel()}
+    >
       <Card className="w-full max-w-md mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-600">
+          <CardTitle
+            id="rollback-confirm-title"
+            className="flex items-center gap-2 text-orange-600"
+          >
             <AlertTriangle className="h-5 w-5" />
             롤백 확인
           </CardTitle>
@@ -131,10 +140,17 @@ function RollbackResultDialog({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rollback-result-title"
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
+    >
       <Card className="w-full max-w-md mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <CardHeader>
           <CardTitle
+            id="rollback-result-title"
             className={cn(
               "flex items-center gap-2",
               success ? "text-green-600" : "text-red-600",
