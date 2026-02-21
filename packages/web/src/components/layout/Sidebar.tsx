@@ -7,7 +7,7 @@ import {
   Scissors,
   X,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils";
 
@@ -24,8 +24,8 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   return (
     <div className="flex h-full w-full flex-col">
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b px-6">
-        <h1 className="text-xl font-bold">Anki Splitter</h1>
+      <div className="flex h-14 items-center justify-between border-b px-3 md:h-16 md:px-6">
+        <h1 className="typo-h3">Anki Splitter</h1>
         {onNavClick && (
           <button
             type="button"
@@ -62,7 +62,9 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
 
       {/* Footer */}
       <div className="border-t p-4">
-        <p className="text-xs text-muted-foreground">Anki Card Splitter v1.0</p>
+        <p className="typo-caption text-muted-foreground">
+          Anki Card Splitter v1.0
+        </p>
       </div>
     </div>
   );
@@ -71,11 +73,42 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
 export function Sidebar({
   open,
   onClose,
+  onAnimationStateChange,
 }: {
   open: boolean;
   onClose: () => void;
+  onAnimationStateChange?: (animating: boolean) => void;
 }) {
   const location = useLocation();
+  const animationTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (animationTimerRef.current !== null) {
+      window.clearTimeout(animationTimerRef.current);
+      animationTimerRef.current = null;
+    }
+
+    const transitionMs = open ? 220 : 220;
+    onAnimationStateChange?.(true);
+    animationTimerRef.current = window.setTimeout(() => {
+      onAnimationStateChange?.(false);
+      animationTimerRef.current = null;
+    }, transitionMs);
+    return () => {
+      if (animationTimerRef.current !== null) {
+        window.clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+    };
+  }, [open, onAnimationStateChange]);
+
+  useEffect(() => {
+    return () => {
+      if (animationTimerRef.current !== null) {
+        window.clearTimeout(animationTimerRef.current);
+      }
+    };
+  }, []);
 
   // 라우트 변경 시 Drawer 닫기 (이미 닫혀 있으면 무시)
   // biome-ignore lint/correctness/useExhaustiveDependencies: location.pathname을 트리거로 사용 (open/onClose는 의도적 생략)
@@ -110,27 +143,31 @@ export function Sidebar({
       </aside>
 
       {/* Mobile drawer */}
-      {open && (
-        <>
-          {/* Backdrop — z-40: mobile header와 같은 레이어 */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
-            style={{ touchAction: "none" }}
-            onClick={onClose}
-            aria-hidden="true"
-          />
-          {/* Drawer — z-50: backdrop 위 */}
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label="내비게이션 메뉴"
-            className="fixed left-0 top-0 z-50 h-dvh w-64 border-r bg-card md:hidden"
-            style={{ overscrollBehavior: "contain" }}
-          >
-            <NavContent onNavClick={onClose} />
-          </aside>
-        </>
-      )}
+      {/* Backdrop — z-40: mobile header와 같은 레이어 */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 md:hidden",
+          open
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none",
+        )}
+        style={{ touchAction: "none" }}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Drawer — z-50: backdrop 위 */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="내비게이션 메뉴"
+        className={cn(
+          "fixed left-0 top-0 z-50 h-dvh w-64 border-r bg-card transition-transform duration-200 ease-out md:hidden",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+        style={{ overscrollBehavior: "contain" }}
+      >
+        <NavContent onNavClick={onClose} />
+      </aside>
     </>
   );
 }

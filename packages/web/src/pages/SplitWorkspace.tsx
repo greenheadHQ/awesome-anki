@@ -23,13 +23,20 @@ import { toast } from "sonner";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
-import { Button } from "../components/ui/Button";
-import { Card } from "../components/ui/Card";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "../components/ui/Popover";
+} from "../components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { ValidationPanel } from "../components/validation/ValidationPanel";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
@@ -1007,47 +1014,56 @@ export function SplitWorkspace() {
       {/* 헤더 — md:text-sm은 iOS 줌 방지용으로 레이아웃 breakpoint(lg:)와 별도 */}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-4">
         <div className="flex items-center gap-2 lg:gap-4">
-          <h1 className="text-xl lg:text-2xl font-bold">분할 작업</h1>
-          <select
-            value={activeDeck || ""}
-            onChange={(e) => {
-              setSelectedDeck(e.target.value || null);
+          <h1 className="typo-h1">분할 작업</h1>
+          <Select
+            value={activeDeck ?? undefined}
+            onValueChange={(value) => {
+              setSelectedDeck(value || null);
               handleSelectCard(null);
             }}
-            className="px-3 py-1.5 border rounded-md bg-background text-base md:text-sm min-w-0 flex-1 lg:flex-initial"
+            disabled={!decksData?.decks?.length}
           >
-            {decksData?.decks?.map((deck) => (
-              <option key={deck} value={deck}>
-                {deck}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="min-w-0 flex-1 text-base md:text-sm lg:flex-initial lg:min-w-[180px]">
+              <SelectValue placeholder="덱 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {decksData?.decks?.map((deck) => (
+                <SelectItem key={deck} value={deck}>
+                  {deck}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-center gap-2 lg:gap-4">
           {/* 프롬프트 버전 선택 */}
           <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
             <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
             <HelpTooltip helpKey="promptVersionSelect" />
-            <select
-              value={activeVersionId || ""}
-              onChange={(e) => setSelectedVersionId(e.target.value || null)}
-              disabled={isLoadingVersions}
-              className="px-3 py-1.5 border rounded-md bg-background text-base md:text-sm min-w-0 lg:min-w-[140px]"
+            <Select
+              value={activeVersionId ?? undefined}
+              onValueChange={(value) => setSelectedVersionId(value || null)}
+              disabled={
+                isLoadingVersions ||
+                !promptVersionsData?.versions ||
+                promptVersionsData.versions.length === 0
+              }
             >
-              {isLoadingVersions ? (
-                <option>로딩 중...</option>
-              ) : promptVersionsData?.versions?.length === 0 ? (
-                <option value="">버전 없음</option>
-              ) : (
-                promptVersionsData?.versions?.map((version) => (
-                  <option key={version.id} value={version.id}>
+              <SelectTrigger className="min-w-0 text-base md:text-sm lg:min-w-[220px]">
+                <SelectValue
+                  placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {promptVersionsData?.versions?.map((version) => (
+                  <SelectItem key={version.id} value={version.id}>
                     {version.name}
                     {version.id === promptVersionsData.activeVersionId &&
                       " \u2713"}
-                  </option>
-                ))
-              )}
-            </select>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <span className="text-xs lg:text-sm text-muted-foreground whitespace-nowrap">
             {activeCount}개{" "}
@@ -1071,7 +1087,7 @@ export function SplitWorkspace() {
                 aria-controls="mobile-tabpanel"
                 onClick={() => setActivePanel(tab.id)}
                 className={cn(
-                  "flex-1 py-2.5 text-sm font-medium transition-colors",
+                  "flex-1 py-2.5 text-sm font-medium transition-all duration-200",
                   activePanel === tab.id
                     ? "border-b-2 border-primary text-foreground"
                     : "text-muted-foreground",
@@ -1087,11 +1103,16 @@ export function SplitWorkspace() {
             role="tabpanel"
             id="mobile-tabpanel"
             aria-labelledby={`tab-${activePanel}`}
-            className="flex-1 flex flex-col min-h-0"
+            className="flex-1 min-h-0 overflow-hidden"
           >
-            {activePanel === "candidates" && renderCandidatesList()}
-            {activePanel === "original" && renderOriginalCard()}
-            {activePanel === "preview" && renderPreviewContent()}
+            <div
+              key={activePanel}
+              className="h-full flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-right-2 duration-200"
+            >
+              {activePanel === "candidates" && renderCandidatesList()}
+              {activePanel === "original" && renderOriginalCard()}
+              {activePanel === "preview" && renderPreviewContent()}
+            </div>
           </div>
 
           {/* Sticky footer — 분할 적용 버튼 */}

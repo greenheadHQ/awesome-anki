@@ -1,134 +1,287 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Custom CSS Variables for theming */
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("./assets/fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.5rem;
+  --font-family-sans:
+    "Pretendard Variable", "Pretendard", "Noto Sans KR", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  --font-family-mono:
+    "JetBrains Mono", "SFMono-Regular", ui-monospace, "Cascadia Code", "Menlo",
+    "Monaco", "Consolas", monospace;
+
+  /* Blue/Slate product palette */
+  --background: oklch(0.985 0.004 252);
+  --foreground: oklch(0.23 0.02 258);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.23 0.02 258);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.23 0.02 258);
+
+  --primary: oklch(0.56 0.17 258);
+  --primary-foreground: oklch(0.985 0.004 252);
+  --secondary: oklch(0.95 0.012 252);
+  --secondary-foreground: oklch(0.29 0.03 258);
+  --muted: oklch(0.965 0.008 252);
+  --muted-foreground: oklch(0.53 0.04 258);
+  --accent: oklch(0.94 0.02 247);
+  --accent-foreground: oklch(0.29 0.03 258);
+
+  --destructive: oklch(0.61 0.24 27);
+  --destructive-foreground: oklch(0.98 0.01 17);
+  --border: oklch(0.9 0.015 255);
+  --input: oklch(0.9 0.015 255);
+  --ring: oklch(0.62 0.12 257);
+
+  --success: oklch(0.66 0.15 155);
+  --success-foreground: oklch(0.98 0.01 155);
+  --warning: oklch(0.8 0.16 90);
+  --warning-foreground: oklch(0.26 0.03 90);
+  --info: oklch(0.67 0.13 231);
+  --info-foreground: oklch(0.98 0.01 231);
+
+  --radius: 0.625rem;
+
+  --chart-1: oklch(0.64 0.21 40);
+  --chart-2: oklch(0.61 0.11 190);
+  --chart-3: oklch(0.4 0.07 227);
+  --chart-4: oklch(0.83 0.19 84);
+  --chart-5: oklch(0.77 0.18 70);
+
+  --sidebar: oklch(0.98 0.003 252);
+  --sidebar-foreground: oklch(0.23 0.02 258);
+  --sidebar-primary: oklch(0.56 0.17 258);
+  --sidebar-primary-foreground: oklch(0.985 0.004 252);
+  --sidebar-accent: oklch(0.95 0.012 252);
+  --sidebar-accent-foreground: oklch(0.29 0.03 258);
+  --sidebar-border: oklch(0.9 0.015 255);
+  --sidebar-ring: oklch(0.62 0.12 257);
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+  --background: oklch(0.17 0.018 259);
+  --foreground: oklch(0.96 0.006 252);
+  --card: oklch(0.22 0.02 259);
+  --card-foreground: oklch(0.96 0.006 252);
+  --popover: oklch(0.22 0.02 259);
+  --popover-foreground: oklch(0.96 0.006 252);
+
+  --primary: oklch(0.74 0.12 256);
+  --primary-foreground: oklch(0.22 0.02 259);
+  --secondary: oklch(0.3 0.03 259);
+  --secondary-foreground: oklch(0.96 0.006 252);
+  --muted: oklch(0.28 0.03 259);
+  --muted-foreground: oklch(0.72 0.03 255);
+  --accent: oklch(0.32 0.04 257);
+  --accent-foreground: oklch(0.96 0.006 252);
+
+  --destructive: oklch(0.71 0.19 24);
+  --destructive-foreground: oklch(0.15 0.02 24);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 20%);
+  --ring: oklch(0.68 0.08 255);
+
+  --success: oklch(0.75 0.13 155);
+  --success-foreground: oklch(0.2 0.02 155);
+  --warning: oklch(0.83 0.14 90);
+  --warning-foreground: oklch(0.24 0.03 90);
+  --info: oklch(0.78 0.1 231);
+  --info-foreground: oklch(0.2 0.02 231);
+
+  --chart-1: oklch(0.49 0.24 264);
+  --chart-2: oklch(0.69 0.17 162);
+  --chart-3: oklch(0.77 0.18 70);
+  --chart-4: oklch(0.63 0.27 304);
+  --chart-5: oklch(0.65 0.25 16);
+
+  --sidebar: oklch(0.22 0.02 259);
+  --sidebar-foreground: oklch(0.96 0.006 252);
+  --sidebar-primary: oklch(0.74 0.12 256);
+  --sidebar-primary-foreground: oklch(0.22 0.02 259);
+  --sidebar-accent: oklch(0.3 0.03 259);
+  --sidebar-accent-foreground: oklch(0.96 0.006 252);
+  --sidebar-border: oklch(1 0 0 / 14%);
+  --sidebar-ring: oklch(0.68 0.08 255);
 }
 
-* {
-  border-color: hsl(var(--border));
+@theme inline {
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* 모든 interactive 요소에 pointer cursor */
-button,
-[role="button"],
-[role="tab"],
-a,
-select,
-summary,
-label[for],
-input[type="checkbox"],
-input[type="radio"] {
-  cursor: pointer;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    margin: 0;
+    font-family: var(--font-family-sans);
+  }
+
+  button,
+  [role="button"],
+  [role="tab"],
+  a,
+  select,
+  summary,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input:disabled {
+    cursor: not-allowed;
+  }
 }
 
-button:disabled,
-[role="button"][aria-disabled="true"],
-input:disabled {
-  cursor: not-allowed;
-}
-
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  margin: 0;
-  min-height: 100vh;
-}
-
-/* Utility for cn() function */
 @layer utilities {
-  .bg-background {
-    background-color: hsl(var(--background));
+  .typo-display {
+    font-size: 2.25rem;
+    line-height: 2.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
-  .text-foreground {
-    color: hsl(var(--foreground));
+
+  .typo-h1 {
+    font-size: 1.875rem;
+    line-height: 2.375rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
   }
-  .bg-card {
-    background-color: hsl(var(--card));
+
+  .typo-h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
-  .text-card-foreground {
-    color: hsl(var(--card-foreground));
+
+  .typo-h3 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
   }
-  .bg-primary {
-    background-color: hsl(var(--primary));
+
+  .typo-body-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 400;
   }
-  .text-primary-foreground {
-    color: hsl(var(--primary-foreground));
+
+  .typo-body {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 400;
   }
-  .bg-secondary {
-    background-color: hsl(var(--secondary));
+
+  .typo-body-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 400;
   }
-  .text-secondary-foreground {
-    color: hsl(var(--secondary-foreground));
+
+  .typo-caption {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
   }
-  .bg-muted {
-    background-color: hsl(var(--muted));
+
+  .text-success {
+    color: var(--success);
   }
-  .text-muted-foreground {
-    color: hsl(var(--muted-foreground));
+
+  .text-warning {
+    color: var(--warning);
   }
-  .border-border {
-    border-color: hsl(var(--border));
+
+  .text-info {
+    color: var(--info);
   }
 }
 
-/* Cloze 스타일 */
+/* Cloze */
 .cloze {
-  background-color: hsl(var(--primary) / 0.15);
-  color: hsl(var(--primary));
+  background-color: color-mix(in oklab, var(--primary) 16%, transparent);
+  color: var(--primary);
   padding: 0.1em 0.3em;
   border-radius: 0.25rem;
   font-weight: 500;
 }
 
 .cloze-hidden {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
+  background-color: var(--muted);
+  color: var(--muted-foreground);
 }
 
-/* Callout 스타일 (원본 템플릿 style.css와 동일) */
+/* Callout */
 .callout {
   border-radius: 5px;
   padding: 10px 20px;
@@ -199,7 +352,7 @@ body {
   color: #15171a;
 }
 
-/* Toggle 스타일 (원본 템플릿 style.css와 동일 - details/summary 기반) */
+/* Toggle */
 .toggle {
   border: 1px solid #e0e0e0;
   border-radius: 5px;
@@ -254,7 +407,6 @@ body {
   margin: 0;
 }
 
-/* Toggle 타입별 색상 (원본 템플릿과 동일) */
 .toggle.tip {
   background-color: #e0f7fa;
   border-color: #b2ebf2;
@@ -285,7 +437,7 @@ body {
   border-left-color: #9c27b0;
 }
 
-/* Prose 커스텀 */
+/* Prose */
 .prose h1,
 .prose h2,
 .prose h3,
@@ -299,7 +451,7 @@ body {
 }
 
 .prose code {
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
   padding: 0.2em 0.4em;
   border-radius: 0.25rem;
   font-size: 0.875em;
@@ -310,9 +462,7 @@ body {
   padding: 0;
 }
 
-/* Content Rendered 스타일 (Anki 원본과 동일하게) */
-
-/* Header 스타일 - 크고 굵은 글씨로 강조 */
+/* Content renderer */
 .content-rendered h1,
 .content-rendered h2,
 .content-rendered h3,
@@ -328,23 +478,27 @@ body {
 .content-rendered h1 {
   font-size: 1.6em;
 }
+
 .content-rendered h2 {
   font-size: 1.4em;
 }
+
 .content-rendered h3 {
   font-size: 1.2em;
 }
+
 .content-rendered h4 {
   font-size: 1.1em;
 }
+
 .content-rendered h5 {
   font-size: 1em;
 }
+
 .content-rendered h6 {
   font-size: 0.9em;
 }
 
-/* Bullet point 스타일 - 점(•) 표시 */
 .content-rendered ul {
   list-style-type: disc;
   padding-left: 1.5em;
@@ -369,14 +523,12 @@ body {
   margin: 0.25em 0;
 }
 
-/* Splitter (hr) 스타일 - 가로선 표시 */
 .content-rendered hr {
   border: none;
   border-top: 1px solid #ccc;
   margin: 1em 0;
 }
 
-/* 테이블 스타일 */
 .content-rendered table {
   border-collapse: collapse;
   margin: 1em 0;
@@ -391,15 +543,14 @@ body {
 }
 
 .content-rendered th {
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
   font-weight: 600;
 }
 
 .content-rendered tr:nth-child(even) {
-  background-color: hsl(var(--muted) / 0.5);
+  background-color: color-mix(in oklab, var(--muted) 55%, transparent);
 }
 
-/* 코드 블록 스타일 */
 .content-rendered pre {
   background-color: #f5f5f5;
   border-radius: 5px;
@@ -412,7 +563,7 @@ body {
   background-color: rgba(0, 0, 0, 0.05);
   padding: 0.2em 0.4em;
   border-radius: 3px;
-  font-family: "Menlo", "Monaco", "Courier New", monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.9em;
 }
 
@@ -421,7 +572,6 @@ body {
   padding: 0;
 }
 
-/* 이미지 스타일 */
 .content-rendered img {
   max-width: 100%;
   height: auto;
@@ -429,9 +579,8 @@ body {
   margin: 0.5em 0;
 }
 
-/* nid 링크 스타일 */
 .nid-link {
-  color: hsl(var(--primary));
+  color: var(--primary);
   text-decoration: underline;
   text-decoration-style: dotted;
   cursor: pointer;
@@ -441,144 +590,11 @@ body {
   text-decoration-style: solid;
 }
 
-/* Diff 스타일 */
 .diff-added {
-  background-color: hsl(142 76% 36% / 0.2);
+  background-color: color-mix(in oklab, var(--success) 25%, transparent);
 }
 
 .diff-removed {
-  background-color: hsl(0 84% 60% / 0.2);
+  background-color: color-mix(in oklab, var(--destructive) 25%, transparent);
   text-decoration: line-through;
-}
-
-/* Popover 스타일 */
-.bg-popover {
-  background-color: hsl(var(--popover));
-}
-
-.text-popover-foreground {
-  color: hsl(var(--popover-foreground));
-}
-
-/* Radix UI 애니메이션 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes zoomIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes zoomOut {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-}
-
-@keyframes slideInFromTop {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInFromBottom {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInFromLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Radix 애니메이션 클래스 */
-.animate-in {
-  animation-duration: 150ms;
-  animation-timing-function: ease-out;
-  animation-fill-mode: both;
-}
-
-.animate-out {
-  animation-duration: 100ms;
-  animation-timing-function: ease-in;
-  animation-fill-mode: both;
-}
-
-.fade-in-0 {
-  animation-name: fadeIn;
-}
-.fade-out-0 {
-  animation-name: fadeOut;
-}
-.zoom-in-95 {
-  animation-name: zoomIn;
-}
-.zoom-out-95 {
-  animation-name: zoomOut;
-}
-.slide-in-from-top-2 {
-  animation-name: slideInFromTop;
-}
-.slide-in-from-bottom-2 {
-  animation-name: slideInFromBottom;
-}
-.slide-in-from-left-2 {
-  animation-name: slideInFromLeft;
-}
-.slide-in-from-right-2 {
-  animation-name: slideInFromRight;
 }

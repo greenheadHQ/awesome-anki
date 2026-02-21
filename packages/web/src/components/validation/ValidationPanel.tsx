@@ -26,8 +26,8 @@ import {
   type ValidationStatus,
 } from "../../lib/api";
 import { cn } from "../../lib/utils";
-import { Button } from "../ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 interface ValidationPanelProps {
   noteId: number;
