@@ -36,6 +36,15 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 - `useValidationCache` 훅으로 전역 캐시 공유
 - SplitWorkspace 중앙 패널에 토글 통합
 
+## shadcn UI primitives
+
+- `packages/web/src/components/ui/button.tsx`: variant/size API 유지(`default|secondary|destructive|outline|ghost|link`, `default|sm|lg|icon`)
+- `packages/web/src/components/ui/card.tsx`: `CardHeader/CardTitle/CardContent` 구조 기반
+- `packages/web/src/components/ui/popover.tsx`: HelpTooltip/반려 사유 팝오버
+- `packages/web/src/components/ui/select.tsx`: Dashboard/CardBrowser/SplitWorkspace 헤더 필터
+- `packages/web/src/components/ui/table.tsx`: CardBrowser/PromptManager 목록
+- `packages/web/src/components/ui/dialog.tsx`: BackupManager 롤백 확인/결과 모달
+
 ## SplitPreviewCard
 
 - 분할 미리보기 개별 카드
@@ -46,7 +55,7 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 
 - (?) 아이콘 클릭 시 Popover 표시
 - `helpContent.ts`에서 콘텐츠 정의
-- `@radix-ui/react-popover` 기반
+- shadcn `Popover` 컴포넌트 사용 (`packages/web/src/components/ui/popover`)
 - `cursor-pointer` 클래스 필수
 
 ```tsx
@@ -90,6 +99,19 @@ Route에 `errorElement={<RouteError />}` 반드시 포함:
 ```tsx
 <Route path="new-page" element={<NewPage />} errorElement={<RouteError />} />
 ```
+
+## 디자인 토큰
+
+- 전역 토큰/타이포 유틸은 `packages/web/src/index.css`에 정의
+- 대표 토큰:
+  - `typo-h1`, `typo-h2`, `typo-h3`, `typo-body`, `typo-body-lg`, `typo-body-sm`, `typo-caption`
+  - `--primary`, `--muted`, `--success`, `--warning`, `--info`
+
+## 테스트 컴포넌트
+
+- `packages/web/tests/components/button.test.tsx`
+- `packages/web/tests/components/card.test.tsx`
+- `packages/web/tests/components/dialog.test.tsx`
 
 ## OnboardingTour (deprecated 예정)
 

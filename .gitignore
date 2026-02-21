@@ -21,5 +21,8 @@ output/embeddings/
 # Codex harness projection artifacts
 .agents/
 .codex/
+.agent/
+.kiro/
+skills-lock.json
 AGENTS.md
 AGENTS.override.md

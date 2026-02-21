@@ -12,13 +12,28 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ContentRenderer } from "../components/card/ContentRenderer";
-import { Button } from "../components/ui/Button";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
+} from "../components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import {
@@ -26,7 +41,20 @@ import {
   useValidationCache,
 } from "../hooks/useValidationCache";
 import type { ValidationStatus } from "../lib/api";
+import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
 import { cn } from "../lib/utils";
+
+const CARD_FILTER_VALUES = [
+  "all",
+  "splitable",
+  "unvalidated",
+  "needs-review",
+] as const;
+type CardFilter = (typeof CARD_FILTER_VALUES)[number];
+
+function isCardFilter(value: string): value is CardFilter {
+  return (CARD_FILTER_VALUES as readonly string[]).includes(value);
+}
 
 // 검증 상태 아이콘 컴포넌트
 function ValidationIcon({
@@ -121,9 +149,7 @@ export function CardBrowser() {
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(initialDeck);
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<
-    "all" | "splitable" | "unvalidated" | "needs-review"
-  >("all");
+  const [filter, setFilter] = useState<CardFilter>("all");
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
 
   const { data: decksData } = useDecks();
@@ -197,8 +223,8 @@ export function CardBrowser() {
       <div className="flex-1 space-y-4" inert={isMobileOverlay || undefined}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">카드 브라우저</h1>
-            <p className="text-muted-foreground">
+            <h1 className="typo-h1">카드 브라우저</h1>
+            <p className="typo-body text-muted-foreground">
               덱의 카드를 탐색하고 분석하세요
             </p>
           </div>
@@ -210,35 +236,44 @@ export function CardBrowser() {
 
         {/* Filters */}
         <div className="flex gap-4 flex-wrap">
-          <select
-            className="rounded-md border bg-background px-3 py-2 text-base md:text-sm"
-            value={selectedDeck || ""}
-            onChange={(e) => {
-              setSelectedDeck(e.target.value || null);
+          <Select
+            value={selectedDeck ?? DECK_SELECT_PLACEHOLDER}
+            onValueChange={(value) => {
+              setSelectedDeck(value === DECK_SELECT_PLACEHOLDER ? null : value);
               setPage(1);
             }}
           >
-            <option value="">덱 선택</option>
-            {decksData?.decks.map((deck) => (
-              <option key={deck} value={deck}>
-                {deck}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-[220px] text-base md:text-sm">
+              <SelectValue placeholder="덱 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={DECK_SELECT_PLACEHOLDER}>덱 선택</SelectItem>
+              {decksData?.decks.map((deck) => (
+                <SelectItem key={deck} value={deck}>
+                  {deck}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <select
-            className="rounded-md border bg-background px-3 py-2 text-base md:text-sm"
+          <Select
             value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value as typeof filter);
+            onValueChange={(value) => {
+              if (!isCardFilter(value)) return;
+              setFilter(value);
               setPage(1);
             }}
           >
-            <option value="all">전체</option>
-            <option value="splitable">분할 가능</option>
-            <option value="unvalidated">미검증</option>
-            <option value="needs-review">검토 필요</option>
-          </select>
+            <SelectTrigger className="w-[180px] text-base md:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              <SelectItem value="splitable">분할 가능</SelectItem>
+              <SelectItem value="unvalidated">미검증</SelectItem>
+              <SelectItem value="needs-review">검토 필요</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Card Table */}
@@ -253,29 +288,23 @@ export function CardBrowser() {
                 카드가 없습니다
               </div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-3 text-left text-sm font-medium w-10">
-                      검증
-                    </th>
-                    <th className="p-3 text-left text-sm font-medium">
-                      Note ID
-                    </th>
-                    <th className="hidden md:table-cell p-3 text-left text-sm font-medium">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="p-3 w-10">검증</TableHead>
+                    <TableHead className="p-3">Note ID</TableHead>
+                    <TableHead className="hidden md:table-cell p-3">
                       미리보기
-                    </th>
-                    <th className="hidden md:table-cell p-3 text-left text-sm font-medium">
+                    </TableHead>
+                    <TableHead className="hidden md:table-cell p-3">
                       Cloze
-                    </th>
-                    <th className="p-3 text-left text-sm font-medium">
-                      분할 타입
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                    <TableHead className="p-3">분할 타입</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filteredCards.map((card) => (
-                    <tr
+                    <TableRow
                       key={card.noteId}
                       className={cn(
                         "cursor-pointer border-b hover:bg-muted/50",
@@ -283,19 +312,21 @@ export function CardBrowser() {
                       )}
                       onClick={() => setSelectedNoteId(card.noteId)}
                     >
-                      <td className="p-3">
+                      <TableCell className="p-3">
                         <ValidationIcon
                           status={validationStatuses.get(card.noteId) || null}
                         />
-                      </td>
-                      <td className="p-3 font-mono text-sm">{card.noteId}</td>
-                      <td className="hidden md:table-cell max-w-md truncate p-3 text-sm">
+                      </TableCell>
+                      <TableCell className="p-3 font-mono text-sm">
+                        {card.noteId}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell max-w-md truncate p-3 text-sm">
                         {card.text.replace(/<[^>]*>/g, "").slice(0, 100)}...
-                      </td>
-                      <td className="hidden md:table-cell p-3 text-sm">
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell p-3 text-sm">
                         {card.clozeStats.totalClozes}
-                      </td>
-                      <td className="p-3">
+                      </TableCell>
+                      <TableCell className="p-3">
                         {card.splitType && (
                           <span
                             className={cn(
@@ -308,11 +339,11 @@ export function CardBrowser() {
                             {card.splitType}
                           </span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

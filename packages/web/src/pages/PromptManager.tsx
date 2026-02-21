@@ -22,13 +22,21 @@ import {
 import { useState } from "react";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
-import { Button } from "../components/ui/Button";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
+} from "../components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
 import {
   useActivatePrompt,
   useExperiments,
@@ -93,7 +101,7 @@ export function PromptManager() {
     <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">프롬프트 관리</h1>
+        <h1 className="typo-h1">프롬프트 관리</h1>
       </div>
 
       {/* 탭 네비게이션 */}
@@ -104,7 +112,7 @@ export function PromptManager() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 border-b-2 transition-colors shrink-0",
+              "flex items-center gap-2 px-4 py-2 border-b-2 transition-all duration-200 shrink-0",
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-border text-muted-foreground hover:text-foreground",
@@ -123,33 +131,38 @@ export function PromptManager() {
       </div>
 
       {/* 탭 컨텐츠 */}
-      <div className="flex-1 min-h-0">
-        {activeTab === "versions" && (
-          <VersionsTab
-            versions={versionsData?.versions || []}
-            activeVersionId={versionsData?.activeVersionId || null}
-            isLoading={isLoadingVersions}
-            onActivate={handleActivate}
-            isActivating={activatePrompt.isPending}
-            selectedVersion={selectedVersion}
-            onSelectVersion={setSelectedVersion}
-          />
-        )}
-        {activeTab === "history" && (
-          <HistoryTab
-            entries={historyData?.history || []}
-            isLoading={isLoadingHistory}
-          />
-        )}
-        {activeTab === "experiments" && (
-          <ExperimentsTab
-            experiments={experimentsData?.experiments || []}
-            isLoading={isLoadingExperiments}
-          />
-        )}
-        {activeTab === "metrics" && (
-          <MetricsTab versions={versionsData?.versions || []} />
-        )}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div
+          key={activeTab}
+          className="h-full animate-in fade-in-0 slide-in-from-right-2 duration-200"
+        >
+          {activeTab === "versions" && (
+            <VersionsTab
+              versions={versionsData?.versions || []}
+              activeVersionId={versionsData?.activeVersionId || null}
+              isLoading={isLoadingVersions}
+              onActivate={handleActivate}
+              isActivating={activatePrompt.isPending}
+              selectedVersion={selectedVersion}
+              onSelectVersion={setSelectedVersion}
+            />
+          )}
+          {activeTab === "history" && (
+            <HistoryTab
+              entries={historyData?.history || []}
+              isLoading={isLoadingHistory}
+            />
+          )}
+          {activeTab === "experiments" && (
+            <ExperimentsTab
+              experiments={experimentsData?.experiments || []}
+              isLoading={isLoadingExperiments}
+            />
+          )}
+          {activeTab === "metrics" && (
+            <MetricsTab versions={versionsData?.versions || []} />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -472,24 +485,24 @@ function HistoryTab({ entries, isLoading }: HistoryTabProps) {
             히스토리가 없습니다
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-muted">
-              <tr>
-                <th className="text-left px-4 py-2 w-6" />
-                <th className="hidden md:table-cell text-left px-4 py-2">
+          <Table className="text-sm">
+            <TableHeader className="bg-muted">
+              <TableRow>
+                <TableHead className="px-4 py-2 w-6" />
+                <TableHead className="hidden md:table-cell text-left px-4 py-2">
                   시간
-                </th>
-                <th className="text-left px-4 py-2">Note ID</th>
-                <th className="hidden md:table-cell text-left px-4 py-2">
+                </TableHead>
+                <TableHead className="text-left px-4 py-2">Note ID</TableHead>
+                <TableHead className="hidden md:table-cell text-left px-4 py-2">
                   버전
-                </th>
-                <th className="text-left px-4 py-2">결과</th>
-                <th className="hidden md:table-cell text-left px-4 py-2">
+                </TableHead>
+                <TableHead className="text-left px-4 py-2">결과</TableHead>
+                <TableHead className="hidden md:table-cell text-left px-4 py-2">
                   카드 수
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y">
               {entries.map((entry) => {
                 const isExpanded = expandedId === entry.id;
                 return (
@@ -501,8 +514,8 @@ function HistoryTab({ entries, isLoading }: HistoryTabProps) {
                   />
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>
@@ -529,22 +542,22 @@ function HistoryRow({
 }) {
   return (
     <>
-      <tr className="hover:bg-muted/50 cursor-pointer" onClick={onToggle}>
-        <td className="pl-4 py-2">
+      <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={onToggle}>
+        <TableCell className="pl-4 py-2">
           {isExpanded ? (
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
           ) : (
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
-        </td>
-        <td className="hidden md:table-cell px-4 py-2 text-muted-foreground">
+        </TableCell>
+        <TableCell className="hidden md:table-cell px-4 py-2 text-muted-foreground">
           {new Date(entry.timestamp).toLocaleString()}
-        </td>
-        <td className="px-4 py-2 font-mono">{entry.noteId}</td>
-        <td className="hidden md:table-cell px-4 py-2">
+        </TableCell>
+        <TableCell className="px-4 py-2 font-mono">{entry.noteId}</TableCell>
+        <TableCell className="hidden md:table-cell px-4 py-2">
           {entry.promptVersionId}
-        </td>
-        <td className="px-4 py-2">
+        </TableCell>
+        <TableCell className="px-4 py-2">
           <span
             className={cn(
               "px-1.5 py-0.5 rounded text-xs flex items-center gap-1 w-fit",
@@ -563,11 +576,11 @@ function HistoryRow({
             )}
             {entry.userAction}
           </span>
-        </td>
-        <td className="hidden md:table-cell px-4 py-2">
+        </TableCell>
+        <TableCell className="hidden md:table-cell px-4 py-2">
           {entry.splitCards?.length || 0}개
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {isExpanded && (
         <tr>
           <td colSpan={6} className="bg-muted/30 px-6 py-4">
@@ -814,31 +827,35 @@ function MetricsTab({ versions }: MetricsTabProps) {
               버전 데이터가 없습니다
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-4 py-2">버전</th>
-                  <th className="text-right px-4 py-2">분할 수</th>
-                  <th className="text-right px-4 py-2">승인률</th>
-                  <th className="hidden md:table-cell text-right px-4 py-2">
+            <Table className="text-sm">
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead className="text-left px-4 py-2">버전</TableHead>
+                  <TableHead className="text-right px-4 py-2">
+                    분할 수
+                  </TableHead>
+                  <TableHead className="text-right px-4 py-2">승인률</TableHead>
+                  <TableHead className="hidden md:table-cell text-right px-4 py-2">
                     수정률
-                  </th>
-                  <th className="hidden md:table-cell text-right px-4 py-2">
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell text-right px-4 py-2">
                     거부율
-                  </th>
-                  <th className="hidden md:table-cell text-right px-4 py-2">
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell text-right px-4 py-2">
                     평균 글자
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y">
                 {versions.map((version) => (
-                  <tr key={version.id} className="hover:bg-muted/50">
-                    <td className="px-4 py-2 font-medium">{version.name}</td>
-                    <td className="px-4 py-2 text-right">
+                  <TableRow key={version.id} className="hover:bg-muted/50">
+                    <TableCell className="px-4 py-2 font-medium">
+                      {version.name}
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-right">
                       {version.metrics?.totalSplits || 0}
-                    </td>
-                    <td className="px-4 py-2 text-right">
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-right">
                       <span
                         className={cn(
                           (version.metrics?.approvalRate || 0) >= 0.8 &&
@@ -850,23 +867,23 @@ function MetricsTab({ versions }: MetricsTabProps) {
                         {Math.round((version.metrics?.approvalRate || 0) * 100)}
                         %
                       </span>
-                    </td>
-                    <td className="hidden md:table-cell px-4 py-2 text-right text-yellow-600">
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell px-4 py-2 text-right text-yellow-600">
                       {Math.round(
                         (version.metrics?.modificationRate || 0) * 100,
                       )}
                       %
-                    </td>
-                    <td className="hidden md:table-cell px-4 py-2 text-right text-red-600">
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell px-4 py-2 text-right text-red-600">
                       {Math.round((version.metrics?.rejectionRate || 0) * 100)}%
-                    </td>
-                    <td className="hidden md:table-cell px-4 py-2 text-right">
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell px-4 py-2 text-right">
                       {Math.round(version.metrics?.avgCharCount || 0)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

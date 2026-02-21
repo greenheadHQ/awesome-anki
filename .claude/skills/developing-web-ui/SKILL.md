@@ -4,7 +4,8 @@ description: |
   This skill should be used when users request web UI development or debugging.
   Triggers: "React 컴포넌트 추가", "ContentRenderer 수정",
   "TanStack Query", "CSS 충돌", "웹 UI 버그", "페이지 추가",
-  "Tailwind 스타일", "렌더링 문제".
+  "Tailwind 스타일", "렌더링 문제", "shadcn", "shadcn 컴포넌트",
+  "shadcn 마이그레이션", "variant API", "UI 마이그레이션", "마이그레이션".
   Covers the React frontend, components, query patterns, and UI troubleshooting.
 ---
 
@@ -18,7 +19,7 @@ packages/web/src/
 ├── components/      # 공유 컴포넌트
 │   ├── card/        # ContentRenderer 등
 │   ├── help/        # HelpTooltip
-│   ├── ui/          # shadcn/ui 스타일 (Button, Card, Popover 등)
+│   ├── ui/          # shadcn/ui 스타일 (button, card, popover, select, table, dialog)
 │   └── onboarding/  # OnboardingTour (deprecated 예정)
 ├── hooks/           # TanStack Query 훅
 └── lib/             # api.ts, query-keys.ts, helpContent.ts
@@ -78,6 +79,8 @@ queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
 - **`.container` 충돌**: Tailwind의 `.container` 유틸리티와 충돌 → `.callout`로 변경
 - **flex 스크롤**: 부모에 `min-h-0` + `overflow-hidden` 필수
 - **KaTeX CSS**: ContentRenderer에서 `import 'katex/dist/katex.min.css'` 직접 import
+- **타이포 토큰 사용**: 페이지 헤더/본문은 `typo-h1`, `typo-h2`, `typo-body` 등 디자인 시스템 유틸 우선 사용
+- **모바일 Drawer 전환**: Sidebar는 `translate-x` + backdrop `opacity` 전환으로 열림/닫힘 애니메이션 보장
 
 ## 자주 발생하는 문제
 
@@ -85,6 +88,15 @@ queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
 - **스크롤 안 됨**: flex 컨테이너에 `min-h-0` 누락
 - **react-joyride import 에러**: 타입은 `type` 키워드로 import (`type CallBackProps`)
 - **분할 미리보기 캐싱**: React Query `setQueryData`로 카드별 독립 캐시
+- **Shadcn 파일 casing 충돌**: `Button.tsx`/`button.tsx` 혼용 시 TS 중복 포함 오류 발생 → 소문자 import 경로 통일
+
+## 테스트 패턴
+
+- 컴포넌트 테스트: `packages/web/tests/components/*.test.tsx` (Vitest + Testing Library)
+- E2E 스모크: `packages/web/tests/e2e/smoke.spec.ts` (Playwright)
+- 실행 명령:
+  - `bun run --cwd packages/web test`
+  - `bun run --cwd packages/web test:e2e` (`packages/web/playwright.config.ts`의 `webServer`가 `bun run preview`를 자동 실행하므로 별도 dev 서버 기동 불필요)
 
 ## 상세 참조
 

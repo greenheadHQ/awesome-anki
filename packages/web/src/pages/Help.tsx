@@ -16,7 +16,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
+} from "../components/ui/card";
 import { faqItems, glossaryItems } from "../lib/helpContent";
 
 export function Help() {
@@ -24,8 +24,8 @@ export function Help() {
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">도움말</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="typo-h1">도움말</h1>
+        <p className="typo-body text-muted-foreground mt-1">
           Anki Splitter의 기능과 사용법을 안내합니다
         </p>
       </div>
@@ -97,7 +97,7 @@ export function Help() {
 
       {/* 기능별 가이드 */}
       <section id="features">
-        <h2 className="text-xl font-semibold mb-4">기능별 가이드</h2>
+        <h2 className="typo-h2 mb-4">기능별 가이드</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {/* Dashboard */}
           <Card>

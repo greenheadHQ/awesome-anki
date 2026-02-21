@@ -1,7 +1,7 @@
 import { HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { type HelpItem, helpContent } from "../../lib/helpContent";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 interface HelpTooltipProps {
   /** helpContent에 정의된 키 */

@@ -12,15 +12,23 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { SyncStatusBadge } from "../components/SyncStatusBadge";
-import { Button } from "../components/ui/Button";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
+} from "../components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { useDeckStats, useDecks } from "../hooks/useDecks";
 import { api } from "../lib/api";
+import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
 import {
   readSyncStatus,
   SYNC_STATUS_EVENT,
@@ -76,8 +84,8 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="typo-h1">Dashboard</h1>
+          <p className="typo-body text-muted-foreground">
             Anki 카드를 원자적 단위로 분할하세요
           </p>
         </div>
@@ -92,18 +100,28 @@ export function Dashboard() {
           {isLoadingDecks ? (
             <p className="text-muted-foreground">로딩 중...</p>
           ) : (
-            <select
-              className="w-full rounded-md border bg-background px-3 py-2 text-base md:text-sm"
-              value={selectedDeck || ""}
-              onChange={(e) => setSelectedDeck(e.target.value || null)}
+            <Select
+              value={selectedDeck ?? DECK_SELECT_PLACEHOLDER}
+              onValueChange={(value) =>
+                setSelectedDeck(
+                  value === DECK_SELECT_PLACEHOLDER ? null : value,
+                )
+              }
             >
-              <option value="">덱을 선택하세요</option>
-              {decksData?.decks.map((deck) => (
-                <option key={deck} value={deck}>
-                  {deck}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-base md:text-sm">
+                <SelectValue placeholder="덱을 선택하세요" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DECK_SELECT_PLACEHOLDER}>
+                  덱을 선택하세요
+                </SelectItem>
+                {decksData?.decks.map((deck) => (
+                  <SelectItem key={deck} value={deck}>
+                    {deck}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </CardContent>
       </Card>

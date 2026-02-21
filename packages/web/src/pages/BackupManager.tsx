@@ -14,13 +14,20 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "../components/ui/Button";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
+} from "../components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 import { useBackups, useRollback } from "../hooks/useBackups";
 import type { BackupEntry } from "../lib/api";
 import { cn } from "../lib/utils";
@@ -42,24 +49,26 @@ function RollbackConfirmDialog({
   const date = new Date(backup.timestamp).toLocaleString("ko-KR");
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="rollback-confirm-title"
-      onKeyDown={(e) => e.key === "Escape" && onCancel()}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
     >
-      <Card className="w-full max-w-md mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-        <CardHeader>
-          <CardTitle
+      <DialogContent
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md"
+        showCloseButton={false}
+      >
+        <DialogHeader>
+          <DialogTitle
             id="rollback-confirm-title"
             className="flex items-center gap-2 text-orange-600"
           >
             <AlertTriangle className="h-5 w-5" />
             롤백 확인
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
           <p className="text-muted-foreground">
             다음 분할 작업을 롤백하시겠습니까?
           </p>
@@ -89,7 +98,7 @@ function RollbackConfirmDialog({
             </ul>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <DialogFooter className="pt-2">
             <Button variant="outline" onClick={onCancel} disabled={isLoading}>
               취소
             </Button>
@@ -110,10 +119,10 @@ function RollbackConfirmDialog({
                 </>
               )}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -140,16 +149,18 @@ function RollbackResultDialog({
   onClose: () => void;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="rollback-result-title"
-      onKeyDown={(e) => e.key === "Escape" && onClose()}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <Card className="w-full max-w-md mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-        <CardHeader>
-          <CardTitle
+      <DialogContent
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md"
+        showCloseButton={false}
+      >
+        <DialogHeader>
+          <DialogTitle
             id="rollback-result-title"
             className={cn(
               "flex items-center gap-2",
@@ -167,9 +178,9 @@ function RollbackResultDialog({
                 롤백 실패
               </>
             )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
           {success ? (
             <div className="space-y-2">
               <p className="text-muted-foreground">
@@ -207,12 +218,12 @@ function RollbackResultDialog({
             </div>
           )}
 
-          <div className="flex justify-end">
+          <DialogFooter>
             <Button onClick={onClose}>확인</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -351,11 +362,11 @@ export function BackupManager() {
       {/* 헤더 */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="typo-h1 flex items-center gap-2">
             <History className="h-8 w-8" />
             백업 관리
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="typo-body text-muted-foreground mt-1">
             분할 작업 기록을 관리하고 필요시 롤백할 수 있습니다.
           </p>
         </div>
