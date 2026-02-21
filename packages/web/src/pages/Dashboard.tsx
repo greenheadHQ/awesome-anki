@@ -4,7 +4,6 @@ import {
   FileStack,
   FolderOpen,
   Loader2,
-  RotateCcw,
   Scissors,
   Shield,
   Sparkles,
@@ -12,7 +11,6 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HelpTooltip } from "../components/help/HelpTooltip";
-import { OnboardingTour } from "../components/onboarding/OnboardingTour";
 import { Button } from "../components/ui/Button";
 import {
   Card,
@@ -21,7 +19,6 @@ import {
   CardTitle,
 } from "../components/ui/Card";
 import { useDeckStats, useDecks } from "../hooks/useDecks";
-import { useOnboarding } from "../hooks/useOnboarding";
 import { api } from "../lib/api";
 
 export function Dashboard() {
@@ -30,13 +27,6 @@ export function Dashboard() {
   const { data: decksData, isLoading: isLoadingDecks } = useDecks();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const { data: stats, isLoading: isLoadingStats } = useDeckStats(selectedDeck);
-  const {
-    isCompleted: onboardingCompleted,
-    shouldRun: onboardingShouldRun,
-    startOnboarding,
-    completeOnboarding,
-  } = useOnboarding();
-
   // 임베딩 상태 조회
   const { data: embeddingStatus, isLoading: isLoadingEmbedding } = useQuery({
     queryKey: ["embedding-status", selectedDeck],
@@ -64,12 +54,6 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Onboarding Tour */}
-      <OnboardingTour
-        run={onboardingShouldRun}
-        onComplete={completeOnboarding}
-      />
-
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
@@ -78,16 +62,10 @@ export function Dashboard() {
             Anki 카드를 원자적 단위로 분할하세요
           </p>
         </div>
-        {onboardingCompleted && (
-          <Button variant="ghost" size="sm" onClick={startOnboarding}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            가이드 다시 보기
-          </Button>
-        )}
       </div>
 
       {/* Deck Selector */}
-      <Card data-tour="deck-selector">
+      <Card>
         <CardHeader>
           <CardTitle className="text-lg">덱 선택</CardTitle>
         </CardHeader>
@@ -136,10 +114,7 @@ export function Dashboard() {
 
       {/* Stats Grid */}
       {selectedDeck && (
-        <div
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-          data-tour="stats-cards"
-        >
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">총 노트</CardTitle>
@@ -231,7 +206,7 @@ export function Dashboard() {
 
       {/* Quick Actions */}
       {selectedDeck && (
-        <Card data-tour="quick-actions">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg">빠른 작업</CardTitle>
           </CardHeader>
