@@ -187,6 +187,18 @@ anki-claude-code/
 - **API 인증**: 서버는 `ANKI_SPLITTER_API_KEY`가 필요합니다.
 - **웹 개발 모드**: 브라우저 번들에는 API 키를 넣지 않고, Vite 프록시(`vite dev`에서만 동작)가 `ANKI_SPLITTER_API_KEY`를 서버 사이드에서 `X-API-Key`로 주입합니다.
 - **원격 API 연결**: `VITE_API_URL`을 외부 주소로 지정할 경우, API Key 주입은 리버스 프록시/게이트웨이에서 처리해야 합니다.
+- **개발 DX 도구**: `vite dev`에서 LocatorJS + React Scan + React Grab가 기본 활성화됩니다(프로덕션 빌드 미포함).
+
+### 웹 개발 DX 도구
+
+- **LocatorJS**: Option + Click으로 컴포넌트 소스 파일을 에디터에서 엽니다.
+- **React Scan**: 렌더링 병목을 시각화하는 툴바를 표시합니다.
+- **React Grab**: 요소를 가리킨 뒤 `Cmd+C`/`Ctrl+C`로 에이전트용 컨텍스트를 복사합니다.
+- **기본 에디터 타겟**: `VITE_LOCATOR_TARGET=cursor` (`vscode`로 전환 가능)
+- **도구별 비활성화**:
+  - `VITE_DISABLE_LOCATOR=true`
+  - `VITE_DISABLE_REACT_SCAN=true`
+  - `VITE_DISABLE_REACT_GRAB=true`
 
 ## 프라이버시 모드
 
