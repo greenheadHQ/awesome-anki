@@ -447,8 +447,8 @@ export function Help() {
               <h4 className="font-medium text-sm">AnkiConnect 연결 오류</h4>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                 Anki가 실행 중인지 확인하세요. AnkiConnect 애드온(코드:
-                2055492159)이 설치되어 있어야 합니다. localhost:8765에서
-                응답해야 합니다.
+                2055492159)이 설치되어 있어야 합니다. 서버에 설정된 AnkiConnect
+                주소에서 응답해야 합니다.
               </p>
             </div>
             <div>

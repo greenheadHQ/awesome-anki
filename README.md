@@ -182,7 +182,7 @@ anki-claude-code/
 ## 주의사항
 
 - **Anki 프로필**: 반드시 `test` 프로필에서 작업 (`open -a Anki --args -p test`)
-- **AnkiConnect**: localhost:8765에서 실행 중이어야 함
+- **AnkiConnect**: `ANKI_CONNECT_URL`에 설정된 주소에서 실행 중이어야 함 (MiniPC headless Anki)
 - **API 키**: Soft Split, 검증 기능 사용 시 `GEMINI_API_KEY` 필요
 - **API 인증**: 서버는 `ANKI_SPLITTER_API_KEY`가 필요합니다.
 - **웹 개발 모드**: 브라우저 번들에는 API 키를 넣지 않고, Vite 프록시(`vite dev`에서만 동작)가 `ANKI_SPLITTER_API_KEY`를 서버 사이드에서 `X-API-Key`로 주입합니다.

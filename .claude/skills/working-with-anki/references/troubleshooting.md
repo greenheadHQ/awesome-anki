@@ -11,7 +11,7 @@
 
 ```bash
 # 연결 테스트
-curl -s http://localhost:8765 -X POST -d '{"action":"version","version":6}'
+curl -s $ANKI_CONNECT_URL -X POST -d '{"action":"version","version":6}'
 ```
 
 ## 응답 시간 초과 (TimeoutError)

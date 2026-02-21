@@ -16,7 +16,7 @@ curl -s "http://localhost:3000/api/embedding/status/덱이름" | python3 -m json
 ## AnkiConnect 직접 테스트
 
 ```bash
-curl -s http://localhost:8765 -X POST -d '{
+curl -s $ANKI_CONNECT_URL -X POST -d '{
   "action": "deckNames",
   "version": 6
 }' | python3 -m json.tool

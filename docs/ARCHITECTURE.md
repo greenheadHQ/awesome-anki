@@ -50,7 +50,7 @@ Awesome Anki는 Anki 노트를 학습 효율이 높은 원자 카드(Atomic Card
 
 | 의존 | 용도 | 기본값 |
 |------|------|--------|
-| AnkiConnect | 노트 조회/수정/삭제 | `http://localhost:8765` |
+| AnkiConnect | 노트 조회/수정/삭제 | `$ANKI_CONNECT_URL` (MiniPC headless Anki) |
 | Gemini API | soft split / validation / embedding | `GEMINI_API_KEY` 필요 |
 
 ## 6. 보안/프라이버시 경계

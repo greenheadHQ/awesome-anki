@@ -2,7 +2,7 @@
 
 ## 기본 정보
 
-- **주소**: localhost:8765
+- **주소**: `$ANKI_CONNECT_URL` (MiniPC headless Anki, Tailscale 전용)
 - **API 버전**: 6
 - **애드온 코드**: 2055492159
 - **대상 모델**: `KaTeX and Markdown Cloze` (필드: Text, Back Extra)
@@ -82,7 +82,7 @@ await ankiConnect('setEaseFactors', {
 ## 직접 테스트
 
 ```bash
-curl -s http://localhost:8765 -X POST -d '{
+curl -s $ANKI_CONNECT_URL -X POST -d '{
   "action": "deckNames",
   "version": 6
 }' | python3 -m json.tool
