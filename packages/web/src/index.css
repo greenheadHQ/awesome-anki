@@ -50,6 +50,25 @@
   border-color: hsl(var(--border));
 }
 
+/* 모든 interactive 요소에 pointer cursor */
+button,
+[role="button"],
+[role="tab"],
+a,
+select,
+summary,
+label[for],
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled {
+  cursor: not-allowed;
+}
+
 body {
   font-family: system-ui, -apple-system, sans-serif;
   background-color: hsl(var(--background));

@@ -7,6 +7,7 @@ import {
   BarChart3,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Edit,
@@ -89,24 +90,24 @@ export function PromptManager() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">프롬프트 관리</h1>
       </div>
 
       {/* 탭 네비게이션 */}
-      <div className="flex border-b mb-4">
+      <div className="flex overflow-x-auto whitespace-nowrap mb-4">
         {tabs.map((tab) => (
           <button
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 border-b-2 transition-colors",
+              "flex items-center gap-2 px-4 py-2 border-b-2 transition-colors shrink-0",
               activeTab === tab.id
                 ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
             <tab.icon className="w-4 h-4" />
@@ -182,10 +183,18 @@ function VersionsTab({
     );
   }
 
+  // 모바일: 상세 선택 시 목록 숨김
+  const showDetail = !!selectedVersion;
+
   return (
-    <div className="grid grid-cols-12 gap-4 h-full">
-      {/* 버전 목록 */}
-      <div className="col-span-5 overflow-y-auto">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
+      {/* 버전 목록 — 모바일: 상세 선택 시 숨김 */}
+      <div
+        className={cn(
+          "md:col-span-5 overflow-y-auto",
+          showDetail && "hidden md:block",
+        )}
+      >
         <Card className="h-full">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-sm">버전 목록</CardTitle>
@@ -240,12 +249,30 @@ function VersionsTab({
         </Card>
       </div>
 
-      {/* 버전 상세 */}
-      <div className="col-span-7 overflow-y-auto">
+      {/* 버전 상세 — 모바일: 전체 너비, 뒤로 버튼 */}
+      <div
+        className={cn(
+          "md:col-span-7 overflow-y-auto",
+          !showDetail && "hidden md:block",
+        )}
+      >
         {selectedVersion ? (
           <Card className="h-full">
             <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
-              <CardTitle className="text-sm">{selectedVersion.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onSelectVersion(null)}
+                  className="md:hidden"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  뒤로
+                </Button>
+                <CardTitle className="text-sm">
+                  {selectedVersion.name}
+                </CardTitle>
+              </div>
               <div className="flex items-center gap-2">
                 {selectedVersion.id !== activeVersionId && (
                   <Button
@@ -439,21 +466,27 @@ function HistoryTab({ entries, isLoading }: HistoryTabProps) {
       <CardHeader className="py-3 px-4 border-b">
         <CardTitle className="text-sm">분할 히스토리</CardTitle>
       </CardHeader>
-      <CardContent className="p-0 overflow-y-auto">
+      <CardContent className="p-0 overflow-y-auto overflow-x-auto">
         {entries.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             히스토리가 없습니다
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-muted sticky top-0">
+            <thead className="bg-muted">
               <tr>
                 <th className="text-left px-4 py-2 w-6" />
-                <th className="text-left px-4 py-2">시간</th>
+                <th className="hidden md:table-cell text-left px-4 py-2">
+                  시간
+                </th>
                 <th className="text-left px-4 py-2">Note ID</th>
-                <th className="text-left px-4 py-2">버전</th>
+                <th className="hidden md:table-cell text-left px-4 py-2">
+                  버전
+                </th>
                 <th className="text-left px-4 py-2">결과</th>
-                <th className="text-left px-4 py-2">카드 수</th>
+                <th className="hidden md:table-cell text-left px-4 py-2">
+                  카드 수
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -504,11 +537,13 @@ function HistoryRow({
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
         </td>
-        <td className="px-4 py-2 text-muted-foreground">
+        <td className="hidden md:table-cell px-4 py-2 text-muted-foreground">
           {new Date(entry.timestamp).toLocaleString()}
         </td>
         <td className="px-4 py-2 font-mono">{entry.noteId}</td>
-        <td className="px-4 py-2">{entry.promptVersionId}</td>
+        <td className="hidden md:table-cell px-4 py-2">
+          {entry.promptVersionId}
+        </td>
         <td className="px-4 py-2">
           <span
             className={cn(
@@ -529,7 +564,9 @@ function HistoryRow({
             {entry.userAction}
           </span>
         </td>
-        <td className="px-4 py-2">{entry.splitCards?.length || 0}개</td>
+        <td className="hidden md:table-cell px-4 py-2">
+          {entry.splitCards?.length || 0}개
+        </td>
       </tr>
       {isExpanded && (
         <tr>
@@ -747,7 +784,7 @@ function MetricsTab({ versions }: MetricsTabProps) {
           <CardTitle className="text-sm">전체 통계</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard label="총 분할 수" value={totalSplits} />
             <MetricCard
               label="평균 승인률"
@@ -771,7 +808,7 @@ function MetricsTab({ versions }: MetricsTabProps) {
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm">버전별 성능 비교</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {versions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               버전 데이터가 없습니다
@@ -783,9 +820,15 @@ function MetricsTab({ versions }: MetricsTabProps) {
                   <th className="text-left px-4 py-2">버전</th>
                   <th className="text-right px-4 py-2">분할 수</th>
                   <th className="text-right px-4 py-2">승인률</th>
-                  <th className="text-right px-4 py-2">수정률</th>
-                  <th className="text-right px-4 py-2">거부율</th>
-                  <th className="text-right px-4 py-2">평균 글자</th>
+                  <th className="hidden md:table-cell text-right px-4 py-2">
+                    수정률
+                  </th>
+                  <th className="hidden md:table-cell text-right px-4 py-2">
+                    거부율
+                  </th>
+                  <th className="hidden md:table-cell text-right px-4 py-2">
+                    평균 글자
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -808,16 +851,16 @@ function MetricsTab({ versions }: MetricsTabProps) {
                         %
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-right text-yellow-600">
+                    <td className="hidden md:table-cell px-4 py-2 text-right text-yellow-600">
                       {Math.round(
                         (version.metrics?.modificationRate || 0) * 100,
                       )}
                       %
                     </td>
-                    <td className="px-4 py-2 text-right text-red-600">
+                    <td className="hidden md:table-cell px-4 py-2 text-right text-red-600">
                       {Math.round((version.metrics?.rejectionRate || 0) * 100)}%
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="hidden md:table-cell px-4 py-2 text-right">
                       {Math.round(version.metrics?.avgCharCount || 0)}
                     </td>
                   </tr>
