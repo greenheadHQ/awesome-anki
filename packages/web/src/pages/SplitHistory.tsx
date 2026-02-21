@@ -75,11 +75,20 @@ function toEndIso(date: string): string {
   return `${date}T23:59:59.999Z`;
 }
 
+function toLocalDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function defaultDateRange(): { start: string; end: string } {
-  const now = new Date();
-  const end = now.toISOString().slice(0, 10);
-  const startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-  const start = startDate.toISOString().slice(0, 10);
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - 90);
+
+  const end = toLocalDateInputValue(endDate);
+  const start = toLocalDateInputValue(startDate);
   return { start, end };
 }
 

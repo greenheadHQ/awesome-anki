@@ -16,10 +16,9 @@ class NoopRemoteHistorySyncAdapter implements RemoteHistorySyncAdapter {
   async syncNow(): Promise<HistorySyncResult> {
     return {
       mode: "remote",
-      success: true,
+      success: false,
       message:
-        "Remote sync adapter is currently a noop. Configure rsync/scp implementation in a follow-up change.",
-      syncedAt: new Date().toISOString(),
+        "Remote mode enabled with noop adapter. Data source remains local SQLite until remote adapter is implemented.",
     };
   }
 

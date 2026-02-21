@@ -1,15 +1,12 @@
 declare module "@locator/runtime" {
-  export interface LocatorTargetConfig {
-    label: string;
-    url: string;
-  }
-
   export interface LocatorSetupOptions {
-    targets: Record<string, LocatorTargetConfig>;
+    adapter?: unknown;
+    targets?: Record<string, unknown | string>;
+    projectPath?: string;
     showIntro?: boolean;
   }
 
-  export default function setupLocatorUI(options: LocatorSetupOptions): void;
+  export default function setupLocatorUI(options?: LocatorSetupOptions): void;
 }
 
 declare module "react-scan" {
@@ -28,6 +25,6 @@ declare module "react-grab" {
     setEnabled(enabled: boolean): void;
   }
 
-  export function getGlobalApi(): ReactGrabApi | undefined;
+  export function getGlobalApi(): ReactGrabApi | null;
   export function init(options?: { enabled?: boolean }): ReactGrabApi;
 }

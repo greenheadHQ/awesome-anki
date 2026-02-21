@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   getSplitHistoryStore,
   resetSplitHistoryStoreForTests,
+  SplitHistoryStore,
 } from "./store.js";
 
 let tempDir = "";
@@ -112,5 +113,39 @@ describe("SplitHistoryStore", () => {
     expect(list.totalCount).toBe(1);
     expect(list.items[0]?.sessionId).toBe(second.sessionId);
     expect(list.items[0]?.status).toBe("error");
+  });
+
+  test("초기화가 일시적으로 실패해도 다음 호출에서 재시도할 수 있다", async () => {
+    const originalInitialize = SplitHistoryStore.prototype.initialize;
+    let initializeCalls = 0;
+
+    SplitHistoryStore.prototype.initialize =
+      async function patchedInitialize() {
+        initializeCalls += 1;
+        if (initializeCalls === 1) {
+          throw new Error("transient initialize failure");
+        }
+        return originalInitialize.call(this);
+      };
+
+    try {
+      await expect(getSplitHistoryStore()).rejects.toThrow(
+        "transient initialize failure",
+      );
+
+      const store = await getSplitHistoryStore();
+      const { sessionId } = store.createSession({
+        noteId: 3001,
+        deckName: "deck-retry",
+        splitType: "soft",
+        originalText: "retry",
+        originalTags: [],
+      });
+
+      expect(sessionId).toContain("session-");
+    } finally {
+      SplitHistoryStore.prototype.initialize = originalInitialize;
+      resetSplitHistoryStoreForTests();
+    }
   });
 });

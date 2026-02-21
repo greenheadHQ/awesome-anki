@@ -59,6 +59,13 @@ function mapApplyCards(
   }));
 }
 
+function isHistorySessionNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.startsWith("History session not found:")
+  );
+}
+
 /**
  * POST /api/split/preview
  * 분할 미리보기
@@ -184,10 +191,29 @@ app.post("/preview", async (c) => {
     if (versionId) {
       const version = await getPromptVersion(versionId);
       if (!version) {
+        const versionNotFoundMessage = `프롬프트 버전 '${versionId}'을 찾을 수 없습니다.`;
+        if (sessionId) {
+          try {
+            const historyStore = await getSplitHistoryStore();
+            historyStore.markError(sessionId, {
+              errorMessage: versionNotFoundMessage,
+            });
+          } catch (historyError) {
+            const message =
+              historyError instanceof Error
+                ? historyError.message
+                : String(historyError);
+            historyWarning = historyWarning
+              ? `${historyWarning}; ${message}`
+              : `히스토리 기록 실패: ${message}`;
+          }
+        }
+
         return c.json(
           {
-            error: `프롬프트 버전 '${versionId}'을 찾을 수 없습니다.`,
+            error: versionNotFoundMessage,
             requestedVersionId: versionId,
+            ...(historyWarning && { historyWarning }),
           },
           404,
         );
@@ -461,9 +487,19 @@ app.post("/reject", async (c) => {
   }
 
   const historyStore = await getSplitHistoryStore();
-  historyStore.markRejected(sessionId, {
-    rejectionReason: rejectionReason.trim(),
-  });
+  try {
+    historyStore.markRejected(sessionId, {
+      rejectionReason: rejectionReason.trim(),
+    });
+  } catch (error) {
+    if (isHistorySessionNotFoundError(error)) {
+      return c.json(
+        { error: `히스토리 세션 ${sessionId}를 찾을 수 없습니다.` },
+        404,
+      );
+    }
+    throw error;
+  }
 
   let historyWarning: string | undefined;
   try {

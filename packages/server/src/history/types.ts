@@ -139,5 +139,5 @@ export interface HistorySyncResult {
   mode: "local" | "remote";
   success: boolean;
   message: string;
-  syncedAt: string;
+  syncedAt?: string;
 }

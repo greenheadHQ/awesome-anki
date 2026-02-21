@@ -716,7 +716,13 @@ export async function getSplitHistoryStore(): Promise<SplitHistoryStore> {
   if (!storePromise) {
     const dbPath = resolveDbPath();
     const store = new SplitHistoryStore(dbPath);
-    storePromise = store.initialize().then(() => store);
+    storePromise = store
+      .initialize()
+      .then(() => store)
+      .catch((error) => {
+        storePromise = null;
+        throw error;
+      });
   }
 
   return storePromise;
