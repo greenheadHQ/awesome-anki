@@ -3,9 +3,9 @@ pre-commit:
   commands:
     biome-format:
       glob: "*.{ts,tsx,js,jsx}"
-      run: mise exec -- biome format --no-errors-on-unmatched {staged_files}
+      run: biome format --no-errors-on-unmatched {staged_files}
     gitleaks:
-      run: mise exec -- gitleaks protect --staged --no-banner --redact
+      run: gitleaks protect --staged --no-banner --redact
     docs-freshness:
       glob: "packages/**/*.{ts,tsx}"
       run: .claude/scripts/check-docs-freshness.sh {staged_files}
