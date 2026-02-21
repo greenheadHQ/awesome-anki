@@ -34,7 +34,8 @@
     "check:full": "bun run check",
     "cli": "bun run src/index.ts",
     "cli:status": "bun run src/index.ts status",
-    "cli:split": "bun run src/index.ts split"
+    "cli:split": "bun run src/index.ts split",
+    "history:sync": "bun run --cwd packages/server history:sync"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",

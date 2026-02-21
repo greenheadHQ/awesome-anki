@@ -41,11 +41,12 @@ import { ValidationPanel } from "../components/validation/ValidationPanel";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useDifficultCards } from "../hooks/useDifficultCards";
-import { useAddPromptHistory, usePromptVersions } from "../hooks/usePrompts";
+import { usePromptVersions } from "../hooks/usePrompts";
 import {
   getCachedSplitPreview,
   useSplitApply,
   useSplitPreview,
+  useSplitReject,
 } from "../hooks/useSplit";
 import type {
   CardSummary,
@@ -288,7 +289,6 @@ export function SplitWorkspace() {
     promptVersionsData?.activeVersionId ??
     promptVersionsData?.versions?.[0]?.id ??
     null;
-  const addHistory = useAddPromptHistory();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(
@@ -297,6 +297,7 @@ export function SplitWorkspace() {
 
   const splitPreview = useSplitPreview();
   const splitApply = useSplitApply();
+  const splitReject = useSplitReject();
 
   // 현재 선택된 카드의 캐시된 미리보기 결과 조회
   const cachedPreview = selectedCard
@@ -361,7 +362,11 @@ export function SplitWorkspace() {
       );
 
       if (!cached && card.analysis.canHardSplit) {
-        splitPreview.mutate({ noteId: card.noteId, useGemini: false });
+        splitPreview.mutate({
+          noteId: card.noteId,
+          useGemini: false,
+          deckName: activeDeck || undefined,
+        });
       }
     }
   };
@@ -398,6 +403,7 @@ export function SplitWorkspace() {
         noteId,
         useGemini: true,
         versionId: activeVersionId || undefined,
+        deckName: activeDeck || undefined,
       },
       {
         onSuccess: () => {
@@ -442,13 +448,16 @@ export function SplitWorkspace() {
 
   const handleApply = () => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
-    const historySplitType =
-      previewData.splitType === "hard" || previewData.splitType === "soft"
-        ? previewData.splitType
-        : splitType;
+    if (!previewData.sessionId) {
+      toast.warning(
+        "히스토리 세션이 없어 적용할 수 없습니다. 미리보기를 다시 실행해주세요.",
+      );
+      return;
+    }
 
     splitApply.mutate(
       {
+        sessionId: previewData.sessionId,
         noteId: selectedCard.noteId,
         deckName: activeDeck,
         splitCards: previewData.splitCards.map((c) => ({
@@ -462,42 +471,16 @@ export function SplitWorkspace() {
         onSuccess: (result) => {
           const syncState = recordSyncAttempt(result.syncResult);
 
-          // 히스토리 자동 기록 (확장 필드 포함)
-          if (activeVersionId && previewData?.splitCards) {
-            addHistory.mutate(
-              {
-                promptVersionId: activeVersionId,
-                noteId: selectedCard.noteId,
-                deckName: activeDeck,
-                originalContent: cardDetail?.text || selectedCard.text,
-                originalTags: cardDetail?.tags ?? [],
-                splitCards: previewData.splitCards.map((c) => ({
-                  title: c.title,
-                  content: c.content,
-                  cardType: c.cardType ?? "cloze",
-                })),
-                userAction: "approved",
-                aiModel: previewData.aiModel,
-                splitType: historySplitType,
-                splitReason: previewData.splitReason,
-                executionTimeMs: previewData.executionTimeMs,
-                tokenUsage: previewData.tokenUsage,
-                qualityChecks: null,
-              },
-              {
-                onError: () => {
-                  toast.warning("히스토리 기록 실패 (분할은 정상 적용됨)");
-                },
-              },
-            );
-          }
-
           if (syncState.hasPendingChanges) {
             toast.warning(
               `분할은 적용되었지만 동기화는 실패했습니다: ${syncState.lastError || "unknown"}`,
             );
           } else {
             toast.success("분할이 적용되고 서버와 동기화되었습니다");
+          }
+
+          if (result.historyWarning) {
+            toast.warning(result.historyWarning);
           }
 
           // 성공 후 목록에서 제거하고 다음 카드 선택
@@ -519,47 +502,32 @@ export function SplitWorkspace() {
 
   const handleReject = (rejectionReason: string) => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
-    if (!activeVersionId) {
-      toast.warning("반려를 기록하려면 프롬프트 버전이 필요합니다.");
+    if (!previewData.sessionId) {
+      toast.warning(
+        "히스토리 세션이 없어 반려할 수 없습니다. 미리보기를 다시 실행해주세요.",
+      );
       return;
     }
-    const historySplitType =
-      previewData.splitType === "hard" || previewData.splitType === "soft"
-        ? previewData.splitType
-        : splitType;
 
-    addHistory.mutate(
+    splitReject.mutate(
       {
-        promptVersionId: activeVersionId,
-        noteId: selectedCard.noteId,
-        deckName: activeDeck,
-        originalContent: cardDetail?.text || selectedCard.text,
-        originalTags: cardDetail?.tags ?? [],
-        splitCards: previewData.splitCards.map((c) => ({
-          title: c.title,
-          content: c.content,
-          cardType: c.cardType ?? "cloze",
-        })),
-        userAction: "rejected",
+        sessionId: previewData.sessionId,
         rejectionReason,
-        aiModel: previewData.aiModel,
-        splitType: historySplitType,
-        splitReason: previewData.splitReason,
-        executionTimeMs: previewData.executionTimeMs,
-        tokenUsage: previewData.tokenUsage,
-        qualityChecks: null,
       },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           queryClient.removeQueries({
             queryKey: queryKeys.split.preview(
               selectedCard.noteId,
               true,
-              activeVersionId,
+              activeVersionId || undefined,
             ),
           });
           splitPreview.reset();
           toast.info("분할 결과가 반려되었습니다");
+          if (result.historyWarning) {
+            toast.warning(result.historyWarning);
+          }
         },
         onError: () => {
           toast.warning("반려 기록 실패");
@@ -573,7 +541,11 @@ export function SplitWorkspace() {
     setSplitType(newType);
     if (selectedCard) {
       if (newType === "hard") {
-        splitPreview.mutate({ noteId: selectedCard.noteId, useGemini: false });
+        splitPreview.mutate({
+          noteId: selectedCard.noteId,
+          useGemini: false,
+          deckName: activeDeck || undefined,
+        });
       }
     }
   };
@@ -584,12 +556,12 @@ export function SplitWorkspace() {
   const activeCount =
     mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
 
-  const isBusy = addHistory.isPending || splitApply.isPending;
+  const isBusy = splitReject.isPending || splitApply.isPending;
   const canReject =
     !!selectedCard &&
     !!activeDeck &&
     !!previewData?.splitCards &&
-    !!activeVersionId &&
+    !!previewData.sessionId &&
     !isBusy;
 
   // 카드 리스트 아이템 렌더러

@@ -137,6 +137,8 @@ export {
   listExperiments,
   // Version management (renamed to avoid conflict with anki/client.ts getVersion)
   listVersions as listPromptVersions,
+  type PromptMetricsEvent,
+  recordPromptMetricsEvent,
   saveVersion as savePromptVersion,
   setActiveVersion,
 } from "./prompt-version/storage.js";

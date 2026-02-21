@@ -18,6 +18,10 @@ output/backups/
 output/embeddings/
 !output/prompts/
 
+# SQLite runtime artifacts
+data/*.db-shm
+data/*.db-wal
+
 # Codex harness projection artifacts
 .agents/
 .codex/

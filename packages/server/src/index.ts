@@ -7,10 +7,12 @@ import { AppError } from "@anki-splitter/core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { getSplitHistoryStore } from "./history/store.js";
 import backup from "./routes/backup.js";
 import cards from "./routes/cards.js";
 import decks from "./routes/decks.js";
 import embedding from "./routes/embedding.js";
+import history from "./routes/history.js";
 import media from "./routes/media.js";
 import privacy from "./routes/privacy.js";
 import prompts from "./routes/prompts.js";
@@ -90,6 +92,7 @@ app.route("/api/media", media);
 app.route("/api/validate", validate);
 app.route("/api/embedding", embedding);
 app.route("/api/prompts", prompts);
+app.route("/api/history", history);
 app.route("/api/privacy", privacy);
 
 // Error handler
@@ -107,6 +110,14 @@ app.onError((err, c) => {
 
 // Start server — Bun.serve()를 직접 호출하여 HMR 이중 바인딩 방지
 const port = parseInt(process.env.PORT || "3000", 10);
+
+getSplitHistoryStore()
+  .then(() => {
+    console.log("📚 Split history store initialized");
+  })
+  .catch((error) => {
+    console.error("⚠️ Split history store initialization failed:", error);
+  });
 
 if (!API_KEY) {
   console.warn(

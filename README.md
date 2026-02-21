@@ -172,6 +172,8 @@ bun run cli rollback <backupId>
 | `ANKI_SPLITTER_PRIVACY_SPLIT_MAX_CHARS` | split 전송 길이 제한 |
 | `ANKI_SPLITTER_PRIVACY_VALIDATION_MAX_CHARS` | validation 전송 길이 제한 |
 | `ANKI_SPLITTER_PRIVACY_EMBEDDING_MAX_CHARS` | embedding 전송 길이 제한 |
+| `SPLIT_HISTORY_DB_PATH` | 분할 이력 SQLite 파일 경로 (기본 `data/split-history.db`) |
+| `HISTORY_SYNC_MODE` | 히스토리 동기화 모드 (`local` / `remote`) |
 
 ### 7.2 웹/개발 변수
 
@@ -304,12 +306,16 @@ bun run cli rollback <backupId>
 | GET | `/api/cards/deck/:name/difficult` | 어려운 카드 목록 |
 | GET | `/api/cards/:noteId` | 단일 카드 상세 |
 
-### 9.4 Split / Backup / Media
+### 9.4 Split / History / Backup / Media
 
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
 | POST | `/api/split/preview` | 분할 미리보기 |
 | POST | `/api/split/apply` | 분할 적용 |
+| POST | `/api/split/reject` | 분할 반려 처리 |
+| GET | `/api/history` | 분할 이력 목록 조회 |
+| GET | `/api/history/:sessionId` | 분할 이력 상세 조회 |
+| GET | `/api/history/sync/health` | 히스토리 동기화 상태 |
 | GET | `/api/backup` | 백업 목록 |
 | GET | `/api/backup/latest` | 최신 백업 ID |
 | POST | `/api/backup/:id/rollback` | 롤백 실행 |
@@ -345,8 +351,6 @@ bun run cli rollback <backupId>
 | DELETE | `/api/prompts/versions/:id` | 버전 삭제 |
 | POST | `/api/prompts/versions/:id/activate` | 버전 활성화 |
 | GET | `/api/prompts/active` | 현재 활성 버전 조회 |
-| GET | `/api/prompts/history` | 분할 히스토리 조회 |
-| POST | `/api/prompts/history` | 분할 히스토리 추가 |
 | GET | `/api/prompts/versions/:id/failure-patterns` | 실패 패턴 분석 |
 | GET | `/api/prompts/experiments` | 실험 목록 |
 | GET | `/api/prompts/experiments/:id` | 실험 상세 |

@@ -2,6 +2,7 @@
  * Split API Routes
  */
 
+import { randomUUID } from "node:crypto";
 import {
   applySplitResult,
   cloneSchedulingAfterSplit,
@@ -9,20 +10,58 @@ import {
   extractTags,
   extractTextField,
   findCardsByNote,
+  getActiveVersion,
   getNoteById,
   getPromptVersion,
   NotFoundError,
   performHardSplit,
   preBackup,
+  recordPromptMetricsEvent,
   requestCardSplit,
   rollback,
   type SplitResult,
   sync,
   updateBackupWithCreatedNotes,
+  ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
+import {
+  getSplitHistoryStore,
+  HistorySessionNotFoundError,
+} from "../history/store.js";
+import type { SplitCardPayload } from "../history/types.js";
 
 const app = new Hono();
+
+function mapPreviewCards(
+  cards: Array<{
+    title: string;
+    content: string;
+    isMainCard?: boolean;
+    cardType?: "cloze" | "basic";
+    charCount?: number;
+  }>,
+): SplitCardPayload[] {
+  return cards.map((card) => ({
+    title: card.title,
+    content: card.content,
+    isMainCard: card.isMainCard,
+    cardType: card.cardType,
+    charCount: card.charCount,
+  }));
+}
+
+function mapApplyCards(
+  cards: Array<{
+    title: string;
+    content: string;
+  }>,
+): SplitCardPayload[] {
+  return cards.map((card) => ({
+    title: card.title,
+    content: card.content,
+  }));
+}
 
 /**
  * POST /api/split/preview
@@ -33,10 +72,12 @@ app.post("/preview", async (c) => {
     noteId,
     useGemini = false,
     versionId,
+    deckName = "",
   } = await c.req.json<{
     noteId: number;
     useGemini?: boolean;
     versionId?: string;
+    deckName?: string;
   }>();
 
   const note = await getNoteById(noteId);
@@ -47,87 +88,236 @@ app.post("/preview", async (c) => {
   const text = extractTextField(note);
   const tags = extractTags(note);
 
-  // Hard Split 먼저 시도 (versionId 무관)
-  if (!useGemini) {
-    const hardResult = performHardSplit(text, noteId);
-    if (hardResult && hardResult.length > 1) {
-      return c.json({
-        noteId,
-        splitType: "hard",
-        originalText: text,
-        splitCards: hardResult.map((card) => ({
+  let promptVersionId: string | undefined;
+  if (useGemini) {
+    if (versionId) {
+      promptVersionId = versionId;
+    } else {
+      const activeVersionInfo = await getActiveVersion();
+      promptVersionId = activeVersionInfo?.versionId;
+    }
+  }
+
+  let sessionId: string | undefined;
+  let historyWarning: string | undefined;
+
+  try {
+    const historyStore = await getSplitHistoryStore();
+    sessionId = historyStore.createSession({
+      noteId,
+      deckName,
+      splitType: useGemini ? "soft" : "hard",
+      promptVersionId,
+      originalText: text,
+      originalTags: tags,
+    }).sessionId;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    historyWarning = `히스토리 세션 생성 실패: ${message}`;
+    // History가 비가용이어도 apply 플로우는 유지한다.
+    sessionId = randomUUID();
+  }
+
+  try {
+    // Hard Split 먼저 시도 (versionId 무관)
+    if (!useGemini) {
+      const hardResult = performHardSplit(text, noteId);
+      if (hardResult && hardResult.length > 1) {
+        const splitCards = hardResult.map((card) => ({
           title: card.title,
           content: card.content,
           isMainCard: card.isMainCard,
           cardType: detectCardType(card.content),
-        })),
-        mainCardIndex: hardResult.findIndex((card) => card.isMainCard),
+        }));
+
+        if (sessionId) {
+          try {
+            const historyStore = await getSplitHistoryStore();
+            historyStore.markGenerated(sessionId, {
+              splitCards: mapPreviewCards(splitCards),
+              aiResponse: null,
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            historyWarning = historyWarning
+              ? `${historyWarning}; ${message}`
+              : `히스토리 기록 실패: ${message}`;
+          }
+        }
+
+        return c.json({
+          sessionId,
+          noteId,
+          splitType: "hard",
+          originalText: text,
+          splitCards,
+          mainCardIndex: hardResult.findIndex((card) => card.isMainCard),
+          ...(historyWarning && { historyWarning }),
+        });
+      }
+
+      if (sessionId) {
+        try {
+          const historyStore = await getSplitHistoryStore();
+          historyStore.markNotSplit(sessionId, {
+            splitReason:
+              "하드 분할을 적용할 수 없습니다. 소프트 분할을 사용하려면 useGemini를 활성화하세요.",
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          historyWarning = historyWarning
+            ? `${historyWarning}; ${message}`
+            : `히스토리 기록 실패: ${message}`;
+        }
+      }
+
+      return c.json({
+        sessionId,
+        noteId,
+        splitType: "none",
+        reason:
+          "하드 분할을 적용할 수 없습니다. 소프트 분할을 사용하려면 useGemini를 활성화하세요.",
+        ...(historyWarning && { historyWarning }),
       });
     }
 
-    return c.json({
-      noteId,
-      splitType: "none",
-      reason:
-        "하드 분할을 적용할 수 없습니다. 소프트 분할을 사용하려면 useGemini를 활성화하세요.",
-    });
-  }
+    // Soft Split (Gemini) 요청 — 프롬프트 버전 resolve
+    let prompts:
+      | { systemPrompt: string; splitPromptTemplate: string }
+      | undefined;
+    if (versionId) {
+      const version = await getPromptVersion(versionId);
+      if (!version) {
+        const versionNotFoundMessage = `프롬프트 버전 '${versionId}'을 찾을 수 없습니다.`;
+        if (sessionId) {
+          try {
+            const historyStore = await getSplitHistoryStore();
+            historyStore.markError(sessionId, {
+              errorMessage: versionNotFoundMessage,
+            });
+          } catch (historyError) {
+            const message =
+              historyError instanceof Error
+                ? historyError.message
+                : String(historyError);
+            historyWarning = historyWarning
+              ? `${historyWarning}; ${message}`
+              : `히스토리 기록 실패: ${message}`;
+          }
+        }
 
-  // Soft Split (Gemini) 요청 — 프롬프트 버전 resolve
-  let prompts:
-    | { systemPrompt: string; splitPromptTemplate: string }
-    | undefined;
-  if (versionId) {
-    const version = await getPromptVersion(versionId);
-    if (!version) {
-      return c.json(
-        {
-          error: `프롬프트 버전 '${versionId}'을 찾을 수 없습니다.`,
-          requestedVersionId: versionId,
-        },
-        404,
-      );
+        return c.json(
+          {
+            error: versionNotFoundMessage,
+            requestedVersionId: versionId,
+            ...(historyWarning && { historyWarning }),
+          },
+          404,
+        );
+      }
+      prompts = {
+        systemPrompt: version.systemPrompt,
+        splitPromptTemplate: version.splitPromptTemplate,
+      };
     }
-    prompts = {
-      systemPrompt: version.systemPrompt,
-      splitPromptTemplate: version.splitPromptTemplate,
-    };
-  }
 
-  const startTime = Date.now();
-  const geminiResult = await requestCardSplit({ noteId, text, tags }, prompts);
-  const executionTimeMs = Date.now() - startTime;
+    const startTime = Date.now();
+    const geminiResult = await requestCardSplit(
+      { noteId, text, tags },
+      prompts,
+    );
+    const executionTimeMs = Date.now() - startTime;
 
-  if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
-    return c.json({
-      noteId,
-      splitType: "soft",
-      originalText: text,
-      splitCards: geminiResult.splitCards.map((card, idx) => ({
+    if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
+      const splitCards = geminiResult.splitCards.map((card, idx) => ({
         title: card.title,
         content: card.content,
         isMainCard: idx === geminiResult.mainCardIndex,
         cardType: card.cardType ?? detectCardType(card.content),
         charCount: card.charCount,
-      })),
-      mainCardIndex: geminiResult.mainCardIndex,
-      splitReason: geminiResult.splitReason,
+      }));
+
+      if (sessionId) {
+        try {
+          const historyStore = await getSplitHistoryStore();
+          historyStore.markGenerated(sessionId, {
+            splitCards: mapPreviewCards(splitCards),
+            aiResponse: geminiResult as unknown as Record<string, unknown>,
+            splitReason: geminiResult.splitReason,
+            executionTimeMs,
+            aiModel: geminiResult.modelName,
+            tokenUsage: geminiResult.tokenUsage,
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          historyWarning = historyWarning
+            ? `${historyWarning}; ${message}`
+            : `히스토리 기록 실패: ${message}`;
+        }
+      }
+
+      return c.json({
+        sessionId,
+        noteId,
+        splitType: "soft",
+        originalText: text,
+        splitCards,
+        mainCardIndex: geminiResult.mainCardIndex,
+        splitReason: geminiResult.splitReason,
+        executionTimeMs,
+        tokenUsage: geminiResult.tokenUsage,
+        aiModel: geminiResult.modelName,
+        ...(historyWarning && { historyWarning }),
+      });
+    }
+
+    if (sessionId) {
+      try {
+        const historyStore = await getSplitHistoryStore();
+        historyStore.markNotSplit(sessionId, {
+          splitReason:
+            geminiResult.splitReason ||
+            "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
+          executionTimeMs,
+          aiModel: geminiResult.modelName,
+          tokenUsage: geminiResult.tokenUsage,
+          aiResponse: geminiResult as unknown as Record<string, unknown>,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        historyWarning = historyWarning
+          ? `${historyWarning}; ${message}`
+          : `히스토리 기록 실패: ${message}`;
+      }
+    }
+
+    return c.json({
+      sessionId,
+      noteId,
+      splitType: "none",
+      reason:
+        geminiResult.splitReason ||
+        "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
       executionTimeMs,
       tokenUsage: geminiResult.tokenUsage,
       aiModel: geminiResult.modelName,
+      ...(historyWarning && { historyWarning }),
     });
+  } catch (error) {
+    if (sessionId) {
+      try {
+        const historyStore = await getSplitHistoryStore();
+        const message = error instanceof Error ? error.message : String(error);
+        historyStore.markError(sessionId, { errorMessage: message });
+      } catch {
+        // Split 실패 에러를 덮어쓰지 않음
+      }
+    }
+    throw error;
   }
-
-  return c.json({
-    noteId,
-    splitType: "none",
-    reason:
-      geminiResult.splitReason ||
-      "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
-    executionTimeMs,
-    tokenUsage: geminiResult.tokenUsage,
-    aiModel: geminiResult.modelName,
-  });
 });
 
 /**
@@ -136,12 +326,14 @@ app.post("/preview", async (c) => {
  */
 app.post("/apply", async (c) => {
   const {
+    sessionId,
     noteId,
     deckName,
     splitCards,
     mainCardIndex,
     splitType = "soft",
   } = await c.req.json<{
+    sessionId: string;
     noteId: number;
     deckName: string;
     splitCards: Array<{
@@ -156,11 +348,17 @@ app.post("/apply", async (c) => {
     splitType?: "hard" | "soft";
   }>();
 
+  if (!sessionId) {
+    throw new ValidationError("sessionId가 필요합니다.");
+  }
+
   let backupId: string | undefined;
   let syncResult: { success: boolean; syncedAt?: string; error?: string } = {
     success: false,
     error: "sync not attempted",
   };
+
+  let historyWarning: string | undefined;
 
   try {
     // Critical Step 1: 백업 생성
@@ -215,6 +413,32 @@ app.post("/apply", async (c) => {
       console.warn(schedulingWarning, schedError);
     }
 
+    // Non-critical: 이력/메트릭 업데이트 (실패해도 split 결과는 유지)
+    try {
+      const historyStore = await getSplitHistoryStore();
+      const persistedCards = mapApplyCards(splitCards);
+      historyStore.markApplied(sessionId, {
+        splitCards: persistedCards,
+      });
+
+      const metadata = historyStore.getSessionMetadata(sessionId);
+      if (metadata?.promptVersionId && metadata.splitType === "soft") {
+        await recordPromptMetricsEvent({
+          promptVersionId: metadata.promptVersionId,
+          splitType: metadata.splitType,
+          userAction: "approved",
+          splitCards: metadata.splitCards,
+        });
+      }
+    } catch (historyError) {
+      const message =
+        historyError instanceof Error
+          ? historyError.message
+          : String(historyError);
+      historyWarning = `히스토리 업데이트 실패: ${message}`;
+      console.warn(historyWarning);
+    }
+
     return c.json({
       success: true,
       backupId,
@@ -223,6 +447,7 @@ app.post("/apply", async (c) => {
       newNoteIds: applied.newNoteIds,
       syncResult,
       ...(schedulingWarning && { warning: schedulingWarning }),
+      ...(historyWarning && { historyWarning }),
     });
   } catch (error) {
     // Critical step 실패 → 자동 롤백
@@ -233,8 +458,79 @@ app.post("/apply", async (c) => {
         console.error("자동 롤백 실패:", rollbackErr);
       }
     }
+
+    try {
+      const historyStore = await getSplitHistoryStore();
+      const message = error instanceof Error ? error.message : String(error);
+      historyStore.markError(sessionId, { errorMessage: message });
+    } catch {
+      // apply 에러를 덮어쓰지 않음
+    }
+
     throw error;
   }
+});
+
+/**
+ * POST /api/split/reject
+ * 분할 결과 반려
+ */
+app.post("/reject", async (c) => {
+  const { sessionId, rejectionReason } = await c.req.json<{
+    sessionId: string;
+    rejectionReason: string;
+  }>();
+
+  if (!sessionId || !rejectionReason?.trim()) {
+    throw new ValidationError("sessionId, rejectionReason이 필요합니다.");
+  }
+
+  let historyStore: Awaited<ReturnType<typeof getSplitHistoryStore>>;
+  try {
+    historyStore = await getSplitHistoryStore();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return c.json(
+      { error: `히스토리 저장소를 사용할 수 없습니다: ${message}` },
+      503,
+    );
+  }
+  try {
+    historyStore.markRejected(sessionId, {
+      rejectionReason: rejectionReason.trim(),
+    });
+  } catch (error) {
+    if (error instanceof HistorySessionNotFoundError) {
+      return c.json(
+        { error: `히스토리 세션 ${sessionId}를 찾을 수 없습니다.` },
+        404,
+      );
+    }
+    throw error;
+  }
+
+  let historyWarning: string | undefined;
+  try {
+    const metadata = historyStore.getSessionMetadata(sessionId);
+    if (metadata?.promptVersionId && metadata.splitType === "soft") {
+      await recordPromptMetricsEvent({
+        promptVersionId: metadata.promptVersionId,
+        splitType: metadata.splitType,
+        userAction: "rejected",
+        splitCards: metadata.splitCards,
+      });
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    historyWarning = `프롬프트 메트릭 갱신 실패: ${message}`;
+    console.warn(historyWarning);
+  }
+
+  return c.json({
+    success: true,
+    sessionId,
+    ...(historyWarning && { historyWarning }),
+  });
 });
 
 export default app;
