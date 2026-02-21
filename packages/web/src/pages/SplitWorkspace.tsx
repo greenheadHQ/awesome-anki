@@ -206,7 +206,6 @@ function RejectPopover({
                   placeholder="반려 사유를 입력하세요..."
                   className="w-full text-sm border rounded p-2 resize-none"
                   rows={2}
-                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey && otherText.trim()) {
                       e.preventDefault();

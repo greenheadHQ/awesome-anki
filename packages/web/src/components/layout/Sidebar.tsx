@@ -84,9 +84,10 @@ export function Sidebar({
   const location = useLocation();
 
   // 라우트 변경 시 Drawer 닫기 (이미 닫혀 있으면 무시)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: location.pathname을 트리거로 사용 (open/onClose는 의도적 생략)
   useEffect(() => {
     if (open) onClose();
-  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // Body scroll lock — 모바일 Drawer 열릴 때 배경 스크롤 방지
   useEffect(() => {
