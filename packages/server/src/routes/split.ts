@@ -17,6 +17,7 @@ import {
   requestCardSplit,
   rollback,
   type SplitResult,
+  sync,
   updateBackupWithCreatedNotes,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
@@ -156,6 +157,10 @@ app.post("/apply", async (c) => {
   }>();
 
   let backupId: string | undefined;
+  let syncResult: { success: boolean; syncedAt?: string; error?: string } = {
+    success: false,
+    error: "sync not attempted",
+  };
 
   try {
     // Critical Step 1: 백업 생성
@@ -183,6 +188,17 @@ app.post("/apply", async (c) => {
     // Critical Step 3: 백업 업데이트
     await updateBackupWithCreatedNotes(backupId, applied.newNoteIds);
 
+    // Non-critical: Sync Server 전파 (실패해도 split 결과는 유지)
+    try {
+      await sync();
+      syncResult = { success: true, syncedAt: new Date().toISOString() };
+    } catch (syncError) {
+      const message =
+        syncError instanceof Error ? syncError.message : String(syncError);
+      syncResult = { success: false, error: message };
+      console.warn("Anki sync failed after split apply:", message);
+    }
+
     // Non-critical: 학습 데이터 복제 (실패해도 롤백하지 않음)
     let schedulingWarning: string | undefined;
     try {
@@ -205,6 +221,7 @@ app.post("/apply", async (c) => {
       splitType,
       mainNoteId: applied.mainNoteId,
       newNoteIds: applied.newNoteIds,
+      syncResult,
       ...(schedulingWarning && { warning: schedulingWarning }),
     });
   } catch (error) {

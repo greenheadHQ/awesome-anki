@@ -8,9 +8,10 @@ import {
   Shield,
   Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HelpTooltip } from "../components/help/HelpTooltip";
+import { SyncStatusBadge } from "../components/SyncStatusBadge";
 import { Button } from "../components/ui/Button";
 import {
   Card,
@@ -20,12 +21,18 @@ import {
 } from "../components/ui/Card";
 import { useDeckStats, useDecks } from "../hooks/useDecks";
 import { api } from "../lib/api";
+import {
+  readSyncStatus,
+  SYNC_STATUS_EVENT,
+  type SyncStatusState,
+} from "../lib/sync-status";
 
 export function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: decksData, isLoading: isLoadingDecks } = useDecks();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatusState | null>(null);
   const { data: stats, isLoading: isLoadingStats } = useDeckStats(selectedDeck);
   // 임베딩 상태 조회
   const { data: embeddingStatus, isLoading: isLoadingEmbedding } = useQuery({
@@ -51,6 +58,18 @@ export function Dashboard() {
       });
     },
   });
+
+  useEffect(() => {
+    const refresh = () => setSyncStatus(readSyncStatus());
+    refresh();
+
+    window.addEventListener(SYNC_STATUS_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(SYNC_STATUS_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -109,6 +128,17 @@ export function Dashboard() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">
+            Anki 동기화 상태
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SyncStatusBadge status={syncStatus} />
         </CardContent>
       </Card>
 

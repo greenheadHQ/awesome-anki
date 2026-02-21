@@ -455,7 +455,8 @@ export function Help() {
               <h4 className="font-medium text-sm">분할이 적용되지 않음</h4>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                 "분할 적용" 버튼을 클릭해야 실제로 적용됩니다. 미리보기만으로는
-                카드가 변경되지 않습니다. 적용 후 Anki에서 동기화하세요.
+                카드가 변경되지 않습니다. 적용 시 자동 동기화를 시도하며,
+                실패하면 경고가 표시됩니다.
               </p>
             </div>
             <div>
