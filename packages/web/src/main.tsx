@@ -52,6 +52,7 @@ const initLocator = async (): Promise<void> => {
     const { default: setupLocatorUI } = await import("@locator/runtime");
     setupLocatorUI({
       targets: buildLocatorTargets(getLocatorTarget()),
+      showIntro: false,
     });
     devtoolsState.locator = true;
   } catch (error) {
