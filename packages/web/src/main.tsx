@@ -92,10 +92,13 @@ const initReactGrab = async (): Promise<void> => {
   }
 
   try {
-    const { init } = await import("react-grab/core");
-    const reactGrabApi = init({
-      enabled: false,
-    });
+    const reactGrabModule = await import("react-grab");
+    const reactGrabApi =
+      reactGrabModule.getGlobalApi() ??
+      reactGrabModule.init({
+        enabled: false,
+      });
+    reactGrabApi.setToolbarState({ enabled: true });
     reactGrabApi.setEnabled(false);
     devtoolsState.reactGrab = true;
   } catch (error) {
