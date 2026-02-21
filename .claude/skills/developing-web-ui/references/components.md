@@ -55,7 +55,7 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 
 - (?) 아이콘 클릭 시 Popover 표시
 - `helpContent.ts`에서 콘텐츠 정의
-- shadcn `Popover` 컴포넌트 사용 (`components/ui/popover`)
+- shadcn `Popover` 컴포넌트 사용 (`packages/web/src/components/ui/popover`)
 - `cursor-pointer` 클래스 필수
 
 ```tsx

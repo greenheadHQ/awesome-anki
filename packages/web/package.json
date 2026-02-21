@@ -9,7 +9,7 @@
     "typecheck": "tsc -b",
     "lint": "bunx @biomejs/biome check src",
     "test": "vitest run",
-    "test:component": "vitest run",
+    "test:component": "vitest run tests/components",
     "test:e2e": "playwright test",
     "preview": "vite preview"
   },

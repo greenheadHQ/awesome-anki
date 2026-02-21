@@ -7,7 +7,7 @@ import {
   Scissors,
   X,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils";
 
@@ -82,6 +82,9 @@ export function Sidebar({
   const location = useLocation();
   const animationTimerRef = useRef<number | null>(null);
   const isInitialRenderRef = useRef(true);
+  const notifyAnimationState = useEffectEvent((animating: boolean) => {
+    onAnimationStateChange?.(animating);
+  });
 
   useEffect(() => {
     if (animationTimerRef.current !== null) {
@@ -91,15 +94,15 @@ export function Sidebar({
 
     if (isInitialRenderRef.current) {
       isInitialRenderRef.current = false;
-      onAnimationStateChange?.(false);
+      notifyAnimationState(false);
       return;
     }
 
     // CSS 전환(duration-200) 대비 약간 여유를 둬서 플래그 해제 타이밍을 안정화한다.
     const transitionMs = open ? 220 : 200;
-    onAnimationStateChange?.(true);
+    notifyAnimationState(true);
     animationTimerRef.current = window.setTimeout(() => {
-      onAnimationStateChange?.(false);
+      notifyAnimationState(false);
       animationTimerRef.current = null;
     }, transitionMs);
     return () => {
@@ -108,7 +111,7 @@ export function Sidebar({
         animationTimerRef.current = null;
       }
     };
-  }, [open, onAnimationStateChange]);
+  }, [open]);
 
   // 라우트 변경 시 Drawer 닫기 (이미 닫혀 있으면 무시)
   // biome-ignore lint/correctness/useExhaustiveDependencies: location.pathname을 트리거로 사용 (open/onClose는 의도적 생략)
@@ -160,6 +163,8 @@ export function Sidebar({
         role="dialog"
         aria-modal="true"
         aria-label="내비게이션 메뉴"
+        aria-hidden={!open}
+        inert={!open || undefined}
         className={cn(
           "fixed left-0 top-0 z-50 h-dvh w-64 border-r bg-card transition-transform duration-200 ease-out md:hidden",
           open ? "translate-x-0" : "-translate-x-full",
