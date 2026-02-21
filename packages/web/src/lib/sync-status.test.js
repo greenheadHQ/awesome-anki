@@ -70,6 +70,19 @@ describe("sync-status", () => {
     expect(failed.lastError).toContain("auth not configured");
   });
 
+  test("records fallback state when sync result is missing", () => {
+    const state = recordSyncAttempt();
+
+    expect(state.hasPendingChanges).toBe(true);
+    expect(state.lastSuccessAt).toBeNull();
+    expect(state.lastError).toBe("unknown");
+
+    const persisted = readSyncStatus();
+    expect(persisted).not.toBeNull();
+    expect(persisted?.hasPendingChanges).toBe(true);
+    expect(persisted?.lastError).toBe("unknown");
+  });
+
   test("returns null for malformed payload", () => {
     localStorage.setItem(SYNC_STATUS_STORAGE_KEY, "{broken");
     expect(readSyncStatus()).toBeNull();
