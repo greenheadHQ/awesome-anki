@@ -26,7 +26,9 @@ export function SyncStatusBadge({
     return (
       <div className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-900">
         <AlertTriangle className="h-3.5 w-3.5" />
-        미동기화 변경 있음 · 마지막 성공 {formatTimestamp(status.lastSuccessAt)}
+        미동기화 변경 있음
+        {status.lastSuccessAt &&
+          ` · 마지막 성공 ${formatTimestamp(status.lastSuccessAt)}`}
       </div>
     );
   }
