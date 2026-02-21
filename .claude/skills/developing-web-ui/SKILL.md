@@ -95,7 +95,7 @@ queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
 - E2E 스모크: `packages/web/tests/e2e/smoke.spec.ts` (Playwright)
 - 실행 명령:
   - `bun run --cwd packages/web test`
-  - `bun run --cwd packages/web test:e2e`
+  - `bun run --cwd packages/web test:e2e` (`packages/web/playwright.config.ts`의 `webServer`가 `bun run preview`를 자동 실행하므로 별도 dev 서버 기동 불필요)
 
 ## 상세 참조
 

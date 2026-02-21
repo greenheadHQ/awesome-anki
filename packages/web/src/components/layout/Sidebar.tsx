@@ -81,6 +81,7 @@ export function Sidebar({
 }) {
   const location = useLocation();
   const animationTimerRef = useRef<number | null>(null);
+  const isInitialRenderRef = useRef(true);
 
   useEffect(() => {
     if (animationTimerRef.current !== null) {
@@ -88,7 +89,14 @@ export function Sidebar({
       animationTimerRef.current = null;
     }
 
-    const transitionMs = open ? 220 : 220;
+    if (isInitialRenderRef.current) {
+      isInitialRenderRef.current = false;
+      onAnimationStateChange?.(false);
+      return;
+    }
+
+    // CSS 전환(duration-200) 대비 약간 여유를 둬서 플래그 해제 타이밍을 안정화한다.
+    const transitionMs = open ? 220 : 200;
     onAnimationStateChange?.(true);
     animationTimerRef.current = window.setTimeout(() => {
       onAnimationStateChange?.(false);

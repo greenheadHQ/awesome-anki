@@ -38,12 +38,12 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 
 ## shadcn UI primitives
 
-- `components/ui/button.tsx`: variant/size API 유지(`default|secondary|destructive|outline|ghost`, `default|sm|lg|icon`)
-- `components/ui/card.tsx`: `CardHeader/CardTitle/CardContent` 구조 기반
-- `components/ui/popover.tsx`: HelpTooltip/반려 사유 팝오버
-- `components/ui/select.tsx`: Dashboard/CardBrowser/SplitWorkspace 헤더 필터
-- `components/ui/table.tsx`: CardBrowser/PromptManager 목록
-- `components/ui/dialog.tsx`: BackupManager 롤백 확인/결과 모달
+- `packages/web/src/components/ui/button.tsx`: variant/size API 유지(`default|secondary|destructive|outline|ghost|link`, `default|sm|lg|icon`)
+- `packages/web/src/components/ui/card.tsx`: `CardHeader/CardTitle/CardContent` 구조 기반
+- `packages/web/src/components/ui/popover.tsx`: HelpTooltip/반려 사유 팝오버
+- `packages/web/src/components/ui/select.tsx`: Dashboard/CardBrowser/SplitWorkspace 헤더 필터
+- `packages/web/src/components/ui/table.tsx`: CardBrowser/PromptManager 목록
+- `packages/web/src/components/ui/dialog.tsx`: BackupManager 롤백 확인/결과 모달
 
 ## SplitPreviewCard
 
@@ -102,16 +102,16 @@ Route에 `errorElement={<RouteError />}` 반드시 포함:
 
 ## 디자인 토큰
 
-- 전역 토큰/타이포 유틸은 `src/index.css`에 정의
+- 전역 토큰/타이포 유틸은 `packages/web/src/index.css`에 정의
 - 대표 토큰:
-  - `typo-h1`, `typo-h2`, `typo-body`, `typo-caption`
+  - `typo-h1`, `typo-h2`, `typo-h3`, `typo-body`, `typo-body-lg`, `typo-body-sm`, `typo-caption`
   - `--primary`, `--muted`, `--success`, `--warning`, `--info`
 
 ## 테스트 컴포넌트
 
-- `tests/components/button.test.tsx`
-- `tests/components/card.test.tsx`
-- `tests/components/dialog.test.tsx`
+- `packages/web/tests/components/button.test.tsx`
+- `packages/web/tests/components/card.test.tsx`
+- `packages/web/tests/components/dialog.test.tsx`
 
 ## OnboardingTour (deprecated 예정)
 

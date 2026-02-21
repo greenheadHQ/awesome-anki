@@ -27,7 +27,7 @@ describe("Dialog", () => {
     expect(screen.getByText("Rollback")).toBeInTheDocument();
     expect(screen.getByText("Confirm rollback action")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    fireEvent.click(screen.getByRole("button", { name: /닫기|close/i }));
     expect(onOpenChange).toHaveBeenCalled();
   });
 });
