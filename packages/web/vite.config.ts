@@ -7,9 +7,19 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const proxyTarget = env.VITE_API_PROXY_TARGET || "http://localhost:3000";
   const apiKey = env.ANKI_SPLITTER_API_KEY;
+  const locatorBabelPlugin: [string, { env: "development" }] = [
+    "@locator/babel-jsx/dist",
+    { env: "development" },
+  ];
 
   return {
-    plugins: [react()],
+    plugins: [
+      react({
+        babel: {
+          plugins: mode === "development" ? [locatorBabelPlugin] : [],
+        },
+      }),
+    ],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

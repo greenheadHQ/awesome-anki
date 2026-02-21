@@ -192,6 +192,7 @@ anki-claude-code/
 ### 웹 개발 DX 도구
 
 - **LocatorJS**: Option + Click으로 컴포넌트 소스 파일을 에디터에서 엽니다.
+- **LocatorJS 소스 매핑**: Vite Babel 체인에 `@locator/babel-jsx`를 연결해 data-id 기반 소스 위치 정보를 주입합니다.
 - **React Scan**: 렌더링 병목을 시각화하는 툴바를 표시합니다.
 - **React Grab**: 요소를 가리킨 뒤 `Cmd+C`/`Ctrl+C`로 에이전트용 컨텍스트를 복사합니다.
 - **기본 에디터 타겟**: `VITE_LOCATOR_TARGET=cursor` (`vscode`로 전환 가능)
