@@ -2,8 +2,6 @@
 
 ## 안전 규칙 (최우선)
 
-- **반드시 `test` 프로필에서만 작업**: `open -a Anki --args -p test`
-- 기본 Anki 프로필 접근 **절대 금지**
 - `--apply` 없이 항상 **미리보기 먼저 확인**
 - `GEMINI_API_KEY` 필요 (Soft Split, 검증용) — agenix로 `secrets/*.age`에서 자동 복호화
 
@@ -16,10 +14,9 @@ Anki 카드를 원자적 단위로 분할하는 웹 앱 + CLI. Gemini AI로 정�
 - **도구 관리**: Nix flake devShell (`nix develop` 또는 `direnv allow`)
 - **시크릿**: agenix 암호화 (`secrets/*.age`) — direnv 진입 시 자동 복호화
 - **런타임**: Bun (npm 아님)
-- **AnkiConnect**: localhost:8765 (애드온 2055492159)
+- **AnkiConnect**: MiniPC `100.79.80.95:8765` (Tailscale, headless Anki, profile: `server`)
 - **대상 모델**: `KaTeX and Markdown Cloze` (필드: Text, Back Extra)
 - **LLM**: `gemini-3-flash-preview` (구조화된 출력, 1M 토큰)
-- **Anki 프로필**: `test` 전용
 
 ## 테스트 데이터
 
