@@ -61,7 +61,7 @@
 해결:
 1. Anki 실행
 2. AnkiConnect 설치/활성 확인
-3. `ANKI_CONNECT_URL` 확인 (기본 `http://localhost:8765`)
+3. `ANKI_CONNECT_URL` 확인 (`.envrc`에서 MiniPC Tailscale 주소로 설정)
 
 ---
 

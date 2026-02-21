@@ -4,6 +4,12 @@ dist/
 *.colpkg
 .DS_Store
 
+# direnv
+.direnv/
+
+# Nix
+result
+
 # .claude/
 .claude/plans/
 
