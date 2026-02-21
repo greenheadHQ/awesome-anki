@@ -121,6 +121,9 @@ export function Sidebar({
           />
           {/* Drawer — z-50: backdrop 위 */}
           <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="내비게이션 메뉴"
             className="fixed left-0 top-0 z-50 h-dvh w-64 border-r bg-card md:hidden"
             style={{ overscrollBehavior: "contain" }}
           >

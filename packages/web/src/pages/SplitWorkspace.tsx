@@ -1057,7 +1057,7 @@ export function SplitWorkspace() {
                 role="tab"
                 id={`tab-${tab.id}`}
                 aria-selected={activePanel === tab.id}
-                aria-controls={`panel-${tab.id}`}
+                aria-controls="mobile-tabpanel"
                 onClick={() => setActivePanel(tab.id)}
                 className={cn(
                   "flex-1 py-2.5 text-sm font-medium transition-colors",
@@ -1074,7 +1074,7 @@ export function SplitWorkspace() {
           {/* 패널 콘텐츠 */}
           <div
             role="tabpanel"
-            id={`panel-${activePanel}`}
+            id="mobile-tabpanel"
             aria-labelledby={`tab-${activePanel}`}
             className="flex-1 flex flex-col min-h-0"
           >

@@ -63,6 +63,12 @@ input[type="radio"] {
   cursor: pointer;
 }
 
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled {
+  cursor: not-allowed;
+}
+
 body {
   font-family: system-ui, -apple-system, sans-serif;
   background-color: hsl(var(--background));
