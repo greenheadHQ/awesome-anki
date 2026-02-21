@@ -7,6 +7,15 @@
 - **해결**: `.container-*` → `.callout-*`로 변경
 - **관련 파일**: `packages/web/src/index.css`, `ContentRenderer.tsx`
 
+## shadcn 파일 casing 충돌
+
+- **문제**: `Button.tsx`와 `button.tsx` 경로 혼용 시 TS 중복 include 에러 발생
+- **증상**: `differs only in casing` 타입체크 오류
+- **해결**: `components/ui/*` import를 모두 소문자 경로로 통일
+  - `../components/ui/button`
+  - `../components/ui/card`
+  - `../components/ui/popover`
+
 ## ContentRenderer `<br>` 태그 처리
 
 - **문제**: Anki 카드의 `<br>` 태그가 렌더링되지 않음
@@ -30,6 +39,25 @@
   <div className="col-span-5 flex flex-col min-h-0 overflow-hidden">
   ```
 
+## 모바일 Drawer 열림 애니메이션이 안 보임
+
+- **문제**: 햄버거 클릭 시 닫힘은 애니메이션되지만 열림은 즉시 표시됨
+- **원인**: mount 타이밍에 최종 상태 클래스가 적용되어 transition 시작점이 사라짐
+- **해결**: 모바일 Drawer/backdrop을 항상 mount하고 `open` 값으로 `translate-x`/`opacity`만 전환
+  - 관련 파일: `components/layout/Sidebar.tsx`
+
+## Drawer 빠른 연타 시 애니메이션 끊김
+
+- **문제**: 버튼 연타 시 상태 전환이 겹쳐 뚝뚝 끊김
+- **해결**: `isSidebarAnimating` 잠금으로 애니메이션 구간(약 220ms) 동안 입력 차단
+  - 관련 파일: `components/layout/Layout.tsx`, `components/layout/Sidebar.tsx`
+
+## 탭 전환이 뚝뚝 끊김
+
+- **문제**: SplitWorkspace/PromptManager 탭 콘텐츠가 즉시 교체됨
+- **해결**: 콘텐츠 래퍼에 `animate-in fade-in-0 slide-in-from-right-2 duration-200` 적용
+  - 관련 파일: `pages/SplitWorkspace.tsx`, `pages/PromptManager.tsx`
+
 ## react-joyride import 에러
 
 - **문제**: `CallBackProps` 타입 import 시 런타임 에러
@@ -43,6 +71,20 @@
 
 - **문제**: v4에서 `tailwindcss init` 명령어 변경
 - **해결**: `@tailwindcss/postcss` 플러그인 사용 (`postcss.config.js`)
+
+## Biome에서 Tailwind 지시어 파싱 실패
+
+- **문제**: `@theme`, `@apply` 문법에서 Biome parse 에러
+- **해결**: `biome.json`에 css parser 옵션 활성화
+  ```json
+  {
+    "css": {
+      "parser": {
+        "tailwindDirectives": true
+      }
+    }
+  }
+  ```
 
 ## KaTeX CSS 로딩
 
