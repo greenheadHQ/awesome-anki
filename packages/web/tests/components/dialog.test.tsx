@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -19,6 +20,7 @@ describe("Dialog", () => {
             <DialogTitle>Rollback</DialogTitle>
             <DialogDescription>Confirm rollback action</DialogDescription>
           </DialogHeader>
+          <DialogClose>Close dialog</DialogClose>
         </DialogContent>
       </Dialog>,
     );
@@ -27,7 +29,7 @@ describe("Dialog", () => {
     expect(screen.getByText("Rollback")).toBeInTheDocument();
     expect(screen.getByText("Confirm rollback action")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /닫기|close/i }));
-    expect(onOpenChange).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /close dialog/i }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

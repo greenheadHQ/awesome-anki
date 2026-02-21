@@ -28,13 +28,12 @@ import {
 } from "../components/ui/select";
 import { useDeckStats, useDecks } from "../hooks/useDecks";
 import { api } from "../lib/api";
+import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
 import {
   readSyncStatus,
   SYNC_STATUS_EVENT,
   type SyncStatusState,
 } from "../lib/sync-status";
-
-const DECK_SELECT_PLACEHOLDER = "__deck_placeholder__";
 
 export function Dashboard() {
   const navigate = useNavigate();

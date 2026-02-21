@@ -4,7 +4,8 @@ description: |
   This skill should be used when users request web UI development or debugging.
   Triggers: "React 컴포넌트 추가", "ContentRenderer 수정",
   "TanStack Query", "CSS 충돌", "웹 UI 버그", "페이지 추가",
-  "Tailwind 스타일", "렌더링 문제".
+  "Tailwind 스타일", "렌더링 문제", "shadcn", "shadcn 컴포넌트",
+  "shadcn 마이그레이션", "variant API", "UI 마이그레이션", "마이그레이션".
   Covers the React frontend, components, query patterns, and UI troubleshooting.
 ---
 

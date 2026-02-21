@@ -18,6 +18,6 @@ describe("Card", () => {
 
     const card = screen.getByText("Summary").closest("div[data-slot='card']");
     expect(card).toBeInTheDocument();
-    expect(card?.className).toContain("bg-card");
+    expect(card).toHaveClass("bg-card");
   });
 });

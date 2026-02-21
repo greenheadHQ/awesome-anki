@@ -323,43 +323,43 @@
 }
 
 .callout.tip {
-  background-color: #e0f7fa;
-  border-left-color: #00acc1;
-  color: #193c47;
+  background-color: color-mix(in oklab, var(--info) 14%, transparent);
+  border-left-color: var(--info);
+  color: var(--foreground);
 }
 
 .callout.warning {
-  background-color: #fff3e0;
-  border-left-color: #ffb300;
-  color: #4d3800;
+  background-color: color-mix(in oklab, var(--warning) 14%, transparent);
+  border-left-color: var(--warning);
+  color: var(--foreground);
 }
 
 .callout.error {
-  background-color: #ffebee;
-  border-left-color: #e53935;
-  color: #712c30;
+  background-color: color-mix(in oklab, var(--destructive) 14%, transparent);
+  border-left-color: var(--destructive);
+  color: var(--foreground);
 }
 
 .callout.note {
-  background-color: #e8f5e9;
-  border-left-color: #43a047;
-  color: #013100;
+  background-color: color-mix(in oklab, var(--success) 14%, transparent);
+  border-left-color: var(--success);
+  color: var(--foreground);
 }
 
 .callout.link {
-  background-color: #f9f9f9;
-  border-left-color: #ccd0d5;
-  color: #15171a;
+  background-color: var(--muted);
+  border-left-color: var(--border);
+  color: var(--muted-foreground);
 }
 
 /* Toggle */
 .toggle {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 5px;
   margin: 10px 0;
   overflow: hidden;
-  background-color: #fafafa;
-  border-left: 5px solid #ccd0d5;
+  background-color: var(--muted);
+  border-left: 5px solid var(--border);
 }
 
 .toggle .toggle-header {
@@ -383,7 +383,7 @@
   height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-left: 7px solid #666;
+  border-left: 7px solid var(--muted-foreground);
   transition: transform 0.3s ease;
 }
 
@@ -393,7 +393,7 @@
 
 .toggle .toggle-title {
   font-weight: 500;
-  color: #333;
+  color: var(--foreground);
 }
 
 .toggle .toggle-content {
@@ -408,33 +408,33 @@
 }
 
 .toggle.tip {
-  background-color: #e0f7fa;
-  border-color: #b2ebf2;
-  border-left-color: #00acc1;
+  background-color: color-mix(in oklab, var(--info) 12%, var(--muted));
+  border-color: color-mix(in oklab, var(--info) 35%, var(--border));
+  border-left-color: var(--info);
 }
 
 .toggle.warning {
-  background-color: #fff3e0;
-  border-color: #ffe0b2;
-  border-left-color: #ffb300;
+  background-color: color-mix(in oklab, var(--warning) 12%, var(--muted));
+  border-color: color-mix(in oklab, var(--warning) 35%, var(--border));
+  border-left-color: var(--warning);
 }
 
 .toggle.error {
-  background-color: #ffebee;
-  border-color: #ffcdd2;
-  border-left-color: #e53935;
+  background-color: color-mix(in oklab, var(--destructive) 12%, var(--muted));
+  border-color: color-mix(in oklab, var(--destructive) 35%, var(--border));
+  border-left-color: var(--destructive);
 }
 
 .toggle.note {
-  background-color: #e8f5e9;
-  border-color: #c8e6c9;
-  border-left-color: #43a047;
+  background-color: color-mix(in oklab, var(--success) 12%, var(--muted));
+  border-color: color-mix(in oklab, var(--success) 35%, var(--border));
+  border-left-color: var(--success);
 }
 
 .toggle.todo {
-  background-color: #f3e5f5;
-  border-color: #e1bee7;
-  border-left-color: #9c27b0;
+  background-color: color-mix(in oklab, var(--primary) 10%, var(--muted));
+  border-color: color-mix(in oklab, var(--primary) 30%, var(--border));
+  border-left-color: var(--primary);
 }
 
 /* Prose */
@@ -525,7 +525,7 @@
 
 .content-rendered hr {
   border: none;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid var(--border);
   margin: 1em 0;
 }
 
@@ -537,7 +537,7 @@
 
 .content-rendered th,
 .content-rendered td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   padding: 8px 12px;
   text-align: left;
 }
@@ -552,7 +552,7 @@
 }
 
 .content-rendered pre {
-  background-color: #f5f5f5;
+  background-color: var(--muted);
   border-radius: 5px;
   padding: 12px;
   overflow-x: auto;
@@ -560,7 +560,7 @@
 }
 
 .content-rendered code {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-family: var(--font-family-mono);

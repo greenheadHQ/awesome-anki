@@ -12,8 +12,8 @@ describe("Button", () => {
 
     const button = screen.getByRole("button", { name: "Delete" });
     expect(button).toHaveAttribute("data-variant", "destructive");
-    expect(button.className).toContain("bg-destructive");
-    expect(button.className).toContain("h-9");
+    expect(button).toHaveClass("bg-destructive");
+    expect(button).toHaveClass("h-9");
   });
 
   it("supports asChild composition", () => {
@@ -25,6 +25,6 @@ describe("Button", () => {
 
     const link = screen.getByRole("link", { name: "Docs" });
     expect(link).toHaveAttribute("data-slot", "button");
-    expect(link.className).toContain("bg-primary");
+    expect(link).toHaveClass("bg-primary");
   });
 });

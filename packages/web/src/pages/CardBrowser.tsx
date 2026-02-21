@@ -41,9 +41,20 @@ import {
   useValidationCache,
 } from "../hooks/useValidationCache";
 import type { ValidationStatus } from "../lib/api";
+import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
 import { cn } from "../lib/utils";
 
-const DECK_SELECT_PLACEHOLDER = "__deck_placeholder__";
+const CARD_FILTER_VALUES = [
+  "all",
+  "splitable",
+  "unvalidated",
+  "needs-review",
+] as const;
+type CardFilter = (typeof CARD_FILTER_VALUES)[number];
+
+function isCardFilter(value: string): value is CardFilter {
+  return (CARD_FILTER_VALUES as readonly string[]).includes(value);
+}
 
 // 검증 상태 아이콘 컴포넌트
 function ValidationIcon({
@@ -138,9 +149,7 @@ export function CardBrowser() {
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(initialDeck);
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<
-    "all" | "splitable" | "unvalidated" | "needs-review"
-  >("all");
+  const [filter, setFilter] = useState<CardFilter>("all");
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
 
   const { data: decksData } = useDecks();
@@ -250,7 +259,8 @@ export function CardBrowser() {
           <Select
             value={filter}
             onValueChange={(value) => {
-              setFilter(value as typeof filter);
+              if (!isCardFilter(value)) return;
+              setFilter(value);
               setPage(1);
             }}
           >

@@ -542,22 +542,22 @@ function HistoryRow({
 }) {
   return (
     <>
-      <tr className="hover:bg-muted/50 cursor-pointer" onClick={onToggle}>
-        <td className="pl-4 py-2">
+      <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={onToggle}>
+        <TableCell className="pl-4 py-2">
           {isExpanded ? (
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
           ) : (
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
-        </td>
-        <td className="hidden md:table-cell px-4 py-2 text-muted-foreground">
+        </TableCell>
+        <TableCell className="hidden md:table-cell px-4 py-2 text-muted-foreground">
           {new Date(entry.timestamp).toLocaleString()}
-        </td>
-        <td className="px-4 py-2 font-mono">{entry.noteId}</td>
-        <td className="hidden md:table-cell px-4 py-2">
+        </TableCell>
+        <TableCell className="px-4 py-2 font-mono">{entry.noteId}</TableCell>
+        <TableCell className="hidden md:table-cell px-4 py-2">
           {entry.promptVersionId}
-        </td>
-        <td className="px-4 py-2">
+        </TableCell>
+        <TableCell className="px-4 py-2">
           <span
             className={cn(
               "px-1.5 py-0.5 rounded text-xs flex items-center gap-1 w-fit",
@@ -576,11 +576,11 @@ function HistoryRow({
             )}
             {entry.userAction}
           </span>
-        </td>
-        <td className="hidden md:table-cell px-4 py-2">
+        </TableCell>
+        <TableCell className="hidden md:table-cell px-4 py-2">
           {entry.splitCards?.length || 0}개
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {isExpanded && (
         <tr>
           <td colSpan={6} className="bg-muted/30 px-6 py-4">

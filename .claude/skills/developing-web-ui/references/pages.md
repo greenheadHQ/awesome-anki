@@ -21,6 +21,7 @@
 - 덱 선택 `Select`
 - **프롬프트 버전 선택 `Select`** (활성 버전 ✓ 표시)
 - 분할 후보 수 표시
+- 페이지 타이틀/본문은 `typo-h1`, `typo-body` 토큰 사용
 
 ### 모바일 UX
 - 탭(`후보 목록/원본/미리보기`) 전환 시 fade + slide 애니메이션 적용
@@ -43,12 +44,14 @@
 
 필터 옵션: 전체, 분할 가능, 미검증, 검토 필요 (`Select`)
 카드 목록은 shadcn `Table` 사용
+- 페이지 타이틀/본문은 `typo-h1`, `typo-body` 토큰 사용
 
 ## 4. BackupManager (/backups)
 
 - 백업 목록 카드 UI (시간, 원본 noteId, 생성된 카드 수)
 - 롤백 버튼 + 확인/결과 `Dialog` (shadcn)
 - 롤백 성공/실패 피드백
+- 페이지 타이틀/본문은 `typo-h1`, `typo-body` 토큰 사용
 
 ## 5. PromptManager (/prompts)
 
@@ -59,8 +62,11 @@
 | 실험 | A/B 테스트 목록, 생성 |
 | 메트릭 | 전체 통계, 버전별 성능 비교 |
 
-- 탭 전환 시 fade + slide 애니메이션
 - 히스토리/메트릭 표는 shadcn `Table` 사용
+- 페이지 타이틀/본문은 `typo-h1`, `typo-body` 토큰 사용
+
+### 모바일 UX
+- 탭(`버전/히스토리/실험/메트릭`) 전환 시 fade + slide 애니메이션 적용
 
 ## 6. Help (/help)
 

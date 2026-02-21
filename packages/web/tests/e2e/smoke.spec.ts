@@ -9,14 +9,14 @@ const routes = [
   { path: "/help", heading: /도움말/ },
 ] as const;
 
-test("core routes render without crash", async ({ page }) => {
-  for (const route of routes) {
+for (const route of routes) {
+  test(`route ${route.path} renders without crash`, async ({ page }) => {
     await page.goto(route.path);
     await expect(
       page.getByRole("heading", { name: route.heading }),
     ).toBeVisible();
-  }
-});
+  });
+}
 
 test("dashboard shows deck selector trigger", async ({ page }) => {
   await page.goto("/");
