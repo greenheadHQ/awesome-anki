@@ -58,6 +58,7 @@ export interface CardDetail extends CardSummary {
 }
 
 export interface SplitPreviewResult {
+  sessionId?: string;
   noteId: number;
   splitType: "hard" | "soft" | "none";
   originalText?: string;
@@ -78,6 +79,7 @@ export interface SplitPreviewResult {
     completionTokens?: number;
     totalTokens?: number;
   };
+  historyWarning?: string;
 }
 
 /** @deprecated Use SplitPreviewResult instead */
@@ -95,6 +97,13 @@ export interface SplitApplyResult {
     error?: string;
   };
   warning?: string;
+  historyWarning?: string;
+}
+
+export interface SplitRejectResult {
+  success: boolean;
+  sessionId: string;
+  historyWarning?: string;
 }
 
 export interface BackupEntry {
@@ -255,40 +264,77 @@ export interface ActiveVersionInfo {
   activatedAt: string;
 }
 
-export interface SplitHistoryEntry {
-  id: string;
-  promptVersionId: string;
+export type SplitHistoryStatus =
+  | "generating"
+  | "generated"
+  | "applied"
+  | "rejected"
+  | "error"
+  | "not_split";
+
+export interface SplitHistoryListItem {
+  sessionId: string;
   noteId: number;
   deckName: string;
-  originalContent: string;
-  originalCharCount: number;
-  originalTags?: string[];
+  splitType: "hard" | "soft";
+  status: SplitHistoryStatus;
+  promptVersionId?: string;
+  splitReason?: string;
+  aiModel?: string;
+  cardCount: number;
+  createdAt: string;
+  updatedAt: string;
+  appliedAt?: string;
+}
+
+export interface SplitHistoryEvent {
+  eventId: string;
+  sessionId: string;
+  eventType: string;
+  status: SplitHistoryStatus;
+  createdAt: string;
+  payload: Record<string, unknown> | null;
+}
+
+export interface SplitHistoryDetail {
+  sessionId: string;
+  noteId: number;
+  deckName: string;
+  splitType: "hard" | "soft";
+  status: SplitHistoryStatus;
+  promptVersionId?: string;
+  originalText: string;
+  originalTags: string[];
+  aiResponse: Record<string, unknown> | null;
   splitCards: Array<{
     title: string;
     content: string;
-    charCount?: number;
+    isMainCard?: boolean;
     cardType?: "cloze" | "basic";
+    charCount?: number;
   }>;
-  userAction: "approved" | "modified" | "rejected";
-  rejectionReason?: string;
-  modificationDetails?: {
-    lengthReduced: boolean;
-    contextAdded: boolean;
-    clozeChanged: boolean;
-    cardsMerged: boolean;
-    cardsSplit: boolean;
-    hintAdded: boolean;
-  };
-  aiModel?: string;
-  splitType?: "hard" | "soft";
   splitReason?: string;
+  aiModel?: string;
   executionTimeMs?: number;
   tokenUsage?: {
     promptTokens?: number;
     completionTokens?: number;
     totalTokens?: number;
   };
-  timestamp: string;
+  rejectionReason?: string;
+  errorMessage?: string;
+  source: "runtime" | "legacy_json";
+  createdAt: string;
+  updatedAt: string;
+  appliedAt?: string;
+  events: SplitHistoryEvent[];
+}
+
+export interface SplitHistorySyncHealth {
+  mode: "local" | "remote";
+  status: "ok" | "degraded";
+  message: string;
+  updatedAt: string;
 }
 
 export interface Experiment {
@@ -386,12 +432,18 @@ export const api = {
   },
 
   split: {
-    preview: (noteId: number, useGemini = false, versionId?: string) =>
+    preview: (
+      noteId: number,
+      useGemini = false,
+      versionId?: string,
+      deckName?: string,
+    ) =>
       fetchJson<SplitPreviewResult>("/split/preview", {
         method: "POST",
-        body: JSON.stringify({ noteId, useGemini, versionId }),
+        body: JSON.stringify({ noteId, useGemini, versionId, deckName }),
       }),
     apply: (data: {
+      sessionId: string;
       noteId: number;
       deckName: string;
       splitCards: Array<{
@@ -406,6 +458,11 @@ export const api = {
       splitType?: "hard" | "soft";
     }) =>
       fetchJson<SplitApplyResult>("/split/apply", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    reject: (data: { sessionId: string; rejectionReason: string }) =>
+      fetchJson<SplitRejectResult>("/split/reject", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -518,65 +575,6 @@ export const api = {
         `/prompts/versions/${versionId}/activate`,
         { method: "POST" },
       ),
-    history: (opts?: { page?: number; limit?: number; versionId?: string }) => {
-      const params = new URLSearchParams();
-      const effectiveLimit = opts?.limit ?? 100;
-      if (opts?.page && opts.page > 1) {
-        params.set("offset", String((opts.page - 1) * effectiveLimit));
-      }
-      params.set("limit", String(effectiveLimit));
-      if (opts?.versionId) params.set("versionId", opts.versionId);
-      const query = params.toString();
-      return fetchJson<{
-        history: SplitHistoryEntry[];
-        totalCount: number;
-        offset: number;
-        limit: number;
-        hasMore: boolean;
-      }>(`/prompts/history${query ? `?${query}` : ""}`);
-    },
-    addHistory: (data: {
-      promptVersionId: string;
-      noteId: number;
-      deckName: string;
-      originalContent: string;
-      originalTags?: string[];
-      splitCards: Array<{
-        title: string;
-        content: string;
-        charCount?: number;
-        cardType?: "cloze" | "basic";
-      }>;
-      userAction: "approved" | "modified" | "rejected";
-      rejectionReason?: string;
-      modificationDetails?: {
-        lengthReduced: boolean;
-        contextAdded: boolean;
-        clozeChanged: boolean;
-        cardsMerged: boolean;
-        cardsSplit: boolean;
-        hintAdded: boolean;
-      };
-      qualityChecks: {
-        allCardsUnder80Chars: boolean;
-        allClozeHaveHints: boolean;
-        noEnumerations: boolean;
-        allContextTagsPresent: boolean;
-      } | null;
-      aiModel?: string;
-      splitType?: "hard" | "soft";
-      splitReason?: string;
-      executionTimeMs?: number;
-      tokenUsage?: {
-        promptTokens?: number;
-        completionTokens?: number;
-        totalTokens?: number;
-      };
-    }) =>
-      fetchJson<SplitHistoryEntry>("/prompts/history", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
     experiments: () =>
       fetchJson<{ experiments: Experiment[]; total: number }>(
         "/prompts/experiments",
@@ -604,5 +602,47 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+  },
+
+  history: {
+    list: (opts?: {
+      page?: number;
+      limit?: number;
+      deckName?: string;
+      status?: SplitHistoryStatus;
+      splitType?: "hard" | "soft";
+      startDate?: string;
+      endDate?: string;
+    }) => {
+      const params = new URLSearchParams();
+      if (opts?.page) params.set("page", String(opts.page));
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.deckName) params.set("deckName", opts.deckName);
+      if (opts?.status) params.set("status", opts.status);
+      if (opts?.splitType) params.set("splitType", opts.splitType);
+      if (opts?.startDate) params.set("startDate", opts.startDate);
+      if (opts?.endDate) params.set("endDate", opts.endDate);
+      const query = params.toString();
+      return fetchJson<{
+        items: SplitHistoryListItem[];
+        totalCount: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+        hasMore: boolean;
+        filters: {
+          deckName: string | null;
+          status: SplitHistoryStatus | null;
+          splitType: "hard" | "soft" | null;
+          startDate: string;
+          endDate: string;
+        };
+      }>(`/history${query ? `?${query}` : ""}`);
+    },
+    detail: (sessionId: string) =>
+      fetchJson<SplitHistoryDetail>(
+        `/history/${encodeURIComponent(sessionId)}`,
+      ),
+    syncHealth: () => fetchJson<SplitHistorySyncHealth>("/history/sync/health"),
   },
 };

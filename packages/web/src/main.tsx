@@ -49,7 +49,10 @@ const initLocator = async (): Promise<void> => {
   }
 
   try {
-    const { default: setupLocatorUI } = await import("@locator/runtime");
+    const locatorRuntimeModule = "@locator/runtime";
+    const { default: setupLocatorUI } = await import(
+      /* @vite-ignore */ locatorRuntimeModule
+    );
     setupLocatorUI({
       targets: buildLocatorTargets(getLocatorTarget()),
       showIntro: false,
@@ -69,7 +72,10 @@ const initReactScan = async (): Promise<void> => {
   }
 
   try {
-    const { scan, setOptions } = await import("react-scan");
+    const reactScanModule = "react-scan";
+    const { scan, setOptions } = await import(
+      /* @vite-ignore */ reactScanModule
+    );
     scan({
       enabled: false,
       showToolbar: true,
@@ -93,7 +99,10 @@ const initReactGrab = async (): Promise<void> => {
   }
 
   try {
-    const reactGrabModule = await import("react-grab");
+    const reactGrabModuleName = "react-grab";
+    const reactGrabModule = await import(
+      /* @vite-ignore */ reactGrabModuleName
+    );
     const reactGrabApi =
       reactGrabModule.getGlobalApi() ??
       reactGrabModule.init({

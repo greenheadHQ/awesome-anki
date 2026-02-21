@@ -51,34 +51,6 @@ export function useActivatePrompt() {
 }
 
 /**
- * 분할 히스토리 조회
- */
-export function usePromptHistory(opts?: {
-  page?: number;
-  limit?: number;
-  versionId?: string;
-}) {
-  return useQuery({
-    queryKey: queryKeys.prompts.history(opts),
-    queryFn: () => api.prompts.history(opts),
-  });
-}
-
-/**
- * 분할 히스토리 추가
- */
-export function useAddPromptHistory() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: api.prompts.addHistory,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.history() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.versions });
-    },
-  });
-}
-
-/**
  * 실험 목록 조회
  */
 export function useExperiments() {

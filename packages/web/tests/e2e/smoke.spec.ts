@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 const routes = [
   { path: "/", heading: /dashboard/i },
   { path: "/split", heading: /분할 작업/ },
+  { path: "/history", heading: /분할 이력/ },
   { path: "/browse", heading: /카드 브라우저/ },
   { path: "/backups", heading: /백업 관리/ },
   { path: "/prompts", heading: /프롬프트 관리/ },

@@ -231,6 +231,21 @@ function getHistoryFileName(date: Date = new Date()): string {
   return `history-${dateStr}.json`;
 }
 
+export interface PromptMetricsEvent {
+  promptVersionId: string;
+  splitType?: "hard" | "soft";
+  userAction: "approved" | "modified" | "rejected";
+  splitCards: Array<{
+    title?: string;
+    content: string;
+    charCount?: number;
+    cardType?: "cloze" | "basic";
+    contextTag?: string;
+  }>;
+  modificationDetails?: SplitHistoryEntry["modificationDetails"];
+  timestamp?: string;
+}
+
 /**
  * 히스토리 항목 추가
  */
@@ -264,6 +279,38 @@ export async function addHistoryEntry(
   await updateVersionMetrics(entry.promptVersionId, newEntry);
 
   return newEntry;
+}
+
+/**
+ * 히스토리 본문 저장 없이 프롬프트 메트릭만 갱신
+ */
+export async function recordPromptMetricsEvent(
+  event: PromptMetricsEvent,
+): Promise<void> {
+  const timestamp = event.timestamp ?? new Date().toISOString();
+
+  const entry: SplitHistoryEntry = {
+    id: `metrics-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    timestamp,
+    promptVersionId: event.promptVersionId,
+    noteId: 0,
+    deckName: "",
+    originalContent: "",
+    originalCharCount: 0,
+    splitCards: event.splitCards.map((card) => ({
+      title: card.title ?? "",
+      content: card.content,
+      charCount: card.charCount,
+      cardType: card.cardType,
+      contextTag: card.contextTag,
+    })),
+    userAction: event.userAction,
+    modificationDetails: event.modificationDetails,
+    qualityChecks: null,
+    splitType: event.splitType,
+  };
+
+  await updateVersionMetrics(event.promptVersionId, entry);
 }
 
 /**

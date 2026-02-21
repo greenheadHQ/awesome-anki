@@ -14,11 +14,13 @@ export function useSplitPreview() {
       noteId,
       useGemini = false,
       versionId,
+      deckName,
     }: {
       noteId: number;
       useGemini?: boolean;
       versionId?: string;
-    }) => api.split.preview(noteId, useGemini, versionId),
+      deckName?: string;
+    }) => api.split.preview(noteId, useGemini, versionId, deckName),
     onSuccess: (data, variables) => {
       // 결과를 React Query 캐시에 저장 (카드별+버전별 독립 캐시)
       queryClient.setQueryData(
@@ -53,6 +55,7 @@ export function useSplitApply() {
 
   return useMutation({
     mutationFn: (data: {
+      sessionId: string;
       noteId: number;
       deckName: string;
       splitCards: Array<{
@@ -72,6 +75,13 @@ export function useSplitApply() {
       // 백업 목록도 새로고침
       queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
     },
+  });
+}
+
+export function useSplitReject() {
+  return useMutation({
+    mutationFn: (data: { sessionId: string; rejectionReason: string }) =>
+      api.split.reject(data),
   });
 }
 
