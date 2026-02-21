@@ -290,18 +290,20 @@ export class SplitHistoryStore {
       `legacy-${entry.id || `${entry.noteId}-${Date.parse(timestamp) || Date.now()}`}`,
     );
 
-    const aiResponse =
+    const hasAiResponseMetadata = Boolean(
       entry.aiModel ||
-      entry.splitReason ||
-      entry.executionTimeMs ||
-      entry.tokenUsage
-        ? {
-            aiModel: entry.aiModel,
-            splitReason: entry.splitReason,
-            executionTimeMs: entry.executionTimeMs,
-            tokenUsage: entry.tokenUsage,
-          }
-        : null;
+        entry.splitReason ||
+        entry.executionTimeMs ||
+        entry.tokenUsage,
+    );
+    const aiResponse = hasAiResponseMetadata
+      ? {
+          aiModel: entry.aiModel,
+          splitReason: entry.splitReason,
+          executionTimeMs: entry.executionTimeMs,
+          tokenUsage: entry.tokenUsage,
+        }
+      : null;
 
     const insert = this.db.query(
       `INSERT INTO split_sessions (

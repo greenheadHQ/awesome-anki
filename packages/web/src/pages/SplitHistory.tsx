@@ -8,7 +8,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { Button } from "../components/ui/button";
 import {
@@ -49,6 +49,53 @@ const STATUS_OPTIONS: Array<{ value: SplitHistoryStatus; label: string }> = [
   { value: "error", label: "Error" },
   { value: "not_split", label: "Not Split" },
 ];
+
+const AI_PREVIEW_MAX_DEPTH = 2;
+const AI_PREVIEW_MAX_ARRAY_ITEMS = 20;
+const AI_PREVIEW_MAX_OBJECT_KEYS = 30;
+const AI_PREVIEW_MAX_STRING_CHARS = 400;
+
+function buildAiResponsePreview(value: unknown, depth = 0): unknown {
+  if (value == null) return value;
+
+  if (typeof value === "string") {
+    if (value.length <= AI_PREVIEW_MAX_STRING_CHARS) return value;
+    const omitted = value.length - AI_PREVIEW_MAX_STRING_CHARS;
+    return `${value.slice(0, AI_PREVIEW_MAX_STRING_CHARS)}... (${omitted} chars omitted)`;
+  }
+
+  if (typeof value !== "object") return value;
+
+  if (depth >= AI_PREVIEW_MAX_DEPTH) {
+    return "[Truncated]";
+  }
+
+  if (Array.isArray(value)) {
+    const previewItems = value
+      .slice(0, AI_PREVIEW_MAX_ARRAY_ITEMS)
+      .map((item) => buildAiResponsePreview(item, depth + 1));
+
+    if (value.length > AI_PREVIEW_MAX_ARRAY_ITEMS) {
+      previewItems.push(
+        `... (${value.length - AI_PREVIEW_MAX_ARRAY_ITEMS} more items)`,
+      );
+    }
+    return previewItems;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>);
+  const previewObject: Record<string, unknown> = {};
+  for (const [index, [key, nested]] of entries.entries()) {
+    if (index >= AI_PREVIEW_MAX_OBJECT_KEYS) break;
+    previewObject[key] = buildAiResponsePreview(nested, depth + 1);
+  }
+
+  if (entries.length > AI_PREVIEW_MAX_OBJECT_KEYS) {
+    previewObject.__truncated__ = `${entries.length - AI_PREVIEW_MAX_OBJECT_KEYS} more keys`;
+  }
+
+  return previewObject;
+}
 
 function statusStyle(status: SplitHistoryStatus): string {
   switch (status) {
@@ -108,15 +155,17 @@ function StatusBadge({ status }: { status: SplitHistoryStatus }) {
 }
 
 export function SplitHistory() {
+  const [defaultRange] = useState(defaultDateRange);
   const [page, setPage] = useState(1);
   const [deckName, setDeckName] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [splitType, setSplitType] = useState<string>("all");
-  const [startDate, setStartDate] = useState(() => defaultDateRange().start);
-  const [endDate, setEndDate] = useState(() => defaultDateRange().end);
+  const [startDate, setStartDate] = useState(defaultRange.start);
+  const [endDate, setEndDate] = useState(defaultRange.end);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null,
   );
+  const [showFullAiResponse, setShowFullAiResponse] = useState(false);
 
   const { data: decksData } = useDecks();
   const { data: syncHealth } = useHistorySyncHealth();
@@ -132,6 +181,20 @@ export function SplitHistory() {
   });
 
   const detail = useHistoryDetail(selectedSessionId);
+
+  const aiResponsePreviewText = useMemo(() => {
+    if (!detail.data?.aiResponse) return null;
+    return JSON.stringify(
+      buildAiResponsePreview(detail.data.aiResponse),
+      null,
+      2,
+    );
+  }, [detail.data?.aiResponse]);
+
+  const aiResponseFullText = useMemo(() => {
+    if (!showFullAiResponse || !detail.data?.aiResponse) return null;
+    return JSON.stringify(detail.data.aiResponse, null, 2);
+  }, [showFullAiResponse, detail.data?.aiResponse]);
 
   const listItems = historyList.data?.items || [];
 
@@ -279,7 +342,10 @@ export function SplitHistory() {
                     <TableRow
                       key={item.sessionId}
                       className="cursor-pointer"
-                      onClick={() => setSelectedSessionId(item.sessionId)}
+                      onClick={() => {
+                        setShowFullAiResponse(false);
+                        setSelectedSessionId(item.sessionId);
+                      }}
                     >
                       <TableCell>
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -462,9 +528,22 @@ export function SplitHistory() {
                     <summary className="cursor-pointer text-sm font-medium">
                       AI Raw Response (JSON)
                     </summary>
-                    <pre className="mt-2 text-xs overflow-x-auto bg-muted p-2 rounded">
-                      {JSON.stringify(detail.data.aiResponse, null, 2)}
-                    </pre>
+                    <div className="mt-2 space-y-2">
+                      <pre className="text-xs overflow-x-auto bg-muted p-2 rounded">
+                        {showFullAiResponse
+                          ? aiResponseFullText
+                          : aiResponsePreviewText}
+                      </pre>
+                      {!showFullAiResponse && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowFullAiResponse(true)}
+                        >
+                          전체 응답 보기
+                        </Button>
+                      )}
+                    </div>
                   </details>
                 )}
               </div>

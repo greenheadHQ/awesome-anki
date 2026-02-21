@@ -485,7 +485,16 @@ app.post("/reject", async (c) => {
     throw new ValidationError("sessionId, rejectionReason이 필요합니다.");
   }
 
-  const historyStore = await getSplitHistoryStore();
+  let historyStore: Awaited<ReturnType<typeof getSplitHistoryStore>>;
+  try {
+    historyStore = await getSplitHistoryStore();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return c.json(
+      { error: `히스토리 저장소를 사용할 수 없습니다: ${message}` },
+      503,
+    );
+  }
   try {
     historyStore.markRejected(sessionId, {
       rejectionReason: rejectionReason.trim(),
