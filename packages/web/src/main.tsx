@@ -68,9 +68,13 @@ const initReactScan = async (): Promise<void> => {
   }
 
   try {
-    const { scan } = await import("react-scan");
+    const { scan, setOptions } = await import("react-scan");
     scan({
-      enabled: true,
+      enabled: false,
+      showToolbar: true,
+    });
+    setOptions({
+      enabled: false,
       showToolbar: true,
     });
     devtoolsState.reactScan = true;
@@ -88,7 +92,11 @@ const initReactGrab = async (): Promise<void> => {
   }
 
   try {
-    await import("react-grab");
+    const { init } = await import("react-grab/core");
+    const reactGrabApi = init({
+      enabled: false,
+    });
+    reactGrabApi.setEnabled(false);
     devtoolsState.reactGrab = true;
   } catch (error) {
     console.warn("[devtools] React Grab initialization failed.", error);
