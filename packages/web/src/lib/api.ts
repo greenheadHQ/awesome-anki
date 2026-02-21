@@ -89,6 +89,11 @@ export interface SplitApplyResult {
   splitType?: "hard" | "soft";
   mainNoteId: number;
   newNoteIds: number[];
+  syncResult?: {
+    success: boolean;
+    syncedAt?: string;
+    error?: string;
+  };
   warning?: string;
 }
 

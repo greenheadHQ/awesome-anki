@@ -46,6 +46,7 @@ import type {
   SplitPreviewResult,
 } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
+import { recordSyncAttempt } from "../lib/sync-status";
 import { cn } from "../lib/utils";
 
 // NOTE: core의 REJECTION_REASONS는 런타임 import 시 브라우저 번들 경계를 넘기 때문에
@@ -451,7 +452,9 @@ export function SplitWorkspace() {
         splitType,
       },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
+          const syncState = recordSyncAttempt(result.syncResult);
+
           // 히스토리 자동 기록 (확장 필드 포함)
           if (activeVersionId && previewData?.splitCards) {
             addHistory.mutate(
@@ -481,7 +484,15 @@ export function SplitWorkspace() {
               },
             );
           }
-          toast.success("분할이 적용되었습니다");
+
+          if (syncState.hasPendingChanges) {
+            toast.warning(
+              `분할은 적용되었지만 동기화는 실패했습니다: ${syncState.lastError || "unknown"}`,
+            );
+          } else {
+            toast.success("분할이 적용되고 서버와 동기화되었습니다");
+          }
+
           // 성공 후 목록에서 제거하고 다음 카드 선택
           const activeList =
             mode === "candidates" ? candidates : difficultCards;
