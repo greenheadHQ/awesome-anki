@@ -2,6 +2,7 @@
  * Split API Routes
  */
 
+import { randomUUID } from "node:crypto";
 import {
   applySplitResult,
   cloneSchedulingAfterSplit,
@@ -24,7 +25,10 @@ import {
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
-import { getSplitHistoryStore } from "../history/store.js";
+import {
+  getSplitHistoryStore,
+  HistorySessionNotFoundError,
+} from "../history/store.js";
 import type { SplitCardPayload } from "../history/types.js";
 
 const app = new Hono();
@@ -57,13 +61,6 @@ function mapApplyCards(
     title: card.title,
     content: card.content,
   }));
-}
-
-function isHistorySessionNotFoundError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    error.message.startsWith("History session not found:")
-  );
 }
 
 /**
@@ -117,6 +114,8 @@ app.post("/preview", async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     historyWarning = `히스토리 세션 생성 실패: ${message}`;
+    // History가 비가용이어도 apply 플로우는 유지한다.
+    sessionId = randomUUID();
   }
 
   try {
@@ -492,7 +491,7 @@ app.post("/reject", async (c) => {
       rejectionReason: rejectionReason.trim(),
     });
   } catch (error) {
-    if (isHistorySessionNotFoundError(error)) {
+    if (error instanceof HistorySessionNotFoundError) {
       return c.json(
         { error: `히스토리 세션 ${sessionId}를 찾을 수 없습니다.` },
         404,

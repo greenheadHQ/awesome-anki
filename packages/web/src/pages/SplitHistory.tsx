@@ -8,7 +8,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { Button } from "../components/ui/button";
 import {
@@ -68,11 +68,13 @@ function statusStyle(status: SplitHistoryStatus): string {
 }
 
 function toStartIso(date: string): string {
-  return `${date}T00:00:00.000Z`;
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0).toISOString();
 }
 
 function toEndIso(date: string): string {
-  return `${date}T23:59:59.999Z`;
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day, 23, 59, 59, 999).toISOString();
 }
 
 function toLocalDateInputValue(date: Date): string {
@@ -106,13 +108,12 @@ function StatusBadge({ status }: { status: SplitHistoryStatus }) {
 }
 
 export function SplitHistory() {
-  const defaults = useMemo(() => defaultDateRange(), []);
   const [page, setPage] = useState(1);
   const [deckName, setDeckName] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [splitType, setSplitType] = useState<string>("all");
-  const [startDate, setStartDate] = useState(defaults.start);
-  const [endDate, setEndDate] = useState(defaults.end);
+  const [startDate, setStartDate] = useState(() => defaultDateRange().start);
+  const [endDate, setEndDate] = useState(() => defaultDateRange().end);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null,
   );
@@ -246,6 +247,13 @@ export function SplitHistory() {
             {historyList.isLoading ? (
               <div className="h-full flex items-center justify-center">
                 <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            ) : historyList.isError ? (
+              <div className="h-full flex items-center justify-center text-destructive px-4 text-sm">
+                <AlertTriangle className="w-5 h-5 mr-2 shrink-0" />
+                {historyList.error instanceof Error
+                  ? `이력 조회 실패: ${historyList.error.message}`
+                  : "이력 조회 실패"}
               </div>
             ) : listItems.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground">

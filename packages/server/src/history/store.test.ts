@@ -115,9 +115,81 @@ describe("SplitHistoryStore", () => {
     expect(list.items[0]?.status).toBe("error");
   });
 
+  test("not_split 상태 전이와 필터가 동작한다", async () => {
+    const store = await getSplitHistoryStore();
+    const { sessionId } = store.createSession({
+      noteId: 2101,
+      deckName: "deck-not-split",
+      splitType: "hard",
+      originalText: "원본 not split",
+      originalTags: [],
+    });
+
+    store.markNotSplit(sessionId, {
+      splitReason: "분할 불필요",
+      aiModel: "gemini",
+      executionTimeMs: 42,
+    });
+
+    const detail = store.getSessionDetail(sessionId);
+    expect(detail).not.toBeNull();
+    expect(detail?.status).toBe("not_split");
+
+    const eventTypes = detail?.events.map((event) => event.eventType) || [];
+    expect(eventTypes).toEqual(["session_created", "preview_not_split"]);
+
+    const filtered = store.getHistoryList({
+      page: 1,
+      limit: 20,
+      status: "not_split",
+      startDate: "2000-01-01T00:00:00.000Z",
+      endDate: "2100-01-01T00:00:00.000Z",
+    });
+
+    expect(filtered.items.some((item) => item.sessionId === sessionId)).toBe(
+      true,
+    );
+  });
+
+  test("rejected 상태 전이와 필터가 동작한다", async () => {
+    const store = await getSplitHistoryStore();
+    const { sessionId } = store.createSession({
+      noteId: 2102,
+      deckName: "deck-rejected",
+      splitType: "soft",
+      originalText: "원본 rejected",
+      originalTags: [],
+    });
+
+    store.markRejected(sessionId, {
+      rejectionReason: "사유 테스트",
+    });
+
+    const detail = store.getSessionDetail(sessionId);
+    expect(detail).not.toBeNull();
+    expect(detail?.status).toBe("rejected");
+    expect(detail?.rejectionReason).toBe("사유 테스트");
+
+    const eventTypes = detail?.events.map((event) => event.eventType) || [];
+    expect(eventTypes).toEqual(["session_created", "split_rejected"]);
+
+    const filtered = store.getHistoryList({
+      page: 1,
+      limit: 20,
+      status: "rejected",
+      startDate: "2000-01-01T00:00:00.000Z",
+      endDate: "2100-01-01T00:00:00.000Z",
+    });
+
+    expect(filtered.items.some((item) => item.sessionId === sessionId)).toBe(
+      true,
+    );
+  });
+
   test("초기화가 일시적으로 실패해도 다음 호출에서 재시도할 수 있다", async () => {
     const originalInitialize = SplitHistoryStore.prototype.initialize;
     let initializeCalls = 0;
+    let recoveredStore: SplitHistoryStore | null = null;
 
     SplitHistoryStore.prototype.initialize =
       async function patchedInitialize() {
@@ -133,8 +205,8 @@ describe("SplitHistoryStore", () => {
         "transient initialize failure",
       );
 
-      const store = await getSplitHistoryStore();
-      const { sessionId } = store.createSession({
+      recoveredStore = await getSplitHistoryStore();
+      const { sessionId } = recoveredStore.createSession({
         noteId: 3001,
         deckName: "deck-retry",
         splitType: "soft",
@@ -145,6 +217,11 @@ describe("SplitHistoryStore", () => {
       expect(sessionId).toContain("session-");
     } finally {
       SplitHistoryStore.prototype.initialize = originalInitialize;
+      try {
+        recoveredStore?.close();
+      } catch {
+        // close 실패는 테스트 정리 단계를 막지 않음
+      }
       resetSplitHistoryStoreForTests();
     }
   });

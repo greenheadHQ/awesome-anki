@@ -1,7 +1,12 @@
 declare module "@locator/runtime" {
+  export interface LocatorTarget {
+    url: string;
+    label: string;
+  }
+
   export interface LocatorSetupOptions {
     adapter?: unknown;
-    targets?: Record<string, unknown | string>;
+    targets?: Record<string, LocatorTarget | string>;
     projectPath?: string;
     showIntro?: boolean;
   }
@@ -20,8 +25,15 @@ declare module "react-scan" {
 }
 
 declare module "react-grab" {
+  export interface ReactGrabToolbarState {
+    edge: "top" | "bottom" | "left" | "right";
+    ratio: number;
+    collapsed: boolean;
+    enabled: boolean;
+  }
+
   export interface ReactGrabApi {
-    setToolbarState(state: { enabled: boolean }): void;
+    setToolbarState(state: Partial<ReactGrabToolbarState>): void;
     setEnabled(enabled: boolean): void;
   }
 

@@ -123,6 +123,17 @@ function buildLegacyMigrationKey(entry: SplitHistoryEntry): string {
   ].join("|");
 }
 
+function hasValidLegacyNoteId(noteId: unknown): noteId is number {
+  return typeof noteId === "number" && Number.isFinite(noteId);
+}
+
+export class HistorySessionNotFoundError extends Error {
+  constructor(sessionId: string) {
+    super(`History session not found: ${sessionId}`);
+    this.name = "HistorySessionNotFoundError";
+  }
+}
+
 export class SplitHistoryStore {
   readonly dbPath: string;
   private readonly db: Database;
@@ -236,27 +247,36 @@ export class SplitHistoryStore {
       .filter((name) => name.startsWith("history-") && name.endsWith(".json"))
       .sort();
 
+    const allEntries: SplitHistoryEntry[] = [];
     for (const file of files) {
       const fullPath = join(LEGACY_HISTORY_PATH, file);
       const raw = await readFile(fullPath, "utf8");
-      let entries: SplitHistoryEntry[] = [];
       try {
-        entries = JSON.parse(raw) as SplitHistoryEntry[];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          allEntries.push(...(parsed as SplitHistoryEntry[]));
+        }
       } catch {
-        continue;
-      }
-
-      for (const entry of entries) {
-        this.importLegacyEntry(entry);
+        // malformed 파일은 무시
       }
     }
+
+    const importAllEntries = this.db.transaction(
+      (entries: SplitHistoryEntry[]) => {
+        for (const entry of entries) {
+          this.importLegacyEntry(entry);
+        }
+      },
+    );
+    importAllEntries(allEntries);
 
     this.markMigration(SCHEMA_MIGRATION_LEGACY);
   }
 
   private importLegacyEntry(entry: SplitHistoryEntry): void {
+    if (!hasValidLegacyNoteId(entry.noteId)) return;
+
     const dedupKey = buildLegacyMigrationKey(entry);
-    if (!dedupKey.trim()) return;
 
     const dedupStmt = this.db.query<{ id: string }, [string]>(
       "SELECT id FROM split_sessions WHERE migration_dedup_key = ?",
@@ -360,30 +380,32 @@ export class SplitHistoryStore {
       ) VALUES (?, ?, ?, ?, 'generating', ?, ?, ?, 'runtime', ?, ?)`,
     );
 
-    stmt.run(
-      sessionId,
-      input.noteId,
-      input.deckName,
-      input.splitType,
-      input.promptVersionId || null,
-      input.originalText,
-      JSON.stringify(input.originalTags || []),
-      createdAt,
-      createdAt,
-    );
+    this.db.transaction(() => {
+      stmt.run(
+        sessionId,
+        input.noteId,
+        input.deckName,
+        input.splitType,
+        input.promptVersionId || null,
+        input.originalText,
+        JSON.stringify(input.originalTags || []),
+        createdAt,
+        createdAt,
+      );
 
-    this.insertEvent(
-      sessionId,
-      "session_created",
-      "generating",
-      {
-        noteId: input.noteId,
-        deckName: input.deckName,
-        splitType: input.splitType,
-        promptVersionId: input.promptVersionId,
-      },
-      createdAt,
-    );
+      this.insertEvent(
+        sessionId,
+        "session_created",
+        "generating",
+        {
+          noteId: input.noteId,
+          deckName: input.deckName,
+          splitType: input.splitType,
+          promptVersionId: input.promptVersionId,
+        },
+        createdAt,
+      );
+    })();
 
     return { sessionId };
   }
@@ -404,34 +426,36 @@ export class SplitHistoryStore {
        WHERE id = ?`,
     );
 
-    const result = stmt.run(
-      JSON.stringify(payload.splitCards || []),
-      toNullableJson(payload.aiResponse),
-      payload.splitReason || null,
-      payload.aiModel || null,
-      payload.executionTimeMs ?? null,
-      toNullableJson(payload.tokenUsage ?? null),
-      updatedAt,
-      sessionId,
-    );
+    this.db.transaction(() => {
+      const result = stmt.run(
+        JSON.stringify(payload.splitCards || []),
+        toNullableJson(payload.aiResponse),
+        payload.splitReason || null,
+        payload.aiModel || null,
+        payload.executionTimeMs ?? null,
+        toNullableJson(payload.tokenUsage ?? null),
+        updatedAt,
+        sessionId,
+      );
 
-    if (result.changes === 0) {
-      throw new Error(`History session not found: ${sessionId}`);
-    }
+      if (result.changes === 0) {
+        throw new HistorySessionNotFoundError(sessionId);
+      }
 
-    this.insertEvent(
-      sessionId,
-      "preview_generated",
-      "generated",
-      {
-        cardCount: payload.splitCards.length,
-        splitReason: payload.splitReason,
-        aiModel: payload.aiModel,
-        executionTimeMs: payload.executionTimeMs,
-        tokenUsage: payload.tokenUsage ?? null,
-      },
-      updatedAt,
-    );
+      this.insertEvent(
+        sessionId,
+        "preview_generated",
+        "generated",
+        {
+          cardCount: payload.splitCards.length,
+          splitReason: payload.splitReason,
+          aiModel: payload.aiModel,
+          executionTimeMs: payload.executionTimeMs,
+          tokenUsage: payload.tokenUsage ?? null,
+        },
+        updatedAt,
+      );
+    })();
   }
 
   markNotSplit(sessionId: string, payload: SplitNotSplitPayload): void {
@@ -449,32 +473,34 @@ export class SplitHistoryStore {
        WHERE id = ?`,
     );
 
-    const result = stmt.run(
-      payload.splitReason || null,
-      payload.aiModel || null,
-      payload.executionTimeMs ?? null,
-      toNullableJson(payload.tokenUsage ?? null),
-      toNullableJson(payload.aiResponse ?? null),
-      updatedAt,
-      sessionId,
-    );
+    this.db.transaction(() => {
+      const result = stmt.run(
+        payload.splitReason || null,
+        payload.aiModel || null,
+        payload.executionTimeMs ?? null,
+        toNullableJson(payload.tokenUsage ?? null),
+        toNullableJson(payload.aiResponse ?? null),
+        updatedAt,
+        sessionId,
+      );
 
-    if (result.changes === 0) {
-      throw new Error(`History session not found: ${sessionId}`);
-    }
+      if (result.changes === 0) {
+        throw new HistorySessionNotFoundError(sessionId);
+      }
 
-    this.insertEvent(
-      sessionId,
-      "preview_not_split",
-      "not_split",
-      {
-        splitReason: payload.splitReason,
-        aiModel: payload.aiModel,
-        executionTimeMs: payload.executionTimeMs,
-        tokenUsage: payload.tokenUsage ?? null,
-      },
-      updatedAt,
-    );
+      this.insertEvent(
+        sessionId,
+        "preview_not_split",
+        "not_split",
+        {
+          splitReason: payload.splitReason,
+          aiModel: payload.aiModel,
+          executionTimeMs: payload.executionTimeMs,
+          tokenUsage: payload.tokenUsage ?? null,
+        },
+        updatedAt,
+      );
+    })();
   }
 
   markApplied(sessionId: string, payload: SplitAppliedPayload): void {
@@ -490,26 +516,28 @@ export class SplitHistoryStore {
        WHERE id = ?`,
     );
 
-    const result = stmt.run(
-      JSON.stringify(payload.splitCards || []),
-      timestamp,
-      timestamp,
-      sessionId,
-    );
+    this.db.transaction(() => {
+      const result = stmt.run(
+        JSON.stringify(payload.splitCards || []),
+        timestamp,
+        timestamp,
+        sessionId,
+      );
 
-    if (result.changes === 0) {
-      throw new Error(`History session not found: ${sessionId}`);
-    }
+      if (result.changes === 0) {
+        throw new HistorySessionNotFoundError(sessionId);
+      }
 
-    this.insertEvent(
-      sessionId,
-      "split_applied",
-      "applied",
-      {
-        cardCount: payload.splitCards.length,
-      },
-      timestamp,
-    );
+      this.insertEvent(
+        sessionId,
+        "split_applied",
+        "applied",
+        {
+          cardCount: payload.splitCards.length,
+        },
+        timestamp,
+      );
+    })();
   }
 
   markRejected(sessionId: string, payload: SplitRejectedPayload): void {
@@ -523,20 +551,22 @@ export class SplitHistoryStore {
        WHERE id = ?`,
     );
 
-    const result = stmt.run(payload.rejectionReason, updatedAt, sessionId);
-    if (result.changes === 0) {
-      throw new Error(`History session not found: ${sessionId}`);
-    }
+    this.db.transaction(() => {
+      const result = stmt.run(payload.rejectionReason, updatedAt, sessionId);
+      if (result.changes === 0) {
+        throw new HistorySessionNotFoundError(sessionId);
+      }
 
-    this.insertEvent(
-      sessionId,
-      "split_rejected",
-      "rejected",
-      {
-        rejectionReason: payload.rejectionReason,
-      },
-      updatedAt,
-    );
+      this.insertEvent(
+        sessionId,
+        "split_rejected",
+        "rejected",
+        {
+          rejectionReason: payload.rejectionReason,
+        },
+        updatedAt,
+      );
+    })();
   }
 
   markError(sessionId: string, payload: SplitErrorPayload): void {
@@ -549,20 +579,22 @@ export class SplitHistoryStore {
        WHERE id = ?`,
     );
 
-    const result = stmt.run(payload.errorMessage, updatedAt, sessionId);
-    if (result.changes === 0) {
-      throw new Error(`History session not found: ${sessionId}`);
-    }
+    this.db.transaction(() => {
+      const result = stmt.run(payload.errorMessage, updatedAt, sessionId);
+      if (result.changes === 0) {
+        throw new HistorySessionNotFoundError(sessionId);
+      }
 
-    this.insertEvent(
-      sessionId,
-      "split_error",
-      "error",
-      {
-        errorMessage: payload.errorMessage,
-      },
-      updatedAt,
-    );
+      this.insertEvent(
+        sessionId,
+        "split_error",
+        "error",
+        {
+          errorMessage: payload.errorMessage,
+        },
+        updatedAt,
+      );
+    })();
   }
 
   getSessionDetail(sessionId: string): SplitSessionDetail | null {
@@ -720,6 +752,11 @@ export async function getSplitHistoryStore(): Promise<SplitHistoryStore> {
       .initialize()
       .then(() => store)
       .catch((error) => {
+        try {
+          store.close();
+        } catch {
+          // close 실패는 원래 초기화 에러를 덮어쓰지 않음
+        }
         storePromise = null;
         throw error;
       });
