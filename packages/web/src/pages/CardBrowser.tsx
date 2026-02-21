@@ -176,10 +176,20 @@ export function CardBrowser() {
     : null;
 
   // 모바일 전체화면 오버레이에서만 inert 적용 (데스크톱은 사이드 패널이므로 목록 선택 가능해야 함)
-  const isMobileOverlay =
-    !!(selectedNoteId && cardDetail) &&
-    typeof window !== "undefined" &&
-    !window.matchMedia("(min-width: 768px)").matches;
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      !window.matchMedia("(min-width: 768px)").matches,
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(!e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
+  const isMobileOverlay = !!(selectedNoteId && cardDetail) && isMobile;
 
   return (
     <div className="flex gap-6">

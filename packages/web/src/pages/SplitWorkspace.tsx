@@ -681,6 +681,7 @@ export function SplitWorkspace() {
             onClick={() => {
               setMode("candidates");
               handleSelectCard(null);
+              if (isMobile) setActivePanel("candidates");
             }}
             className={cn(
               "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
@@ -697,6 +698,7 @@ export function SplitWorkspace() {
             onClick={() => {
               setMode("difficult");
               handleSelectCard(null);
+              if (isMobile) setActivePanel("candidates");
             }}
             className={cn(
               "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
