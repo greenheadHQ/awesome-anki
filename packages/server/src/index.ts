@@ -3,7 +3,10 @@
  */
 import "dotenv/config";
 import { timingSafeEqual } from "node:crypto";
-import { AppError } from "@anki-splitter/core";
+import {
+  AppError,
+  migrateLegacySystemPromptToRemoteIfNeeded,
+} from "@anki-splitter/core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -111,13 +114,51 @@ app.onError((err, c) => {
 // Start server — Bun.serve()를 직접 호출하여 HMR 이중 바인딩 방지
 const port = parseInt(process.env.PORT || "3000", 10);
 
-getSplitHistoryStore()
-  .then(() => {
+async function runStartupTasks(): Promise<void> {
+  const [historyResult, migrationResult] = await Promise.allSettled([
+    getSplitHistoryStore(),
+    migrateLegacySystemPromptToRemoteIfNeeded(),
+  ]);
+
+  if (historyResult.status === "fulfilled") {
     console.log("📚 Split history store initialized");
-  })
-  .catch((error) => {
-    console.error("⚠️ Split history store initialization failed:", error);
-  });
+  } else {
+    console.error(
+      "⚠️ Split history store initialization failed:",
+      historyResult.reason,
+    );
+  }
+
+  if (migrationResult.status === "fulfilled") {
+    const result = migrationResult.value;
+    if (result.migrated) {
+      console.log("🧠 Prompt system SoT migrated to remote config");
+      return;
+    }
+
+    if (result.reason === "already-exists") {
+      console.log("🧠 Prompt system SoT already initialized on remote config");
+      return;
+    }
+
+    if (result.reason === "remote-config-action-unsupported") {
+      console.warn(
+        "⚠️ Prompt system SoT migration skipped: AnkiConnect getConfig/setConfig 커스텀 액션을 사용할 수 없습니다.",
+      );
+      return;
+    }
+
+    console.warn(`⚠️ Prompt system SoT migration skipped: ${result.reason}`);
+    return;
+  }
+
+  console.error(
+    "⚠️ Prompt system SoT migration failed:",
+    migrationResult.reason,
+  );
+}
+
+await runStartupTasks();
 
 if (!API_KEY) {
   console.warn(

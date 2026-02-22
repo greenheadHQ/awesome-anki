@@ -13,6 +13,7 @@ import {
   getActiveVersion,
   getNoteById,
   getPromptVersion,
+  getRemoteSystemPromptPayload,
   NotFoundError,
   performHardSplit,
   preBackup,
@@ -94,7 +95,12 @@ app.post("/preview", async (c) => {
       promptVersionId = versionId;
     } else {
       const activeVersionInfo = await getActiveVersion();
-      promptVersionId = activeVersionInfo?.versionId;
+      if (!activeVersionInfo) {
+        throw new ValidationError(
+          "Soft Split에는 활성 프롬프트 버전이 필요합니다.",
+        );
+      }
+      promptVersionId = activeVersionInfo.versionId;
     }
   }
 
@@ -183,45 +189,77 @@ app.post("/preview", async (c) => {
       });
     }
 
-    // Soft Split (Gemini) 요청 — 프롬프트 버전 resolve
-    let prompts:
-      | { systemPrompt: string; splitPromptTemplate: string }
-      | undefined;
-    if (versionId) {
-      const version = await getPromptVersion(versionId);
-      if (!version) {
-        const versionNotFoundMessage = `프롬프트 버전 '${versionId}'을 찾을 수 없습니다.`;
-        if (sessionId) {
-          try {
-            const historyStore = await getSplitHistoryStore();
-            historyStore.markError(sessionId, {
-              errorMessage: versionNotFoundMessage,
-            });
-          } catch (historyError) {
-            const message =
-              historyError instanceof Error
-                ? historyError.message
-                : String(historyError);
-            historyWarning = historyWarning
-              ? `${historyWarning}; ${message}`
-              : `히스토리 기록 실패: ${message}`;
-          }
-        }
-
-        return c.json(
-          {
-            error: versionNotFoundMessage,
-            requestedVersionId: versionId,
-            ...(historyWarning && { historyWarning }),
-          },
-          404,
-        );
-      }
-      prompts = {
-        systemPrompt: version.systemPrompt,
-        splitPromptTemplate: version.splitPromptTemplate,
-      };
+    // Soft Split (Gemini) 요청 — 활성/요청 버전 + 원격 systemPrompt resolve
+    if (!promptVersionId) {
+      throw new ValidationError(
+        "Soft Split용 프롬프트 버전을 확인할 수 없습니다.",
+      );
     }
+
+    const resolvedVersion = await getPromptVersion(promptVersionId);
+    if (!resolvedVersion) {
+      const versionNotFoundMessage = `프롬프트 버전 '${promptVersionId}'을 찾을 수 없습니다.`;
+      if (sessionId) {
+        try {
+          const historyStore = await getSplitHistoryStore();
+          historyStore.markError(sessionId, {
+            errorMessage: versionNotFoundMessage,
+          });
+        } catch (historyError) {
+          const message =
+            historyError instanceof Error
+              ? historyError.message
+              : String(historyError);
+          historyWarning = historyWarning
+            ? `${historyWarning}; ${message}`
+            : `히스토리 기록 실패: ${message}`;
+        }
+      }
+
+      return c.json(
+        {
+          error: versionNotFoundMessage,
+          requestedVersionId: promptVersionId,
+          ...(historyWarning && { historyWarning }),
+        },
+        404,
+      );
+    }
+
+    const remoteSystemPrompt = await getRemoteSystemPromptPayload();
+    if (!remoteSystemPrompt) {
+      const remotePromptMissingMessage =
+        "원격 systemPrompt가 초기화되지 않았습니다. /api/prompts/system에서 먼저 설정하세요.";
+      if (sessionId) {
+        try {
+          const historyStore = await getSplitHistoryStore();
+          historyStore.markError(sessionId, {
+            errorMessage: remotePromptMissingMessage,
+          });
+        } catch (historyError) {
+          const message =
+            historyError instanceof Error
+              ? historyError.message
+              : String(historyError);
+          historyWarning = historyWarning
+            ? `${historyWarning}; ${message}`
+            : `히스토리 기록 실패: ${message}`;
+        }
+      }
+
+      return c.json(
+        {
+          error: remotePromptMissingMessage,
+          ...(historyWarning && { historyWarning }),
+        },
+        503,
+      );
+    }
+
+    const prompts = {
+      systemPrompt: remoteSystemPrompt.systemPrompt,
+      splitPromptTemplate: resolvedVersion.splitPromptTemplate,
+    };
 
     const startTime = Date.now();
     const geminiResult = await requestCardSplit(

@@ -264,6 +264,48 @@ export interface ActiveVersionInfo {
   activatedAt: string;
 }
 
+export interface PromptSystemState {
+  revision: number;
+  systemPrompt: string;
+  activeVersion: {
+    id: string;
+    name: string;
+    updatedAt: string;
+  };
+}
+
+export interface PromptSystemConflictLatest {
+  revision: number;
+  systemPrompt: string;
+  activeVersionId: string;
+  updatedAt: string;
+}
+
+export interface PromptSystemSaveResult {
+  revision: number;
+  newVersion: {
+    id: string;
+    name: string;
+    activatedAt: string;
+  };
+  syncResult: {
+    success: boolean;
+    syncedAt?: string;
+    error?: string;
+  };
+}
+
+export class PromptConflictError extends Error {
+  readonly status = 409;
+  readonly latest: PromptSystemConflictLatest;
+
+  constructor(latest: PromptSystemConflictLatest) {
+    super("Prompt revision conflict");
+    this.name = "PromptConflictError";
+    this.latest = latest;
+  }
+}
+
 export type SplitHistoryStatus =
   | "generating"
   | "generated"
@@ -565,18 +607,63 @@ export const api = {
       fetchJson<PromptVersion>(`/prompts/versions/${id}`),
     active: () =>
       fetchJson<{
-        activeVersion: PromptVersion | null;
-        systemPrompt: string;
-        splitPromptTemplate: string;
-        analysisPromptTemplate: string;
+        activeInfo: {
+          versionId: string;
+          activatedAt: string;
+          activatedBy: string;
+        };
+        version: PromptVersion | null;
       }>("/prompts/active"),
+    system: () => fetchJson<PromptSystemState>("/prompts/system"),
+    saveSystemPrompt: async (data: {
+      expectedRevision: number;
+      systemPrompt: string;
+      reason: string;
+    }) => {
+      const res = await fetch(`${BASE_URL}/prompts/system`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (res.status === 409) {
+        const rawBody = await res.text().catch(() => "");
+        let payload: {
+          latest?: PromptSystemConflictLatest;
+        } | null = null;
+        if (rawBody) {
+          try {
+            payload = JSON.parse(rawBody) as {
+              latest?: PromptSystemConflictLatest;
+            };
+          } catch {
+            payload = null;
+          }
+        }
+        if (payload?.latest) {
+          throw new PromptConflictError(payload.latest);
+        }
+        throw new Error(
+          "리비전 충돌이 발생했지만 서버 응답을 파싱할 수 없습니다. 원격 재조회 후 다시 시도하세요.",
+        );
+      }
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(error.error || `API Error: ${res.status}`);
+      }
+
+      return (await res.json()) as PromptSystemSaveResult;
+    },
     activate: (versionId: string) =>
       fetchJson<{ versionId: string; activatedAt: string }>(
         `/prompts/versions/${versionId}/activate`,
         { method: "POST" },
       ),
     experiments: () =>
-      fetchJson<{ experiments: Experiment[]; total: number }>(
+      fetchJson<{ experiments: Experiment[]; count: number }>(
         "/prompts/experiments",
       ),
     experiment: (id: string) =>
@@ -596,7 +683,7 @@ export const api = {
       }),
     completeExperiment: (
       id: string,
-      data: { conclusion: string; winnerVersionId?: string },
+      data: { conclusion: string; winnerVersionId: string },
     ) =>
       fetchJson<Experiment>(`/prompts/experiments/${id}/complete`, {
         method: "POST",

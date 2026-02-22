@@ -29,8 +29,13 @@ export class ValidationError extends AppError {
   }
 }
 
+export type AnkiConnectErrorCode = "UNSUPPORTED_REMOTE_CONFIG_ACTION";
+
 export class AnkiConnectError extends AppError {
-  constructor(message = "AnkiConnect 요청 실패") {
+  constructor(
+    message = "AnkiConnect 요청 실패",
+    public readonly code?: AnkiConnectErrorCode,
+  ) {
     super(502, message);
     this.name = "AnkiConnectError";
   }

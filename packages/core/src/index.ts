@@ -17,6 +17,7 @@ export {
   ankiConnect,
   deleteNotes,
   findNotes,
+  getConfig,
   getDeckNames,
   getModelFieldNames,
   getModelNames,
@@ -25,6 +26,7 @@ export {
   getVersion,
   type NoteFields,
   type NoteInfo,
+  setConfig,
   sync,
   updateNoteFields,
 } from "./anki/client.js";
@@ -62,6 +64,7 @@ export * from "./embedding/index.js";
 // Error classes
 export {
   AnkiConnectError,
+  type AnkiConnectErrorCode,
   AppError,
   NotFoundError,
   TimeoutError,
@@ -122,6 +125,7 @@ export {
   addHistoryEntry,
   // Analysis
   analyzeFailurePatterns,
+  clearRemoteSystemPromptPayload,
   completeExperiment,
   // Experiments
   createExperiment,
@@ -133,14 +137,20 @@ export {
   getExperiment,
   getHistory,
   getHistoryByVersion,
+  getRemoteSystemPromptPayload,
   getVersion as getPromptVersion,
   listExperiments,
   // Version management (renamed to avoid conflict with anki/client.ts getVersion)
   listVersions as listPromptVersions,
+  migrateLegacySystemPromptToRemoteIfNeeded,
   type PromptMetricsEvent,
+  parseRemoteSystemPromptPayload,
+  type RemoteSystemPromptPayload,
   recordPromptMetricsEvent,
+  SYSTEM_PROMPT_CONFIG_KEY,
   saveVersion as savePromptVersion,
   setActiveVersion,
+  setRemoteSystemPromptPayload,
 } from "./prompt-version/storage.js";
 // Prompt Version exports (명시적 export - getVersion 충돌 방지)
 export {

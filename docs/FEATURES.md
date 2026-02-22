@@ -9,7 +9,7 @@
 | Split | Preview + Apply | 분할 미리보기 후 명시적 적용 |
 | Safety | Backup + Rollback | 분할 전 백업, 실패/수동 롤백 |
 | Validation | Fact/Freshness/Context/Similarity | 카드 신뢰도 검증 |
-| Prompt Ops | Prompt Version/History/Experiment | 프롬프트 버전 운영 및 실험 |
+| Prompt Ops | Prompt Version/History/Experiment | 원격 systemPrompt(CAS) + 버전 운영 + 실험 |
 | Embedding | 캐시 기반 임베딩 생성 | 유사도 성능 향상 |
 | Security | API 인증 | API Key 기반 접근 제어 |
 | Privacy | 모드별 외부 전송 정책 | `standard/balanced/strict` |
@@ -58,7 +58,14 @@
 - `balanced`: 외부 전송 허용, 민감정보 마스킹/길이 제한 적용
 - `strict`: 외부 전송 차단
 
-## 6. UI 주요 페이지
+## 6. 프롬프트 SoT 정책
+
+- systemPrompt는 `awesomeAnki.prompts.system` 원격 config를 SoT로 사용한다.
+- 저장 API는 `expectedRevision` CAS를 강제하고, 충돌 시 `409` + 최신 원격값을 반환한다.
+- systemPrompt 수정은 기존 버전 덮어쓰기가 아니라 새 버전 생성 + active 전환으로 처리한다.
+- 저장 후 즉시 Anki sync를 수행하며, sync 실패 시 저장 요청은 실패 처리된다.
+
+## 7. UI 주요 페이지
 
 | 페이지 | 경로 | 목적 |
 |--------|------|------|
@@ -66,10 +73,10 @@
 | Split Workspace | `/split` | 후보 선택, 분할 미리보기, 적용 |
 | Card Browser | `/browse` | 카드 탐색 및 검증 |
 | Backup Manager | `/backups` | 백업 조회, 롤백 실행 |
-| Prompt Manager | `/prompts` | 프롬프트 버전/이력/실험 |
+| Prompt Manager | `/prompts` | 원격 systemPrompt 편집 + 버전/실험 |
 
-## 7. 비기능 특성
+## 8. 비기능 특성
 
 - 품질 게이트: `bun run check:quick`, `bun run check`
 - CI: GitHub Actions에서 동일 검증 수행
-- 로컬 파일 기반 저장: 경량 운영, 단일 사용자/로컬 환경 최적화
+- Prompt system SoT는 원격 config, 로컬 파일은 legacy/migration 용도

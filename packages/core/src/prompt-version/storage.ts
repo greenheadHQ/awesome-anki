@@ -5,6 +5,8 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getConfig, setConfig } from "../anki/client.js";
+import { AnkiConnectError } from "../errors.js";
 import { atomicWriteFile, withFileMutex } from "../utils/atomic-write.js";
 import type {
   ActiveVersionInfo,
@@ -20,6 +22,90 @@ const VERSIONS_PATH = join(BASE_PATH, "versions");
 const HISTORY_PATH = join(BASE_PATH, "history");
 const EXPERIMENTS_PATH = join(BASE_PATH, "experiments");
 const ACTIVE_VERSION_FILE = join(BASE_PATH, "active-version.json");
+export const SYSTEM_PROMPT_CONFIG_KEY = "awesomeAnki.prompts.system";
+
+export interface RemoteSystemPromptPayload {
+  revision: number;
+  systemPrompt: string;
+  activeVersionId: string;
+  migratedFromFileAt?: string;
+  updatedAt: string;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function parseRemoteSystemPromptPayload(
+  value: unknown,
+): RemoteSystemPromptPayload | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  let raw: unknown;
+  if (typeof value === "string") {
+    try {
+      raw = JSON.parse(value);
+    } catch {
+      throw new Error("원격 system prompt payload JSON 파싱 실패");
+    }
+  } else {
+    raw = value;
+  }
+
+  if (!isPlainObject(raw)) {
+    throw new Error("원격 system prompt payload가 객체 형태가 아닙니다.");
+  }
+
+  if (
+    typeof raw.revision !== "number" ||
+    !Number.isInteger(raw.revision) ||
+    raw.revision < 0
+  ) {
+    throw new Error(
+      "원격 system prompt payload.revision 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (typeof raw.systemPrompt !== "string" || raw.systemPrompt.length === 0) {
+    throw new Error(
+      "원격 system prompt payload.systemPrompt 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (
+    typeof raw.activeVersionId !== "string" ||
+    raw.activeVersionId.length === 0
+  ) {
+    throw new Error(
+      "원격 system prompt payload.activeVersionId 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (typeof raw.updatedAt !== "string" || raw.updatedAt.length === 0) {
+    throw new Error(
+      "원격 system prompt payload.updatedAt 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (
+    raw.migratedFromFileAt !== undefined &&
+    typeof raw.migratedFromFileAt !== "string"
+  ) {
+    throw new Error(
+      "원격 system prompt payload.migratedFromFileAt 값이 유효하지 않습니다.",
+    );
+  }
+
+  return {
+    revision: raw.revision,
+    systemPrompt: raw.systemPrompt,
+    activeVersionId: raw.activeVersionId,
+    migratedFromFileAt: raw.migratedFromFileAt as string | undefined,
+    updatedAt: raw.updatedAt,
+  };
+}
 
 /**
  * 디렉토리 존재 확인 및 생성
@@ -217,6 +303,130 @@ export async function getActivePrompts(): Promise<PromptVersion | null> {
   }
 
   return getVersion(activeInfo.versionId);
+}
+
+// ============================================================================
+// 원격 system prompt SoT
+// ============================================================================
+
+/**
+ * 원격 system prompt payload 조회
+ */
+export async function getRemoteSystemPromptPayload(): Promise<RemoteSystemPromptPayload | null> {
+  const raw = await getConfig<unknown>(SYSTEM_PROMPT_CONFIG_KEY);
+  return parseRemoteSystemPromptPayload(raw);
+}
+
+/**
+ * 원격 system prompt payload 저장
+ */
+export async function setRemoteSystemPromptPayload(
+  payload: RemoteSystemPromptPayload,
+): Promise<void> {
+  await setConfig(SYSTEM_PROMPT_CONFIG_KEY, payload);
+}
+
+export async function clearRemoteSystemPromptPayload(): Promise<void> {
+  await setConfig<null>(SYSTEM_PROMPT_CONFIG_KEY, null);
+}
+
+function isUnsupportedRemoteConfigActionError(error: unknown): boolean {
+  if (!(error instanceof AnkiConnectError)) {
+    return false;
+  }
+
+  return error.code === "UNSUPPORTED_REMOTE_CONFIG_ACTION";
+}
+
+export interface SystemPromptMigrationResult {
+  migrated: boolean;
+  reason:
+    | "already-exists"
+    | "no-active-version"
+    | "active-version-missing"
+    | "empty-active-system-prompt"
+    | "remote-config-action-unsupported"
+    | "migrated";
+  payload?: RemoteSystemPromptPayload;
+}
+
+/**
+ * legacy file SoT(output/prompts)에서 원격 SoT로 1회 이관
+ */
+export async function migrateLegacySystemPromptToRemoteIfNeeded(): Promise<SystemPromptMigrationResult> {
+  // NOTE:
+  // getRemoteSystemPromptPayload() -> setRemoteSystemPromptPayload() 사이에 TOCTOU 창이 있다.
+  // 현재는 단일 인스턴스 서버의 startup 1회 마이그레이션만 가정하므로 별도 락을 두지 않는다.
+  let existing: RemoteSystemPromptPayload | null;
+  try {
+    existing = await getRemoteSystemPromptPayload();
+  } catch (error) {
+    if (isUnsupportedRemoteConfigActionError(error)) {
+      return {
+        migrated: false,
+        reason: "remote-config-action-unsupported",
+      };
+    }
+    throw error;
+  }
+
+  if (existing) {
+    return {
+      migrated: false,
+      reason: "already-exists",
+      payload: existing,
+    };
+  }
+
+  const activeInfo = await getActiveVersion();
+  if (!activeInfo) {
+    return {
+      migrated: false,
+      reason: "no-active-version",
+    };
+  }
+
+  const activeVersion = await getVersion(activeInfo.versionId);
+  if (!activeVersion) {
+    return {
+      migrated: false,
+      reason: "active-version-missing",
+    };
+  }
+
+  if (activeVersion.systemPrompt.length === 0) {
+    return {
+      migrated: false,
+      reason: "empty-active-system-prompt",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const payload: RemoteSystemPromptPayload = {
+    revision: 0,
+    systemPrompt: activeVersion.systemPrompt,
+    activeVersionId: activeVersion.id,
+    migratedFromFileAt: now,
+    updatedAt: now,
+  };
+
+  try {
+    await setRemoteSystemPromptPayload(payload);
+  } catch (error) {
+    if (isUnsupportedRemoteConfigActionError(error)) {
+      return {
+        migrated: false,
+        reason: "remote-config-action-unsupported",
+      };
+    }
+    throw error;
+  }
+
+  return {
+    migrated: true,
+    reason: "migrated",
+    payload,
+  };
 }
 
 // ============================================================================
