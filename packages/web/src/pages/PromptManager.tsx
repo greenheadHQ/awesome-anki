@@ -97,7 +97,7 @@ export function PromptManager() {
 
     const isInitialHydration = draftBaseRevision === null;
 
-    if (isInitialHydration || (!isSystemPromptDirty && remoteAdvanced)) {
+    if (isInitialHydration || (!hasUserEditedSystemPrompt && remoteAdvanced)) {
       setSystemPromptDraft(remoteSystemPrompt);
       setDraftBaseRevision(remoteRevision);
       setConflictLatest(null);
@@ -105,7 +105,7 @@ export function PromptManager() {
     }
   }, [
     draftBaseRevision,
-    isSystemPromptDirty,
+    hasUserEditedSystemPrompt,
     remoteRevision,
     remoteSystemPrompt,
     remoteAdvanced,
@@ -478,7 +478,7 @@ function SystemPromptEditor({
           </>
         )}
 
-        {conflictLatest && (
+        {conflictLatest && !isLoading && !isError && (
           <div className="rounded-md border border-yellow-300 bg-yellow-50/70 p-3 space-y-3">
             <div className="flex items-center gap-2 text-sm text-yellow-900">
               <AlertTriangle className="w-4 h-4" />
