@@ -10,6 +10,7 @@ import type {
 } from "@anki-splitter/core";
 import {
   analyzeFailurePatterns,
+  clearRemoteSystemPromptPayload,
   completeExperiment,
   createExperiment,
   createPromptVersion,
@@ -82,18 +83,8 @@ function buildConflictLatest(
 
 function buildRollbackPayload(
   currentPayload: RemoteSystemPromptPayload | null,
-  activeVersion: PromptVersion,
-): RemoteSystemPromptPayload {
-  if (currentPayload) {
-    return currentPayload;
-  }
-
-  return {
-    revision: 0,
-    systemPrompt: activeVersion.systemPrompt,
-    activeVersionId: activeVersion.id,
-    updatedAt: new Date().toISOString(),
-  };
+): RemoteSystemPromptPayload | null {
+  return currentPayload;
 }
 
 // ============================================================================
@@ -252,11 +243,15 @@ prompts.post("/system", async (c) => {
       },
     });
   } catch (error) {
-    const rollbackPayload = buildRollbackPayload(currentPayload, activeVersion);
+    const rollbackPayload = buildRollbackPayload(currentPayload);
 
     if (remoteUpdated) {
       try {
-        await setRemoteSystemPromptPayload(rollbackPayload);
+        if (rollbackPayload) {
+          await setRemoteSystemPromptPayload(rollbackPayload);
+        } else {
+          await clearRemoteSystemPromptPayload();
+        }
       } catch (rollbackError) {
         rollbackErrors.push(
           `remote rollback 실패: ${

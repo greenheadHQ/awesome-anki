@@ -393,7 +393,15 @@ function SystemPromptEditor({
           </div>
         ) : (
           <>
+            <label
+              htmlFor="system-prompt-editor"
+              className="text-xs text-muted-foreground"
+            >
+              시스템 프롬프트 본문
+            </label>
             <textarea
+              id="system-prompt-editor"
+              aria-label="시스템 프롬프트"
               value={systemPromptDraft}
               onChange={(e) => setSystemPromptDraft(e.target.value)}
               className="w-full min-h-44 rounded-md border bg-background p-3 text-sm leading-relaxed font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"

@@ -117,6 +117,7 @@ function mapUnsupportedConfigActionError(
 
   return new AnkiConnectError(
     `AnkiConnect 커스텀 액션 "${action}"을 사용할 수 없습니다. miniPC Anki 서버에 getConfig/setConfig 확장이 설치되어 있는지 확인하세요.`,
+    "UNSUPPORTED_REMOTE_CONFIG_ACTION",
   );
 }
 

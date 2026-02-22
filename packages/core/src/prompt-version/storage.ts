@@ -102,7 +102,7 @@ export function parseRemoteSystemPromptPayload(
     revision: raw.revision,
     systemPrompt: raw.systemPrompt,
     activeVersionId: raw.activeVersionId,
-    migratedFromFileAt: raw.migratedFromFileAt,
+    migratedFromFileAt: raw.migratedFromFileAt as string | undefined,
     updatedAt: raw.updatedAt,
   };
 }
@@ -326,15 +326,16 @@ export async function setRemoteSystemPromptPayload(
   await setConfig(SYSTEM_PROMPT_CONFIG_KEY, payload);
 }
 
+export async function clearRemoteSystemPromptPayload(): Promise<void> {
+  await setConfig<null>(SYSTEM_PROMPT_CONFIG_KEY, null);
+}
+
 function isUnsupportedRemoteConfigActionError(error: unknown): boolean {
   if (!(error instanceof AnkiConnectError)) {
     return false;
   }
 
-  return (
-    error.message.includes('커스텀 액션 "getConfig"') ||
-    error.message.includes('커스텀 액션 "setConfig"')
-  );
+  return error.code === "UNSUPPORTED_REMOTE_CONFIG_ACTION";
 }
 
 export interface SystemPromptMigrationResult {

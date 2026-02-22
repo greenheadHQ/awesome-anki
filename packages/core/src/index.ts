@@ -64,6 +64,7 @@ export * from "./embedding/index.js";
 // Error classes
 export {
   AnkiConnectError,
+  type AnkiConnectErrorCode,
   AppError,
   NotFoundError,
   TimeoutError,
@@ -124,6 +125,7 @@ export {
   addHistoryEntry,
   // Analysis
   analyzeFailurePatterns,
+  clearRemoteSystemPromptPayload,
   completeExperiment,
   // Experiments
   createExperiment,
