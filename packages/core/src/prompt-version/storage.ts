@@ -5,6 +5,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getConfig, setConfig } from "../anki/client.js";
 import { atomicWriteFile, withFileMutex } from "../utils/atomic-write.js";
 import type {
   ActiveVersionInfo,
@@ -20,6 +21,80 @@ const VERSIONS_PATH = join(BASE_PATH, "versions");
 const HISTORY_PATH = join(BASE_PATH, "history");
 const EXPERIMENTS_PATH = join(BASE_PATH, "experiments");
 const ACTIVE_VERSION_FILE = join(BASE_PATH, "active-version.json");
+export const SYSTEM_PROMPT_CONFIG_KEY = "awesomeAnki.prompts.system";
+
+export interface RemoteSystemPromptPayload {
+  revision: number;
+  systemPrompt: string;
+  activeVersionId: string;
+  migratedFromFileAt?: string;
+  updatedAt: string;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function parseRemoteSystemPromptPayload(
+  value: unknown,
+): RemoteSystemPromptPayload | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const raw = typeof value === "string" ? JSON.parse(value) : value;
+  if (!isPlainObject(raw)) {
+    throw new Error("원격 system prompt payload가 객체 형태가 아닙니다.");
+  }
+
+  if (
+    typeof raw.revision !== "number" ||
+    !Number.isInteger(raw.revision) ||
+    raw.revision < 0
+  ) {
+    throw new Error(
+      "원격 system prompt payload.revision 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (typeof raw.systemPrompt !== "string" || raw.systemPrompt.length === 0) {
+    throw new Error(
+      "원격 system prompt payload.systemPrompt 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (
+    typeof raw.activeVersionId !== "string" ||
+    raw.activeVersionId.length === 0
+  ) {
+    throw new Error(
+      "원격 system prompt payload.activeVersionId 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (typeof raw.updatedAt !== "string" || raw.updatedAt.length === 0) {
+    throw new Error(
+      "원격 system prompt payload.updatedAt 값이 유효하지 않습니다.",
+    );
+  }
+
+  if (
+    raw.migratedFromFileAt !== undefined &&
+    typeof raw.migratedFromFileAt !== "string"
+  ) {
+    throw new Error(
+      "원격 system prompt payload.migratedFromFileAt 값이 유효하지 않습니다.",
+    );
+  }
+
+  return {
+    revision: raw.revision,
+    systemPrompt: raw.systemPrompt,
+    activeVersionId: raw.activeVersionId,
+    migratedFromFileAt: raw.migratedFromFileAt,
+    updatedAt: raw.updatedAt,
+  };
+}
 
 /**
  * 디렉토리 존재 확인 및 생성
@@ -217,6 +292,84 @@ export async function getActivePrompts(): Promise<PromptVersion | null> {
   }
 
   return getVersion(activeInfo.versionId);
+}
+
+// ============================================================================
+// 원격 system prompt SoT
+// ============================================================================
+
+/**
+ * 원격 system prompt payload 조회
+ */
+export async function getRemoteSystemPromptPayload(): Promise<RemoteSystemPromptPayload | null> {
+  const raw = await getConfig<unknown>(SYSTEM_PROMPT_CONFIG_KEY);
+  return parseRemoteSystemPromptPayload(raw);
+}
+
+/**
+ * 원격 system prompt payload 저장
+ */
+export async function setRemoteSystemPromptPayload(
+  payload: RemoteSystemPromptPayload,
+): Promise<void> {
+  await setConfig(SYSTEM_PROMPT_CONFIG_KEY, payload);
+}
+
+export interface SystemPromptMigrationResult {
+  migrated: boolean;
+  reason:
+    | "already-exists"
+    | "no-active-version"
+    | "active-version-missing"
+    | "migrated";
+  payload?: RemoteSystemPromptPayload;
+}
+
+/**
+ * legacy file SoT(output/prompts)에서 원격 SoT로 1회 이관
+ */
+export async function migrateLegacySystemPromptToRemoteIfNeeded(): Promise<SystemPromptMigrationResult> {
+  const existing = await getRemoteSystemPromptPayload();
+  if (existing) {
+    return {
+      migrated: false,
+      reason: "already-exists",
+      payload: existing,
+    };
+  }
+
+  const activeInfo = await getActiveVersion();
+  if (!activeInfo) {
+    return {
+      migrated: false,
+      reason: "no-active-version",
+    };
+  }
+
+  const activeVersion = await getVersion(activeInfo.versionId);
+  if (!activeVersion) {
+    return {
+      migrated: false,
+      reason: "active-version-missing",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const payload: RemoteSystemPromptPayload = {
+    revision: 0,
+    systemPrompt: activeVersion.systemPrompt,
+    activeVersionId: activeVersion.id,
+    migratedFromFileAt: now,
+    updatedAt: now,
+  };
+
+  await setRemoteSystemPromptPayload(payload);
+
+  return {
+    migrated: true,
+    reason: "migrated",
+    payload,
+  };
 }
 
 // ============================================================================

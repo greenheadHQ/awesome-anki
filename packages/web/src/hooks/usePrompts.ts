@@ -37,6 +37,16 @@ export function useActivePrompt() {
 }
 
 /**
+ * 원격 systemPrompt 조회
+ */
+export function useSystemPrompt() {
+  return useQuery({
+    queryKey: queryKeys.prompts.system,
+    queryFn: () => api.prompts.system(),
+  });
+}
+
+/**
  * 프롬프트 버전 활성화
  */
 export function useActivatePrompt() {
@@ -44,6 +54,26 @@ export function useActivatePrompt() {
   return useMutation({
     mutationFn: (versionId: string) => api.prompts.activate(versionId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.versions });
+      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.active });
+      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.system });
+    },
+  });
+}
+
+/**
+ * 원격 systemPrompt 저장
+ */
+export function useSaveSystemPrompt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      expectedRevision: number;
+      systemPrompt: string;
+      reason: string;
+    }) => api.prompts.saveSystemPrompt(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.system });
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.versions });
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.active });
     },

@@ -31,6 +31,7 @@ export const queryKeys = {
     versions: ["prompts", "versions"] as const,
     version: (id: string) => ["prompts", "versions", id] as const,
     active: ["prompts", "active"] as const,
+    system: ["prompts", "system"] as const,
     experiments: ["prompts", "experiments"] as const,
     experiment: (id: string) => ["prompts", "experiments", id] as const,
   },

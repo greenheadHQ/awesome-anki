@@ -4,16 +4,20 @@
  */
 
 import {
+  AlertTriangle,
   BarChart3,
   Check,
   ChevronLeft,
   ChevronRight,
   FileText,
   FlaskConical,
+  GitCompareArrows,
   Loader2,
+  Save,
   Star,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/button";
 import {
@@ -34,8 +38,15 @@ import {
   useActivatePrompt,
   useExperiments,
   usePromptVersions,
+  useSaveSystemPrompt,
+  useSystemPrompt,
 } from "../hooks/usePrompts";
-import type { Experiment, PromptVersion } from "../lib/api";
+import {
+  type Experiment,
+  PromptConflictError,
+  type PromptSystemConflictLatest,
+  type PromptVersion,
+} from "../lib/api";
 import { cn } from "../lib/utils";
 
 type TabType = "versions" | "experiments" | "metrics";
@@ -45,12 +56,43 @@ export function PromptManager() {
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(
     null,
   );
+  const [systemPromptDraft, setSystemPromptDraft] = useState("");
+  const [saveReason, setSaveReason] = useState("");
+  const [conflictLatest, setConflictLatest] =
+    useState<PromptSystemConflictLatest | null>(null);
+  const [lastSyncState, setLastSyncState] = useState<{
+    success: boolean;
+    syncedAt?: string;
+    error?: string;
+  } | null>(null);
 
   const { data: versionsData, isLoading: isLoadingVersions } =
     usePromptVersions();
   const { data: experimentsData, isLoading: isLoadingExperiments } =
     useExperiments();
+  const systemPromptQuery = useSystemPrompt();
   const activatePrompt = useActivatePrompt();
+  const saveSystemPrompt = useSaveSystemPrompt();
+  const remoteSystemPrompt = systemPromptQuery.data?.systemPrompt;
+  const remoteRevision = systemPromptQuery.data?.revision;
+
+  useEffect(() => {
+    if (remoteSystemPrompt === undefined || remoteRevision === undefined) {
+      return;
+    }
+    setSystemPromptDraft(remoteSystemPrompt);
+    setConflictLatest(null);
+  }, [remoteRevision, remoteSystemPrompt]);
+
+  const isSystemPromptDirty = Boolean(
+    systemPromptQuery.data &&
+      systemPromptDraft !== systemPromptQuery.data.systemPrompt,
+  );
+  const canSaveSystemPrompt =
+    !!systemPromptQuery.data &&
+    isSystemPromptDirty &&
+    saveReason.trim().length > 0 &&
+    !saveSystemPrompt.isPending;
 
   const tabs = [
     {
@@ -64,7 +106,7 @@ export function PromptManager() {
       id: "experiments" as const,
       label: "실험",
       icon: FlaskConical,
-      count: experimentsData?.total || 0,
+      count: experimentsData?.count || 0,
       helpKey: "promptExperiment" as const,
     },
     {
@@ -79,12 +121,89 @@ export function PromptManager() {
     activatePrompt.mutate(versionId);
   };
 
+  const handleSaveSystemPrompt = async (expectedRevision?: number) => {
+    if (!systemPromptQuery.data) {
+      return;
+    }
+
+    try {
+      const result = await saveSystemPrompt.mutateAsync({
+        expectedRevision: expectedRevision ?? systemPromptQuery.data.revision,
+        systemPrompt: systemPromptDraft,
+        reason: saveReason.trim(),
+      });
+
+      setSaveReason("");
+      setConflictLatest(null);
+      setLastSyncState(result.syncResult);
+      toast.success(`systemPrompt 저장 완료: ${result.newVersion.id}`);
+    } catch (error) {
+      if (error instanceof PromptConflictError) {
+        setConflictLatest(error.latest);
+        setLastSyncState(null);
+        toast.error(
+          "리비전 충돌이 발생했습니다. 원격값을 확인 후 재시도하세요.",
+        );
+        return;
+      }
+
+      const message =
+        error instanceof Error ? error.message : "systemPrompt 저장 실패";
+      toast.error(message);
+    }
+  };
+
+  const handleReloadRemote = async () => {
+    const result = await systemPromptQuery.refetch();
+    if (result.error) {
+      const message =
+        result.error instanceof Error
+          ? result.error.message
+          : "원격 systemPrompt 재조회 실패";
+      toast.error(message);
+      return;
+    }
+    toast.success("원격 systemPrompt를 다시 불러왔습니다.");
+  };
+
   return (
     <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="typo-h1">프롬프트 관리</h1>
       </div>
+
+      <SystemPromptEditor
+        systemPromptDraft={systemPromptDraft}
+        setSystemPromptDraft={setSystemPromptDraft}
+        saveReason={saveReason}
+        setSaveReason={setSaveReason}
+        isLoading={systemPromptQuery.isLoading}
+        isError={systemPromptQuery.isError}
+        errorMessage={
+          systemPromptQuery.error instanceof Error
+            ? systemPromptQuery.error.message
+            : "원격 systemPrompt 조회 실패"
+        }
+        revision={systemPromptQuery.data?.revision}
+        activeVersionName={systemPromptQuery.data?.activeVersion.name}
+        activeVersionId={systemPromptQuery.data?.activeVersion.id}
+        isDirty={isSystemPromptDirty}
+        canSave={canSaveSystemPrompt}
+        isSaving={saveSystemPrompt.isPending}
+        conflictLatest={conflictLatest}
+        lastSyncState={lastSyncState}
+        onSave={() => void handleSaveSystemPrompt()}
+        onReloadRemote={() => void handleReloadRemote()}
+        onUseRemoteValue={() => {
+          if (!conflictLatest) return;
+          setSystemPromptDraft(conflictLatest.systemPrompt);
+        }}
+        onRetryWithLatest={() => {
+          if (!conflictLatest) return;
+          void handleSaveSystemPrompt(conflictLatest.revision);
+        }}
+      />
 
       {/* 탭 네비게이션 */}
       <div className="flex overflow-x-auto whitespace-nowrap mb-4">
@@ -141,6 +260,207 @@ export function PromptManager() {
         </div>
       </div>
     </div>
+  );
+}
+
+interface SystemPromptEditorProps {
+  systemPromptDraft: string;
+  setSystemPromptDraft: (value: string) => void;
+  saveReason: string;
+  setSaveReason: (value: string) => void;
+  isLoading: boolean;
+  isError: boolean;
+  errorMessage: string;
+  revision?: number;
+  activeVersionName?: string;
+  activeVersionId?: string;
+  isDirty: boolean;
+  canSave: boolean;
+  isSaving: boolean;
+  conflictLatest: PromptSystemConflictLatest | null;
+  lastSyncState: {
+    success: boolean;
+    syncedAt?: string;
+    error?: string;
+  } | null;
+  onSave: () => void;
+  onReloadRemote: () => void;
+  onUseRemoteValue: () => void;
+  onRetryWithLatest: () => void;
+}
+
+function SystemPromptEditor({
+  systemPromptDraft,
+  setSystemPromptDraft,
+  saveReason,
+  setSaveReason,
+  isLoading,
+  isError,
+  errorMessage,
+  revision,
+  activeVersionName,
+  activeVersionId,
+  isDirty,
+  canSave,
+  isSaving,
+  conflictLatest,
+  lastSyncState,
+  onSave,
+  onReloadRemote,
+  onUseRemoteValue,
+  onRetryWithLatest,
+}: SystemPromptEditorProps) {
+  return (
+    <Card className="mb-4 border-primary/30 bg-gradient-to-br from-card via-card to-primary/5">
+      <CardHeader className="py-3 px-4 border-b">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Save className="w-4 h-4 text-primary" />
+            시스템 프롬프트 원격 편집
+          </CardTitle>
+          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+            <span>revision: {revision ?? "-"}</span>
+            <span>active: {activeVersionName ?? "-"}</span>
+            {activeVersionId && (
+              <span className="font-mono text-[11px]">{activeVersionId}</span>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 space-y-3">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            원격 systemPrompt 불러오는 중...
+          </div>
+        ) : isError ? (
+          <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700 space-y-2">
+            <p>{errorMessage}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onReloadRemote}
+            >
+              다시 시도
+            </Button>
+          </div>
+        ) : (
+          <>
+            <textarea
+              value={systemPromptDraft}
+              onChange={(e) => setSystemPromptDraft(e.target.value)}
+              className="w-full min-h-44 rounded-md border bg-background p-3 text-sm leading-relaxed font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="원격 systemPrompt를 입력하세요."
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="md:col-span-3">
+                <label
+                  htmlFor="system-prompt-reason"
+                  className="text-xs text-muted-foreground"
+                >
+                  변경 사유 (필수, 새 버전 changelog로 저장)
+                </label>
+                <input
+                  id="system-prompt-reason"
+                  type="text"
+                  value={saveReason}
+                  onChange={(e) => setSaveReason(e.target.value)}
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="예: 용어 통일, 지시문 간결화"
+                />
+              </div>
+              <div className="md:col-span-1 flex items-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={onReloadRemote}
+                  disabled={isSaving}
+                >
+                  원격 재조회
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={onSave}
+                  disabled={!canSave}
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-1" />
+                  )}
+                  저장
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
+              <span>{isDirty ? "로컬 변경 있음" : "원격과 동일"}</span>
+              {lastSyncState?.success && (
+                <span className="text-green-700">
+                  sync 완료:{" "}
+                  {lastSyncState.syncedAt
+                    ? new Date(lastSyncState.syncedAt).toLocaleString()
+                    : "방금"}
+                </span>
+              )}
+              {lastSyncState && !lastSyncState.success && (
+                <span className="text-red-700">
+                  sync 실패: {lastSyncState.error || "unknown"}
+                </span>
+              )}
+            </div>
+          </>
+        )}
+
+        {conflictLatest && (
+          <div className="rounded-md border border-yellow-300 bg-yellow-50/70 p-3 space-y-3">
+            <div className="flex items-center gap-2 text-sm text-yellow-900">
+              <AlertTriangle className="w-4 h-4" />
+              CAS 충돌 발생: 원격 revision {conflictLatest.revision}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <GitCompareArrows className="w-3.5 h-3.5" />
+                  원격 최신값
+                </p>
+                <pre className="min-h-36 max-h-64 overflow-auto rounded border bg-background p-2 text-xs whitespace-pre-wrap break-words">
+                  {conflictLatest.systemPrompt}
+                </pre>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  로컬 수정안
+                </p>
+                <pre className="min-h-36 max-h-64 overflow-auto rounded border bg-background p-2 text-xs whitespace-pre-wrap break-words">
+                  {systemPromptDraft}
+                </pre>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onUseRemoteValue}
+              >
+                원격값으로 덮기
+              </Button>
+              <Button
+                type="button"
+                onClick={onRetryWithLatest}
+                disabled={isSaving}
+              >
+                최신 revision으로 재시도
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

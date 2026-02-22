@@ -56,6 +56,9 @@ Awesome Anki는 **Anki 노트를 학습 효율이 높은 원자 카드(Atomic Ca
 ### 2.4 프롬프트 운영
 
 - 프롬프트 버전 생성/수정/활성화/삭제
+- 시스템 프롬프트 원격 SoT 저장 (`awesomeAnki.prompts.system`)
+- `expectedRevision` 기반 CAS 충돌 제어 (`409` 반환)
+- systemPrompt 저장 성공 시 즉시 Anki `sync()` 실행
 - 분할 히스토리 저장/조회
 - 실패 패턴 분석
 - A/B 실험(Experiment) 생성 및 완료 처리
@@ -89,7 +92,7 @@ awesome-anki/
 │   ├── core/                 # 도메인 로직(분할/검증/백업/프라이버시)
 │   ├── server/               # Hono REST API
 │   └── web/                  # React + Vite 웹 UI
-├── output/                   # 런타임 산출물(백업, 임베딩 캐시, 프롬프트 기록)
+├── output/                   # 런타임 산출물(백업, 임베딩 캐시, 프롬프트 버전/legacy 기록)
 ├── docs/                     # 아키텍처/기능/트러블슈팅 문서
 └── templates/                # 카드 템플릿 리소스
 ```
@@ -344,10 +347,12 @@ bun run cli rollback <backupId>
 
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
+| GET | `/api/prompts/system` | 원격 systemPrompt + revision 조회 |
+| POST | `/api/prompts/system` | CAS 기반 systemPrompt 저장 + sync |
 | GET | `/api/prompts/versions` | 프롬프트 버전 목록 |
 | GET | `/api/prompts/versions/:id` | 버전 상세 |
 | POST | `/api/prompts/versions` | 버전 생성 |
-| PUT | `/api/prompts/versions/:id` | 버전 수정 |
+| PUT | `/api/prompts/versions/:id` | 버전 수정 (systemPrompt 수정 불가) |
 | DELETE | `/api/prompts/versions/:id` | 버전 삭제 |
 | POST | `/api/prompts/versions/:id/activate` | 버전 활성화 |
 | GET | `/api/prompts/active` | 현재 활성 버전 조회 |
@@ -356,6 +361,10 @@ bun run cli rollback <backupId>
 | GET | `/api/prompts/experiments/:id` | 실험 상세 |
 | POST | `/api/prompts/experiments` | 실험 생성 |
 | POST | `/api/prompts/experiments/:id/complete` | 실험 완료 |
+
+추가 정책:
+- systemPrompt SoT는 Git tracked file이 아닌 miniPC AnkiConnect config다.
+- 로컬 파일 fallback 저장은 금지되며, sync 실패 시 저장 요청은 실패 처리된다.
 
 ## 10. 품질 검증
 

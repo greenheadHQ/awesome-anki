@@ -6,6 +6,7 @@ import type {
   FewShotExample,
   PromptConfig,
   PromptVersion,
+  RemoteSystemPromptPayload,
 } from "@anki-splitter/core";
 import {
   analyzeFailurePatterns,
@@ -18,16 +19,270 @@ import {
   getActiveVersion,
   getExperiment,
   getPromptVersion,
+  getRemoteSystemPromptPayload,
   listExperiments,
   listPromptVersions,
   NotFoundError,
   savePromptVersion,
   setActiveVersion,
+  setRemoteSystemPromptPayload,
+  sync,
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
 
 const prompts = new Hono();
+
+interface PromptConflictLatest {
+  revision: number;
+  systemPrompt: string;
+  activeVersionId: string;
+  updatedAt: string;
+}
+
+function buildSystemPromptVersionName(
+  baseName: string,
+  revision: number,
+): string {
+  return `${baseName} (systemPrompt rev${revision})`;
+}
+
+function buildDescriptionWithReason(
+  baseDescription: string,
+  reason: string,
+): string {
+  const normalized = reason.trim();
+  if (!normalized) {
+    return baseDescription;
+  }
+  const header = `[systemPrompt] ${normalized}`;
+  return baseDescription ? `${baseDescription}\n\n${header}` : header;
+}
+
+function buildConflictLatest(
+  currentPayload: RemoteSystemPromptPayload | null,
+  activeVersion: PromptVersion,
+): PromptConflictLatest {
+  if (currentPayload) {
+    return {
+      revision: currentPayload.revision,
+      systemPrompt: currentPayload.systemPrompt,
+      activeVersionId: currentPayload.activeVersionId,
+      updatedAt: currentPayload.updatedAt,
+    };
+  }
+
+  return {
+    revision: 0,
+    systemPrompt: activeVersion.systemPrompt,
+    activeVersionId: activeVersion.id,
+    updatedAt: activeVersion.updatedAt,
+  };
+}
+
+function buildRollbackPayload(
+  currentPayload: RemoteSystemPromptPayload | null,
+  activeVersion: PromptVersion,
+): RemoteSystemPromptPayload {
+  if (currentPayload) {
+    return currentPayload;
+  }
+
+  return {
+    revision: 0,
+    systemPrompt: activeVersion.systemPrompt,
+    activeVersionId: activeVersion.id,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+// ============================================================================
+// 원격 systemPrompt (CAS + sync)
+// ============================================================================
+
+/**
+ * GET /api/prompts/system
+ * 원격 systemPrompt 조회
+ */
+prompts.get("/system", async (c) => {
+  const activeInfo = await getActiveVersion();
+  if (!activeInfo) {
+    throw new ValidationError(
+      "활성 버전이 없습니다. 먼저 버전을 생성/활성화하세요.",
+    );
+  }
+
+  const activeVersion = await getPromptVersion(activeInfo.versionId);
+  if (!activeVersion) {
+    throw new NotFoundError(
+      `활성 버전 ${activeInfo.versionId}을(를) 찾을 수 없습니다.`,
+    );
+  }
+
+  const payload = await getRemoteSystemPromptPayload();
+  if (!payload) {
+    return c.json(
+      { error: "원격 systemPrompt가 아직 초기화되지 않았습니다." },
+      404,
+    );
+  }
+
+  return c.json({
+    revision: payload.revision,
+    systemPrompt: payload.systemPrompt,
+    activeVersion: {
+      id: activeVersion.id,
+      name: activeVersion.name,
+      updatedAt: activeVersion.updatedAt,
+    },
+  });
+});
+
+/**
+ * POST /api/prompts/system
+ * 원격 systemPrompt 저장 (CAS + sync)
+ */
+prompts.post("/system", async (c) => {
+  const body = await c.req.json<{
+    expectedRevision: number;
+    systemPrompt: string;
+    reason: string;
+  }>();
+
+  if (
+    typeof body.expectedRevision !== "number" ||
+    !Number.isInteger(body.expectedRevision) ||
+    body.expectedRevision < 0
+  ) {
+    throw new ValidationError("expectedRevision은 0 이상의 정수여야 합니다.");
+  }
+
+  const nextSystemPrompt = body.systemPrompt?.trim();
+  if (!nextSystemPrompt) {
+    throw new ValidationError("systemPrompt는 비어 있을 수 없습니다.");
+  }
+
+  const reason = body.reason?.trim();
+  if (!reason) {
+    throw new ValidationError("reason은 필수입니다.");
+  }
+
+  const activeInfo = await getActiveVersion();
+  if (!activeInfo) {
+    throw new ValidationError(
+      "활성 버전이 없습니다. 먼저 버전을 생성/활성화하세요.",
+    );
+  }
+
+  const activeVersion = await getPromptVersion(activeInfo.versionId);
+  if (!activeVersion) {
+    throw new NotFoundError(
+      `활성 버전 ${activeInfo.versionId}을(를) 찾을 수 없습니다.`,
+    );
+  }
+
+  const currentPayload = await getRemoteSystemPromptPayload();
+  const currentRevision = currentPayload?.revision ?? 0;
+  if (body.expectedRevision !== currentRevision) {
+    return c.json(
+      {
+        error: "Revision conflict",
+        latest: buildConflictLatest(currentPayload, activeVersion),
+      },
+      409,
+    );
+  }
+
+  const nextRevision = currentRevision + 1;
+  const newVersion = await createPromptVersion({
+    name: buildSystemPromptVersionName(activeVersion.name, nextRevision),
+    description: buildDescriptionWithReason(activeVersion.description, reason),
+    systemPrompt: nextSystemPrompt,
+    splitPromptTemplate: activeVersion.splitPromptTemplate,
+    analysisPromptTemplate: activeVersion.analysisPromptTemplate,
+    examples: activeVersion.examples,
+    config: activeVersion.config,
+    status: "draft",
+    parentVersionId: activeVersion.id,
+    changelog: reason,
+  });
+
+  const nextPayload: RemoteSystemPromptPayload = {
+    revision: nextRevision,
+    systemPrompt: nextSystemPrompt,
+    activeVersionId: newVersion.id,
+    migratedFromFileAt: currentPayload?.migratedFromFileAt,
+    updatedAt: new Date().toISOString(),
+  };
+
+  let remoteUpdated = false;
+  let activeUpdated = false;
+  const rollbackErrors: string[] = [];
+  const previousActiveVersionId = activeVersion.id;
+
+  try {
+    await setRemoteSystemPromptPayload(nextPayload);
+    remoteUpdated = true;
+
+    await setActiveVersion(newVersion.id, "user");
+    activeUpdated = true;
+
+    const syncedAt = new Date().toISOString();
+    await sync();
+
+    return c.json({
+      revision: nextRevision,
+      newVersion: {
+        id: newVersion.id,
+        name: newVersion.name,
+        activatedAt: syncedAt,
+      },
+      syncResult: {
+        success: true,
+        syncedAt,
+      },
+    });
+  } catch (error) {
+    const rollbackPayload = buildRollbackPayload(currentPayload, activeVersion);
+
+    if (remoteUpdated) {
+      try {
+        await setRemoteSystemPromptPayload(rollbackPayload);
+      } catch (rollbackError) {
+        rollbackErrors.push(
+          `remote rollback 실패: ${
+            rollbackError instanceof Error
+              ? rollbackError.message
+              : String(rollbackError)
+          }`,
+        );
+      }
+    }
+
+    if (activeUpdated && previousActiveVersionId !== newVersion.id) {
+      try {
+        await setActiveVersion(previousActiveVersionId, "system");
+      } catch (rollbackError) {
+        rollbackErrors.push(
+          `active rollback 실패: ${
+            rollbackError instanceof Error
+              ? rollbackError.message
+              : String(rollbackError)
+          }`,
+        );
+      }
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    return c.json(
+      {
+        error: `systemPrompt 저장 실패: ${message}`,
+        ...(rollbackErrors.length > 0 && { rollbackErrors }),
+      },
+      503,
+    );
+  }
+});
 
 // ============================================================================
 // 버전 관리
@@ -126,11 +381,17 @@ prompts.put("/versions/:id", async (c) => {
       }>
     >();
 
+  if (Object.hasOwn(body, "systemPrompt")) {
+    throw new ValidationError(
+      "systemPrompt는 /api/prompts/system 엔드포인트로만 수정할 수 있습니다.",
+    );
+  }
+
   const updated: PromptVersion = {
     ...existing,
     name: body.name ?? existing.name,
     description: body.description ?? existing.description,
-    systemPrompt: body.systemPrompt ?? existing.systemPrompt,
+    systemPrompt: existing.systemPrompt,
     splitPromptTemplate:
       body.splitPromptTemplate ?? existing.splitPromptTemplate,
     analysisPromptTemplate:

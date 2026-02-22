@@ -221,3 +221,20 @@ export async function deleteNotes(notes: number[]): Promise<null> {
 export async function sync(): Promise<null> {
   return ankiConnect<null>("sync");
 }
+
+/**
+ * Anki config 값 조회
+ */
+export async function getConfig<T = unknown>(key: string): Promise<T | null> {
+  return ankiConnect<T | null>("getConfig", { key });
+}
+
+/**
+ * Anki config 값 저장
+ */
+export async function setConfig<T = unknown>(
+  key: string,
+  value: T,
+): Promise<null> {
+  return ankiConnect<null>("setConfig", { key, val: value });
+}

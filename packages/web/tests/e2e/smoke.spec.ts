@@ -23,3 +23,8 @@ test("dashboard shows deck selector trigger", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("combobox").first()).toBeVisible();
 });
+
+test("prompts page shows remote system prompt editor", async ({ page }) => {
+  await page.goto("/prompts");
+  await expect(page.getByText("시스템 프롬프트 원격 편집")).toBeVisible();
+});

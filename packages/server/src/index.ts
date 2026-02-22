@@ -3,7 +3,10 @@
  */
 import "dotenv/config";
 import { timingSafeEqual } from "node:crypto";
-import { AppError } from "@anki-splitter/core";
+import {
+  AppError,
+  migrateLegacySystemPromptToRemoteIfNeeded,
+} from "@anki-splitter/core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -117,6 +120,24 @@ getSplitHistoryStore()
   })
   .catch((error) => {
     console.error("⚠️ Split history store initialization failed:", error);
+  });
+
+migrateLegacySystemPromptToRemoteIfNeeded()
+  .then((result) => {
+    if (result.migrated) {
+      console.log("🧠 Prompt system SoT migrated to remote config");
+      return;
+    }
+
+    if (result.reason === "already-exists") {
+      console.log("🧠 Prompt system SoT already initialized on remote config");
+      return;
+    }
+
+    console.warn(`⚠️ Prompt system SoT migration skipped: ${result.reason}`);
+  })
+  .catch((error) => {
+    console.error("⚠️ Prompt system SoT migration failed:", error);
   });
 
 if (!API_KEY) {
