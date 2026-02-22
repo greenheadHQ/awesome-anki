@@ -157,15 +157,20 @@ prompts.post("/system", async (c) => {
     throw new ValidationError("expectedRevision은 0 이상의 정수여야 합니다.");
   }
 
-  const nextSystemPrompt = body.systemPrompt?.trim();
-  if (!nextSystemPrompt) {
+  const rawSystemPrompt = body.systemPrompt;
+  if (
+    typeof rawSystemPrompt !== "string" ||
+    rawSystemPrompt.trim().length === 0
+  ) {
     throw new ValidationError("systemPrompt는 비어 있을 수 없습니다.");
   }
+  const nextSystemPrompt = rawSystemPrompt.trim();
 
-  const reason = body.reason?.trim();
-  if (!reason) {
+  const rawReason = body.reason;
+  if (typeof rawReason !== "string" || rawReason.trim().length === 0) {
     throw new ValidationError("reason은 필수입니다.");
   }
+  const reason = rawReason.trim();
 
   const activeInfo = await getActiveVersion();
   if (!activeInfo) {

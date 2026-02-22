@@ -60,6 +60,8 @@ export function PromptManager() {
   const [draftBaseRevision, setDraftBaseRevision] = useState<number | null>(
     null,
   );
+  const [hasUserEditedSystemPrompt, setHasUserEditedSystemPrompt] =
+    useState(false);
   const [saveReason, setSaveReason] = useState("");
   const [conflictLatest, setConflictLatest] =
     useState<PromptSystemConflictLatest | null>(null);
@@ -78,6 +80,10 @@ export function PromptManager() {
   const saveSystemPrompt = useSaveSystemPrompt();
   const remoteSystemPrompt = systemPromptQuery.data?.systemPrompt;
   const remoteRevision = systemPromptQuery.data?.revision;
+  const remoteAdvanced =
+    draftBaseRevision !== null &&
+    remoteRevision !== undefined &&
+    remoteRevision !== draftBaseRevision;
 
   const isSystemPromptDirty = Boolean(
     systemPromptQuery.data &&
@@ -90,19 +96,19 @@ export function PromptManager() {
     }
 
     const isInitialHydration = draftBaseRevision === null;
-    const remoteAdvanced =
-      draftBaseRevision !== null && remoteRevision !== draftBaseRevision;
 
     if (isInitialHydration || (!isSystemPromptDirty && remoteAdvanced)) {
       setSystemPromptDraft(remoteSystemPrompt);
       setDraftBaseRevision(remoteRevision);
       setConflictLatest(null);
+      setHasUserEditedSystemPrompt(false);
     }
   }, [
     draftBaseRevision,
     isSystemPromptDirty,
     remoteRevision,
     remoteSystemPrompt,
+    remoteAdvanced,
   ]);
 
   const canSaveSystemPrompt =
@@ -157,6 +163,7 @@ export function PromptManager() {
       setConflictLatest(null);
       setLastSyncState(result.syncResult);
       setDraftBaseRevision(result.revision);
+      setHasUserEditedSystemPrompt(false);
       toast.success(`systemPrompt 저장 완료: ${result.newVersion.id}`);
     } catch (error) {
       if (error instanceof PromptConflictError) {
@@ -184,6 +191,13 @@ export function PromptManager() {
       toast.error(message);
       return;
     }
+
+    if (!hasUserEditedSystemPrompt && result.data) {
+      setSystemPromptDraft(result.data.systemPrompt);
+      setDraftBaseRevision(result.data.revision);
+      setConflictLatest(null);
+      setHasUserEditedSystemPrompt(false);
+    }
     toast.success("원격 systemPrompt를 다시 불러왔습니다.");
   };
 
@@ -196,7 +210,10 @@ export function PromptManager() {
 
       <SystemPromptEditor
         systemPromptDraft={systemPromptDraft}
-        setSystemPromptDraft={setSystemPromptDraft}
+        setSystemPromptDraft={(value) => {
+          setSystemPromptDraft(value);
+          setHasUserEditedSystemPrompt(true);
+        }}
         saveReason={saveReason}
         setSaveReason={setSaveReason}
         isLoading={systemPromptQuery.isLoading}
@@ -214,6 +231,9 @@ export function PromptManager() {
         isSaving={saveSystemPrompt.isPending}
         conflictLatest={conflictLatest}
         lastSyncState={lastSyncState}
+        showRemoteAdvancedNotice={
+          remoteAdvanced && isSystemPromptDirty && !hasUserEditedSystemPrompt
+        }
         onSave={() => void handleSaveSystemPrompt()}
         onReloadRemote={() => void handleReloadRemote()}
         onUseRemoteValue={() => {
@@ -221,6 +241,7 @@ export function PromptManager() {
           setSystemPromptDraft(conflictLatest.systemPrompt);
           setDraftBaseRevision(conflictLatest.revision);
           setConflictLatest(null);
+          setHasUserEditedSystemPrompt(false);
         }}
         onRetryWithLatest={() => {
           if (!conflictLatest) return;
@@ -306,6 +327,7 @@ interface SystemPromptEditorProps {
     syncedAt?: string;
     error?: string;
   } | null;
+  showRemoteAdvancedNotice: boolean;
   onSave: () => void;
   onReloadRemote: () => void;
   onUseRemoteValue: () => void;
@@ -328,6 +350,7 @@ function SystemPromptEditor({
   isSaving,
   conflictLatest,
   lastSyncState,
+  showRemoteAdvancedNotice,
   onSave,
   onReloadRemote,
   onUseRemoteValue,
@@ -436,6 +459,14 @@ function SystemPromptEditor({
                 </span>
               )}
             </div>
+
+            {showRemoteAdvancedNotice && (
+              <div className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                원격 revision이 갱신되었습니다. 로컬 draft를 유지 중이므로
+                <span className="font-medium"> 원격 재조회</span>로 최신값을
+                반영하세요.
+              </div>
+            )}
           </>
         )}
 
