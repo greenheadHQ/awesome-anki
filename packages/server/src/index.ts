@@ -141,6 +141,13 @@ async function runStartupTasks(): Promise<void> {
       return;
     }
 
+    if (result.reason === "remote-config-action-unsupported") {
+      console.warn(
+        "⚠️ Prompt system SoT migration skipped: AnkiConnect getConfig/setConfig 커스텀 액션을 사용할 수 없습니다.",
+      );
+      return;
+    }
+
     console.warn(`⚠️ Prompt system SoT migration skipped: ${result.reason}`);
     return;
   }

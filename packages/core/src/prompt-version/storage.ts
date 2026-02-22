@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getConfig, setConfig } from "../anki/client.js";
+import { AnkiConnectError } from "../errors.js";
 import { atomicWriteFile, withFileMutex } from "../utils/atomic-write.js";
 import type {
   ActiveVersionInfo,
@@ -325,6 +326,17 @@ export async function setRemoteSystemPromptPayload(
   await setConfig(SYSTEM_PROMPT_CONFIG_KEY, payload);
 }
 
+function isUnsupportedRemoteConfigActionError(error: unknown): boolean {
+  if (!(error instanceof AnkiConnectError)) {
+    return false;
+  }
+
+  return (
+    error.message.includes('커스텀 액션 "getConfig"') ||
+    error.message.includes('커스텀 액션 "setConfig"')
+  );
+}
+
 export interface SystemPromptMigrationResult {
   migrated: boolean;
   reason:
@@ -332,6 +344,7 @@ export interface SystemPromptMigrationResult {
     | "no-active-version"
     | "active-version-missing"
     | "empty-active-system-prompt"
+    | "remote-config-action-unsupported"
     | "migrated";
   payload?: RemoteSystemPromptPayload;
 }
@@ -343,7 +356,19 @@ export async function migrateLegacySystemPromptToRemoteIfNeeded(): Promise<Syste
   // NOTE:
   // getRemoteSystemPromptPayload() -> setRemoteSystemPromptPayload() 사이에 TOCTOU 창이 있다.
   // 현재는 단일 인스턴스 서버의 startup 1회 마이그레이션만 가정하므로 별도 락을 두지 않는다.
-  const existing = await getRemoteSystemPromptPayload();
+  let existing: RemoteSystemPromptPayload | null;
+  try {
+    existing = await getRemoteSystemPromptPayload();
+  } catch (error) {
+    if (isUnsupportedRemoteConfigActionError(error)) {
+      return {
+        migrated: false,
+        reason: "remote-config-action-unsupported",
+      };
+    }
+    throw error;
+  }
+
   if (existing) {
     return {
       migrated: false,
@@ -384,7 +409,17 @@ export async function migrateLegacySystemPromptToRemoteIfNeeded(): Promise<Syste
     updatedAt: now,
   };
 
-  await setRemoteSystemPromptPayload(payload);
+  try {
+    await setRemoteSystemPromptPayload(payload);
+  } catch (error) {
+    if (isUnsupportedRemoteConfigActionError(error)) {
+      return {
+        migrated: false,
+        reason: "remote-config-action-unsupported",
+      };
+    }
+    throw error;
+  }
 
   return {
     migrated: true,
