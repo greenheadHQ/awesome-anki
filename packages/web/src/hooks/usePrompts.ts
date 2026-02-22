@@ -127,7 +127,7 @@ export function useCompleteExperiment() {
       data,
     }: {
       id: string;
-      data: { conclusion: string; winnerVersionId?: string };
+      data: { conclusion: string; winnerVersionId: string };
     }) => api.prompts.completeExperiment(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({

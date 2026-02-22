@@ -11,6 +11,8 @@ describe("api.prompts.saveSystemPrompt", () => {
   });
 
   it("409 응답에서 PromptConflictError를 던진다", async () => {
+    expect.assertions(2);
+
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({

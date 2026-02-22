@@ -145,7 +145,10 @@ export function PromptManager() {
 
     try {
       const result = await saveSystemPrompt.mutateAsync({
-        expectedRevision: expectedRevision ?? systemPromptQuery.data.revision,
+        expectedRevision:
+          expectedRevision ??
+          draftBaseRevision ??
+          systemPromptQuery.data.revision,
         systemPrompt: systemPromptDraft,
         reason: saveReason.trim(),
       });
@@ -216,6 +219,8 @@ export function PromptManager() {
         onUseRemoteValue={() => {
           if (!conflictLatest) return;
           setSystemPromptDraft(conflictLatest.systemPrompt);
+          setDraftBaseRevision(conflictLatest.revision);
+          setConflictLatest(null);
         }}
         onRetryWithLatest={() => {
           if (!conflictLatest) return;
@@ -470,7 +475,7 @@ function SystemPromptEditor({
               <Button
                 type="button"
                 onClick={onRetryWithLatest}
-                disabled={isSaving}
+                disabled={isSaving || saveReason.trim().length === 0}
               >
                 내 수정안으로 강제 저장
               </Button>

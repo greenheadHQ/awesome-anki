@@ -102,11 +102,14 @@ function mapUnsupportedConfigActionError(
   }
 
   const message = error.message.toLowerCase();
+  const bareActionError = new RegExp(
+    `^ankiconnect error:\\s*${action.toLowerCase()}\\s*$`,
+  );
   const looksUnsupported =
     message.includes("unsupported action") ||
     message.includes("unknown action") ||
     message.includes("action not found") ||
-    message.includes(`error: ${action.toLowerCase()}`);
+    bareActionError.test(message);
 
   if (!looksUnsupported) {
     return null;

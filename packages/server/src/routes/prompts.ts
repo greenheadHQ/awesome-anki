@@ -181,6 +181,10 @@ prompts.post("/system", async (c) => {
     );
   }
 
+  // NOTE:
+  // migrateLegacySystemPromptToRemoteIfNeeded()와 동일하게 이 경로도 TOCTOU 한계가 있다.
+  // getRemoteSystemPromptPayload()와 setRemoteSystemPromptPayload()는 분리된 연산이며,
+  // AnkiConnect config API는 true CAS를 지원하지 않아 동시 요청이 같은 revision을 통과할 수 있다.
   const currentPayload = await getRemoteSystemPromptPayload();
   const currentRevision = currentPayload?.revision ?? 0;
   if (body.expectedRevision !== currentRevision) {

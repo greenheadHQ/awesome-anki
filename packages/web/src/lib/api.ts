@@ -683,7 +683,7 @@ export const api = {
       }),
     completeExperiment: (
       id: string,
-      data: { conclusion: string; winnerVersionId?: string },
+      data: { conclusion: string; winnerVersionId: string },
     ) =>
       fetchJson<Experiment>(`/prompts/experiments/${id}/complete`, {
         method: "POST",

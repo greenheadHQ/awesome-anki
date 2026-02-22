@@ -39,6 +39,12 @@ describe("parseRemoteSystemPromptPayload", () => {
     expect(parseRemoteSystemPromptPayload(undefined)).toBeNull();
   });
 
+  test("잘못된 JSON 문자열이면 명확한 에러를 던진다", () => {
+    expect(() => parseRemoteSystemPromptPayload("{invalid-json")).toThrow(
+      "JSON 파싱 실패",
+    );
+  });
+
   test("revision이 음수이면 예외를 던진다", () => {
     expect(() =>
       parseRemoteSystemPromptPayload({

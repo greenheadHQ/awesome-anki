@@ -42,7 +42,17 @@ export function parseRemoteSystemPromptPayload(
     return null;
   }
 
-  const raw = typeof value === "string" ? JSON.parse(value) : value;
+  let raw: unknown;
+  if (typeof value === "string") {
+    try {
+      raw = JSON.parse(value);
+    } catch {
+      throw new Error("원격 system prompt payload JSON 파싱 실패");
+    }
+  } else {
+    raw = value;
+  }
+
   if (!isPlainObject(raw)) {
     throw new Error("원격 system prompt payload가 객체 형태가 아닙니다.");
   }
@@ -321,6 +331,7 @@ export interface SystemPromptMigrationResult {
     | "already-exists"
     | "no-active-version"
     | "active-version-missing"
+    | "empty-active-system-prompt"
     | "migrated";
   payload?: RemoteSystemPromptPayload;
 }
@@ -354,6 +365,13 @@ export async function migrateLegacySystemPromptToRemoteIfNeeded(): Promise<Syste
     return {
       migrated: false,
       reason: "active-version-missing",
+    };
+  }
+
+  if (activeVersion.systemPrompt.length === 0) {
+    return {
+      migrated: false,
+      reason: "empty-active-system-prompt",
     };
   }
 
