@@ -3,6 +3,7 @@
  * 탭 구성: 버전 목록 | 실험 | 메트릭
  */
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BarChart3,
@@ -45,13 +46,16 @@ import {
   type Experiment,
   PromptConflictError,
   type PromptSystemConflictLatest,
+  type PromptSystemState,
   type PromptVersion,
 } from "../lib/api";
+import { queryKeys } from "../lib/query-keys";
 import { cn } from "../lib/utils";
 
 type TabType = "versions" | "experiments" | "metrics";
 
 export function PromptManager() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>("versions");
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(
     null,
@@ -144,6 +148,38 @@ export function PromptManager() {
     activatePrompt.mutate(versionId);
   };
 
+  const syncSystemPromptQueryFromConflict = (
+    latest: PromptSystemConflictLatest,
+  ) => {
+    queryClient.setQueryData<PromptSystemState>(
+      queryKeys.prompts.system,
+      (current) => {
+        if (!current) {
+          return {
+            revision: latest.revision,
+            systemPrompt: latest.systemPrompt,
+            activeVersion: {
+              id: latest.activeVersionId,
+              name: latest.activeVersionId,
+              updatedAt: latest.updatedAt,
+            },
+          };
+        }
+
+        return {
+          ...current,
+          revision: latest.revision,
+          systemPrompt: latest.systemPrompt,
+          activeVersion: {
+            ...current.activeVersion,
+            id: latest.activeVersionId,
+            updatedAt: latest.updatedAt,
+          },
+        };
+      },
+    );
+  };
+
   const handleSaveSystemPrompt = async (expectedRevision?: number) => {
     if (!systemPromptQuery.data) {
       return;
@@ -167,6 +203,7 @@ export function PromptManager() {
       toast.success(`systemPrompt 저장 완료: ${result.newVersion.id}`);
     } catch (error) {
       if (error instanceof PromptConflictError) {
+        syncSystemPromptQueryFromConflict(error.latest);
         setConflictLatest(error.latest);
         setLastSyncState(null);
         toast.error(
