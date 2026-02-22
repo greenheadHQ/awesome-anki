@@ -29,13 +29,42 @@ describe("api.prompts.saveSystemPrompt", () => {
       ),
     );
 
+    try {
+      await api.prompts.saveSystemPrompt({
+        expectedRevision: 2,
+        systemPrompt: "local prompt",
+        reason: "conflict test",
+      });
+      throw new Error("should throw PromptConflictError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(PromptConflictError);
+      const conflictError = error as PromptConflictError;
+      expect(conflictError.latest).toEqual({
+        revision: 3,
+        systemPrompt: "remote prompt",
+        activeVersionId: "v1.0.3",
+        updatedAt: "2026-02-22T00:00:00.000Z",
+      });
+    }
+  });
+
+  it("409 응답 body를 파싱하지 못하면 일반 Error를 던진다", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("{not-json", {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
     await expect(
       api.prompts.saveSystemPrompt({
         expectedRevision: 2,
         systemPrompt: "local prompt",
-        reason: "conflict test",
+        reason: "conflict parse failure",
       }),
-    ).rejects.toBeInstanceOf(PromptConflictError);
+    ).rejects.toThrow(
+      "리비전 충돌이 발생했지만 서버 응답을 파싱할 수 없습니다.",
+    );
   });
 
   it("성공 응답을 파싱한다", async () => {

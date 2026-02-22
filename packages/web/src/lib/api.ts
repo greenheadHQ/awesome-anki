@@ -629,18 +629,25 @@ export const api = {
       });
 
       if (res.status === 409) {
-        const payload = (await res.json().catch(() => null)) as {
+        const rawBody = await res.text().catch(() => "");
+        let payload: {
           latest?: PromptSystemConflictLatest;
-        } | null;
+        } | null = null;
+        if (rawBody) {
+          try {
+            payload = JSON.parse(rawBody) as {
+              latest?: PromptSystemConflictLatest;
+            };
+          } catch {
+            payload = null;
+          }
+        }
         if (payload?.latest) {
           throw new PromptConflictError(payload.latest);
         }
-        throw new PromptConflictError({
-          revision: data.expectedRevision,
-          systemPrompt: data.systemPrompt,
-          activeVersionId: "",
-          updatedAt: new Date().toISOString(),
-        });
+        throw new Error(
+          "리비전 충돌이 발생했지만 서버 응답을 파싱할 수 없습니다. 원격 재조회 후 다시 시도하세요.",
+        );
       }
 
       if (!res.ok) {

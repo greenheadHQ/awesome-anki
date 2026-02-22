@@ -10,6 +10,7 @@ function getAnkiConnectUrl(): string {
 }
 const ANKI_CONNECT_VERSION = 6;
 const DEFAULT_TIMEOUT = 5000;
+type ConfigAction = "getConfig" | "setConfig";
 
 export interface AnkiConnectRequest {
   action: string;
@@ -90,6 +91,30 @@ export async function ankiConnect<T>(
   }
 
   return data.result;
+}
+
+function mapUnsupportedConfigActionError(
+  action: ConfigAction,
+  error: unknown,
+): AnkiConnectError | null {
+  if (!(error instanceof AnkiConnectError)) {
+    return null;
+  }
+
+  const message = error.message.toLowerCase();
+  const looksUnsupported =
+    message.includes("unsupported action") ||
+    message.includes("unknown action") ||
+    message.includes("action not found") ||
+    message.includes(`error: ${action.toLowerCase()}`);
+
+  if (!looksUnsupported) {
+    return null;
+  }
+
+  return new AnkiConnectError(
+    `AnkiConnect 커스텀 액션 "${action}"을 사용할 수 없습니다. miniPC Anki 서버에 getConfig/setConfig 확장이 설치되어 있는지 확인하세요.`,
+  );
 }
 
 /**
@@ -224,17 +249,39 @@ export async function sync(): Promise<null> {
 
 /**
  * Anki config 값 조회
+ *
+ * 참고: 공식 AnkiConnect에는 getConfig/setConfig 액션이 없고,
+ * 이 프로젝트는 miniPC의 커스텀 AnkiConnect 확장을 전제로 사용한다.
  */
 export async function getConfig<T = unknown>(key: string): Promise<T | null> {
-  return ankiConnect<T | null>("getConfig", { key });
+  try {
+    return await ankiConnect<T | null>("getConfig", { key });
+  } catch (error) {
+    const mapped = mapUnsupportedConfigActionError("getConfig", error);
+    if (mapped) {
+      throw mapped;
+    }
+    throw error;
+  }
 }
 
 /**
  * Anki config 값 저장
+ *
+ * 참고: 공식 AnkiConnect에는 getConfig/setConfig 액션이 없고,
+ * 이 프로젝트는 miniPC의 커스텀 AnkiConnect 확장을 전제로 사용한다.
  */
 export async function setConfig<T = unknown>(
   key: string,
   value: T,
 ): Promise<null> {
-  return ankiConnect<null>("setConfig", { key, val: value });
+  try {
+    return await ankiConnect<null>("setConfig", { key, val: value });
+  } catch (error) {
+    const mapped = mapUnsupportedConfigActionError("setConfig", error);
+    if (mapped) {
+      throw mapped;
+    }
+    throw error;
+  }
 }

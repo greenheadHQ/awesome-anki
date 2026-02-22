@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { ankiConnect } from "../anki/client.js";
+import { ankiConnect, getConfig, setConfig } from "../anki/client.js";
 import { AnkiConnectError, TimeoutError } from "../errors.js";
 
 describe("ankiConnect 타임아웃 및 에러 처리", () => {
@@ -87,5 +87,45 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     const result = await ankiConnect<number>("version");
     expect(result).toBe(6);
+  });
+
+  it("getConfig 커스텀 액션 미지원 시 명확한 에러를 던진다", async () => {
+    server = Bun.serve({
+      port: 0,
+      fetch() {
+        return new Response(
+          JSON.stringify({
+            result: null,
+            error: "unsupported action: getConfig",
+          }),
+        );
+      },
+    });
+
+    process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
+
+    await expect(getConfig("awesomeAnki.prompts.system")).rejects.toThrow(
+      '커스텀 액션 "getConfig"',
+    );
+  });
+
+  it("setConfig 커스텀 액션 미지원 시 명확한 에러를 던진다", async () => {
+    server = Bun.serve({
+      port: 0,
+      fetch() {
+        return new Response(
+          JSON.stringify({
+            result: null,
+            error: "unsupported action: setConfig",
+          }),
+        );
+      },
+    });
+
+    process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
+
+    await expect(
+      setConfig("awesomeAnki.prompts.system", { revision: 0 }),
+    ).rejects.toThrow('커스텀 액션 "setConfig"');
   });
 });

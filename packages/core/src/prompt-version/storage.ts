@@ -329,6 +329,9 @@ export interface SystemPromptMigrationResult {
  * legacy file SoT(output/prompts)에서 원격 SoT로 1회 이관
  */
 export async function migrateLegacySystemPromptToRemoteIfNeeded(): Promise<SystemPromptMigrationResult> {
+  // NOTE:
+  // getRemoteSystemPromptPayload() -> setRemoteSystemPromptPayload() 사이에 TOCTOU 창이 있다.
+  // 현재는 단일 인스턴스 서버의 startup 1회 마이그레이션만 가정하므로 별도 락을 두지 않는다.
   const existing = await getRemoteSystemPromptPayload();
   if (existing) {
     return {

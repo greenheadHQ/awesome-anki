@@ -57,6 +57,9 @@ export function PromptManager() {
     null,
   );
   const [systemPromptDraft, setSystemPromptDraft] = useState("");
+  const [draftBaseRevision, setDraftBaseRevision] = useState<number | null>(
+    null,
+  );
   const [saveReason, setSaveReason] = useState("");
   const [conflictLatest, setConflictLatest] =
     useState<PromptSystemConflictLatest | null>(null);
@@ -76,18 +79,32 @@ export function PromptManager() {
   const remoteSystemPrompt = systemPromptQuery.data?.systemPrompt;
   const remoteRevision = systemPromptQuery.data?.revision;
 
-  useEffect(() => {
-    if (remoteSystemPrompt === undefined || remoteRevision === undefined) {
-      return;
-    }
-    setSystemPromptDraft(remoteSystemPrompt);
-    setConflictLatest(null);
-  }, [remoteRevision, remoteSystemPrompt]);
-
   const isSystemPromptDirty = Boolean(
     systemPromptQuery.data &&
       systemPromptDraft !== systemPromptQuery.data.systemPrompt,
   );
+
+  useEffect(() => {
+    if (remoteSystemPrompt === undefined || remoteRevision === undefined) {
+      return;
+    }
+
+    const isInitialHydration = draftBaseRevision === null;
+    const remoteAdvanced =
+      draftBaseRevision !== null && remoteRevision !== draftBaseRevision;
+
+    if (isInitialHydration || (!isSystemPromptDirty && remoteAdvanced)) {
+      setSystemPromptDraft(remoteSystemPrompt);
+      setDraftBaseRevision(remoteRevision);
+      setConflictLatest(null);
+    }
+  }, [
+    draftBaseRevision,
+    isSystemPromptDirty,
+    remoteRevision,
+    remoteSystemPrompt,
+  ]);
+
   const canSaveSystemPrompt =
     !!systemPromptQuery.data &&
     isSystemPromptDirty &&
@@ -136,6 +153,7 @@ export function PromptManager() {
       setSaveReason("");
       setConflictLatest(null);
       setLastSyncState(result.syncResult);
+      setDraftBaseRevision(result.revision);
       toast.success(`systemPrompt 저장 완료: ${result.newVersion.id}`);
     } catch (error) {
       if (error instanceof PromptConflictError) {
@@ -454,7 +472,7 @@ function SystemPromptEditor({
                 onClick={onRetryWithLatest}
                 disabled={isSaving}
               >
-                최신 revision으로 재시도
+                내 수정안으로 강제 저장
               </Button>
             </div>
           </div>

@@ -39,10 +39,21 @@ describe("parseRemoteSystemPromptPayload", () => {
     expect(parseRemoteSystemPromptPayload(undefined)).toBeNull();
   });
 
-  test("revision이 정수가 아니면 예외를 던진다", () => {
+  test("revision이 음수이면 예외를 던진다", () => {
     expect(() =>
       parseRemoteSystemPromptPayload({
         revision: -1,
+        systemPrompt: "invalid",
+        activeVersionId: "v1.0.1",
+        updatedAt: "2026-02-22T01:00:00.000Z",
+      }),
+    ).toThrow("payload.revision");
+  });
+
+  test("revision이 정수가 아니면 예외를 던진다", () => {
+    expect(() =>
+      parseRemoteSystemPromptPayload({
+        revision: 1.5,
         systemPrompt: "invalid",
         activeVersionId: "v1.0.1",
         updatedAt: "2026-02-22T01:00:00.000Z",

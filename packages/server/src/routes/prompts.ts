@@ -227,8 +227,8 @@ prompts.post("/system", async (c) => {
     await setActiveVersion(newVersion.id, "user");
     activeUpdated = true;
 
-    const syncedAt = new Date().toISOString();
     await sync();
+    const syncedAt = new Date().toISOString();
 
     return c.json({
       revision: nextRevision,
@@ -273,6 +273,8 @@ prompts.post("/system", async (c) => {
       }
     }
 
+    // sync 실패 시 생성된 newVersion은 삭제하지 않고 보존한다.
+    // append-only 이력(감사/사후 분석) 유지를 위한 의도된 동작이다.
     const message = error instanceof Error ? error.message : String(error);
     return c.json(
       {

@@ -114,16 +114,23 @@ app.onError((err, c) => {
 // Start server — Bun.serve()를 직접 호출하여 HMR 이중 바인딩 방지
 const port = parseInt(process.env.PORT || "3000", 10);
 
-getSplitHistoryStore()
-  .then(() => {
-    console.log("📚 Split history store initialized");
-  })
-  .catch((error) => {
-    console.error("⚠️ Split history store initialization failed:", error);
-  });
+async function runStartupTasks(): Promise<void> {
+  const [historyResult, migrationResult] = await Promise.allSettled([
+    getSplitHistoryStore(),
+    migrateLegacySystemPromptToRemoteIfNeeded(),
+  ]);
 
-migrateLegacySystemPromptToRemoteIfNeeded()
-  .then((result) => {
+  if (historyResult.status === "fulfilled") {
+    console.log("📚 Split history store initialized");
+  } else {
+    console.error(
+      "⚠️ Split history store initialization failed:",
+      historyResult.reason,
+    );
+  }
+
+  if (migrationResult.status === "fulfilled") {
+    const result = migrationResult.value;
     if (result.migrated) {
       console.log("🧠 Prompt system SoT migrated to remote config");
       return;
@@ -135,10 +142,16 @@ migrateLegacySystemPromptToRemoteIfNeeded()
     }
 
     console.warn(`⚠️ Prompt system SoT migration skipped: ${result.reason}`);
-  })
-  .catch((error) => {
-    console.error("⚠️ Prompt system SoT migration failed:", error);
-  });
+    return;
+  }
+
+  console.error(
+    "⚠️ Prompt system SoT migration failed:",
+    migrationResult.reason,
+  );
+}
+
+await runStartupTasks();
 
 if (!API_KEY) {
   console.warn(
