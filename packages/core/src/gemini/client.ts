@@ -75,8 +75,10 @@ export async function estimateSplitCost(
     fullInput,
     resolvedModelId.model,
   );
+  // 출력 토큰은 입력의 70% 수준으로 추정 (일반적인 카드 분할 패턴)
+  const ESTIMATED_OUTPUT_INPUT_RATIO = 0.7;
   const outputTokens = Math.min(
-    Math.ceil(inputTokens * 0.7),
+    Math.ceil(inputTokens * ESTIMATED_OUTPUT_INPUT_RATIO),
     SPLIT_MAX_OUTPUT_TOKENS,
   );
 
@@ -228,5 +230,11 @@ ${card.text}
     model: resolvedModelId.model,
   });
 
-  return JSON.parse(llmResult.text);
+  try {
+    return JSON.parse(llmResult.text);
+  } catch {
+    throw new Error(
+      `LLM이 유효하지 않은 JSON을 반환했습니다 (${resolvedModelId.provider}/${resolvedModelId.model})`,
+    );
+  }
 }

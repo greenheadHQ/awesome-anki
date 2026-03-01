@@ -14,15 +14,12 @@ import {
   extractTextField,
   findCardsByNote,
   getActiveVersion,
-  getAvailableProviders,
-  getDefaultModelForProvider,
   getDefaultModelId,
   getModelPricing,
   getNoteById,
   getPromptVersion,
   getRemoteSystemPromptPayload,
   type LLMModelId,
-  type LLMProviderName,
   NotFoundError,
   preBackup,
   recordPromptMetricsEvent,
@@ -40,6 +37,7 @@ import {
   HistorySessionNotFoundError,
 } from "../history/store.js";
 import type { SplitCardPayload } from "../history/types.js";
+import { resolveModelId } from "../lib/resolve-model.js";
 
 const app = new Hono();
 
@@ -95,39 +93,16 @@ app.post("/preview", async (c) => {
   }>();
 
   // provider+model 유효성 검증
-  if (model && !provider) {
-    return c.json(
-      { error: "model을 지정할 때 provider도 함께 지정해야 합니다." },
-      400,
-    );
-  }
   let modelId: LLMModelId | undefined;
-  if (provider || model) {
-    const resolvedProvider = (provider ?? "gemini") as LLMProviderName;
-    if (!["gemini", "openai"].includes(resolvedProvider)) {
-      return c.json(
-        { error: `지원하지 않는 provider입니다: ${resolvedProvider}` },
-        400,
-      );
+  try {
+    modelId = resolveModelId(provider, model);
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      // API 키 미설정은 503, 나머지 검증 실패는 400
+      const status = e.message.includes("API 키") ? 503 : 400;
+      return c.json({ error: e.message }, status);
     }
-    const available = getAvailableProviders();
-    if (!available.includes(resolvedProvider)) {
-      return c.json(
-        { error: `${resolvedProvider} API 키가 설정되지 않았습니다` },
-        503,
-      );
-    }
-    const resolvedModel = model ?? getDefaultModelForProvider(resolvedProvider);
-    const pricing = getModelPricing(resolvedProvider, resolvedModel);
-    if (!pricing) {
-      return c.json(
-        {
-          error: `지원하지 않는 provider/model 조합입니다: ${resolvedProvider}/${resolvedModel}`,
-        },
-        400,
-      );
-    }
-    modelId = { provider: resolvedProvider, model: resolvedModel };
+    throw e;
   }
 
   const note = await getNoteById(noteId);

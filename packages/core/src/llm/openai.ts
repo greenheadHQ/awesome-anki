@@ -11,7 +11,7 @@ import type {
   TokenUsage,
 } from "./types.js";
 
-const DEFAULT_MODEL = "gpt-5-mini";
+export const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
 
 let openaiClient: import("openai").default | null = null;
 
@@ -61,7 +61,7 @@ export class OpenAIAdapter implements LLMProvider {
     options: LLMGenerationOptions,
   ): Promise<LLMGenerationResult> {
     const client = await getClient();
-    const model = options.model ?? DEFAULT_MODEL;
+    const model = options.model ?? DEFAULT_OPENAI_MODEL;
 
     const isJsonMode = options.responseMimeType === "application/json";
 

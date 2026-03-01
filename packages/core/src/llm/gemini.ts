@@ -12,7 +12,7 @@ import type {
   TokenUsage,
 } from "./types.js";
 
-const DEFAULT_MODEL = "gemini-3-flash-preview";
+export const DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview";
 
 let genAI: GoogleGenAI | null = null;
 
@@ -37,7 +37,7 @@ export class GeminiAdapter implements LLMProvider {
     options: LLMGenerationOptions,
   ): Promise<LLMGenerationResult> {
     const client = getClient();
-    const model = options.model ?? DEFAULT_MODEL;
+    const model = options.model ?? DEFAULT_GEMINI_MODEL;
 
     const response = await client.models.generateContent({
       model,
@@ -78,7 +78,7 @@ export class GeminiAdapter implements LLMProvider {
 
   async countTokens(text: string, model?: string): Promise<number> {
     const client = getClient();
-    const targetModel = model ?? DEFAULT_MODEL;
+    const targetModel = model ?? DEFAULT_GEMINI_MODEL;
 
     const result = await client.models.countTokens({
       model: targetModel,

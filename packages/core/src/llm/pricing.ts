@@ -69,18 +69,15 @@ export function getModelPricing(
   );
 }
 
-export function computeCost(
-  tokenUsage: TokenUsage,
+function calculateCost(
+  inputTokens: number,
+  outputTokens: number,
   pricing: ModelPricing,
-): ActualCost {
-  const inputTokens = tokenUsage.promptTokens ?? 0;
-  const outputTokens = tokenUsage.completionTokens ?? 0;
-
+): { inputCostUsd: number; outputCostUsd: number; totalCostUsd: number } {
   const inputCostUsd =
     (inputTokens / 1_000_000) * pricing.inputPricePerMillionTokens;
   const outputCostUsd =
     (outputTokens / 1_000_000) * pricing.outputPricePerMillionTokens;
-
   return {
     inputCostUsd,
     outputCostUsd,
@@ -88,20 +85,31 @@ export function computeCost(
   };
 }
 
+export function computeCost(
+  tokenUsage: TokenUsage,
+  pricing: ModelPricing,
+): ActualCost {
+  return calculateCost(
+    tokenUsage.promptTokens ?? 0,
+    tokenUsage.completionTokens ?? 0,
+    pricing,
+  );
+}
+
 export function estimateCost(
   inputTokens: number,
   outputTokens: number,
   pricing: ModelPricing,
 ): CostEstimate {
-  const estimatedInputCostUsd =
-    (inputTokens / 1_000_000) * pricing.inputPricePerMillionTokens;
-  const estimatedOutputCostUsd =
-    (outputTokens / 1_000_000) * pricing.outputPricePerMillionTokens;
-
+  const { inputCostUsd, outputCostUsd, totalCostUsd } = calculateCost(
+    inputTokens,
+    outputTokens,
+    pricing,
+  );
   return {
-    estimatedInputCostUsd,
-    estimatedOutputCostUsd,
-    estimatedTotalCostUsd: estimatedInputCostUsd + estimatedOutputCostUsd,
+    estimatedInputCostUsd: inputCostUsd,
+    estimatedOutputCostUsd: outputCostUsd,
+    estimatedTotalCostUsd: totalCostUsd,
   };
 }
 

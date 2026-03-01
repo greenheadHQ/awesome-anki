@@ -172,12 +172,7 @@ export class SplitHistoryStore {
   }
 
   private hasSplitTypeColumn(): boolean {
-    const rows = this.db
-      .query<{ name: string }, []>(
-        "SELECT name FROM pragma_table_info('split_sessions') WHERE name = 'split_type'",
-      )
-      .all();
-    return rows.length > 0;
+    return this.hasColumn("split_type");
   }
 
   private hasColumn(column: string): boolean {

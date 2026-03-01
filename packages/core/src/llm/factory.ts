@@ -2,26 +2,49 @@
  * LLM 팩토리 함수
  */
 
-import { GeminiAdapter, isGeminiAvailable } from "./gemini.js";
-import { isOpenAIAvailable, OpenAIAdapter } from "./openai.js";
+import {
+  DEFAULT_GEMINI_MODEL,
+  GeminiAdapter,
+  isGeminiAvailable,
+} from "./gemini.js";
+import {
+  DEFAULT_OPENAI_MODEL,
+  isOpenAIAvailable,
+  OpenAIAdapter,
+} from "./openai.js";
 import type { LLMModelId, LLMProvider, LLMProviderName } from "./types.js";
 
+const adapterCache = new Map<LLMProviderName, LLMProvider>();
+
 export function createLLMClient(provider: LLMProviderName): LLMProvider {
+  const cached = adapterCache.get(provider);
+  if (cached) return cached;
+
+  let adapter: LLMProvider;
   switch (provider) {
     case "gemini":
-      return new GeminiAdapter();
+      adapter = new GeminiAdapter();
+      break;
     case "openai":
-      return new OpenAIAdapter();
+      adapter = new OpenAIAdapter();
+      break;
     default:
       throw new Error(`지원하지 않는 LLM provider: ${provider}`);
   }
+  adapterCache.set(provider, adapter);
+  return adapter;
 }
 
-const VALID_PROVIDERS = new Set<string>(["gemini", "openai"]);
+/**
+ * 문자열이 유효한 LLMProviderName인지 확인하는 타입 가드
+ */
+export function isValidProvider(s: string): s is LLMProviderName {
+  return s === "gemini" || s === "openai";
+}
 
 export function getDefaultModelId(): LLMModelId {
   const rawProvider = process.env.ANKI_SPLITTER_DEFAULT_LLM_PROVIDER;
-  if (rawProvider && !VALID_PROVIDERS.has(rawProvider)) {
+  if (rawProvider && !isValidProvider(rawProvider)) {
     throw new Error(
       `유효하지 않은 LLM provider: ${rawProvider} (지원: gemini, openai)`,
     );
@@ -49,9 +72,9 @@ export function getDefaultModelId(): LLMModelId {
 export function getDefaultModelForProvider(provider: LLMProviderName): string {
   switch (provider) {
     case "gemini":
-      return "gemini-3-flash-preview";
+      return DEFAULT_GEMINI_MODEL;
     case "openai":
-      return "gpt-5-mini";
+      return DEFAULT_OPENAI_MODEL;
   }
 }
 

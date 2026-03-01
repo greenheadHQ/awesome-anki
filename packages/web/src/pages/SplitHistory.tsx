@@ -419,10 +419,7 @@ export function SplitHistory() {
                   <StatusBadge status={detail.data.status} />
                   {detail.data.aiModel && (
                     <ModelBadge
-                      provider={
-                        (detail.data as { provider?: string }).provider ??
-                        "gemini"
-                      }
+                      provider={detail.data.provider ?? "gemini"}
                       model={detail.data.aiModel}
                     />
                   )}

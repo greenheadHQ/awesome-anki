@@ -10,50 +10,13 @@ import {
   checkFreshness,
   checkSimilarity,
   extractTextField,
-  getAvailableProviders,
   getDeckNotes,
-  getDefaultModelForProvider,
-  getModelPricing,
   getNoteById,
-  type LLMModelId,
-  type LLMProviderName,
   NotFoundError,
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
-
-const VALID_PROVIDERS = new Set<string>(["gemini", "openai"]);
-
-function resolveModelId(
-  provider?: string,
-  model?: string,
-): LLMModelId | undefined {
-  if (model && !provider) {
-    throw new ValidationError(
-      "model을 지정할 때 provider도 함께 지정해야 합니다.",
-    );
-  }
-  if (!provider) return undefined;
-  if (!VALID_PROVIDERS.has(provider)) {
-    throw new ValidationError(`지원하지 않는 provider입니다: ${provider}`);
-  }
-  const available = getAvailableProviders();
-  if (!available.includes(provider as LLMProviderName)) {
-    throw new ValidationError(`${provider} API 키가 설정되지 않았습니다`);
-  }
-  const resolvedModel =
-    model ?? getDefaultModelForProvider(provider as LLMProviderName);
-  const pricing = getModelPricing(provider as LLMProviderName, resolvedModel);
-  if (!pricing) {
-    throw new ValidationError(
-      `지원하지 않는 provider/model 조합입니다: ${provider}/${resolvedModel}`,
-    );
-  }
-  return {
-    provider: provider as LLMProviderName,
-    model: resolvedModel,
-  };
-}
+import { resolveModelId } from "../lib/resolve-model.js";
 
 const validate = new Hono();
 

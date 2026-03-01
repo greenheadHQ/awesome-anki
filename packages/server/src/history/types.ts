@@ -9,11 +9,8 @@ export const HISTORY_STATUSES = [
 
 export type HistoryStatus = (typeof HISTORY_STATUSES)[number];
 
-export interface TokenUsage {
-  promptTokens?: number;
-  completionTokens?: number;
-  totalTokens?: number;
-}
+import type { TokenUsage } from "@anki-splitter/core";
+export type { TokenUsage };
 
 export interface SplitCardPayload {
   title: string;
