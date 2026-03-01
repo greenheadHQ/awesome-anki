@@ -23,8 +23,6 @@ export interface DeckStats {
   deckName: string;
   totalNotes: number;
   splitCandidates: number;
-  hardSplitCount: number;
-  softSplitCount: number;
 }
 
 export interface CardSummary {
@@ -33,16 +31,16 @@ export interface CardSummary {
   tags: string[];
   modelName: string;
   analysis: {
-    canHardSplit: boolean;
-    canSoftSplit?: boolean;
+    canSplit: boolean;
+    hasTodoBlock: boolean;
     clozeCount: number;
+    estimatedCards: number;
   };
   clozeStats: {
     totalClozes: number;
     uniqueNumbers: number;
   };
   isSplitable: boolean;
-  splitType: "hard" | "soft" | null;
 }
 
 export interface CardDetail extends CardSummary {
@@ -60,12 +58,11 @@ export interface CardDetail extends CardSummary {
 export interface SplitPreviewResult {
   sessionId?: string;
   noteId: number;
-  splitType: "hard" | "soft" | "none";
   originalText?: string;
   splitCards?: Array<{
     title: string;
     content: string;
-    isMainCard: boolean;
+    isMainCard?: boolean;
     cardType?: "cloze" | "basic";
     charCount?: number;
   }>;
@@ -88,7 +85,6 @@ export type SplitPreview = SplitPreviewResult;
 export interface SplitApplyResult {
   success: boolean;
   backupId: string;
-  splitType?: "hard" | "soft";
   mainNoteId: number;
   newNoteIds: number[];
   syncResult?: {
@@ -112,7 +108,6 @@ export interface BackupEntry {
   deckName: string;
   originalNoteId: number;
   createdNoteIds: number[];
-  splitType: "hard" | "soft";
 }
 
 // Validation types
@@ -318,7 +313,6 @@ export interface SplitHistoryListItem {
   sessionId: string;
   noteId: number;
   deckName: string;
-  splitType: "hard" | "soft";
   status: SplitHistoryStatus;
   promptVersionId?: string;
   splitReason?: string;
@@ -342,7 +336,6 @@ export interface SplitHistoryDetail {
   sessionId: string;
   noteId: number;
   deckName: string;
-  splitType: "hard" | "soft";
   status: SplitHistoryStatus;
   promptVersionId?: string;
   originalText: string;
@@ -474,15 +467,10 @@ export const api = {
   },
 
   split: {
-    preview: (
-      noteId: number,
-      useGemini = false,
-      versionId?: string,
-      deckName?: string,
-    ) =>
+    preview: (noteId: number, versionId?: string, deckName?: string) =>
       fetchJson<SplitPreviewResult>("/split/preview", {
         method: "POST",
-        body: JSON.stringify({ noteId, useGemini, versionId, deckName }),
+        body: JSON.stringify({ noteId, versionId, deckName }),
       }),
     apply: (data: {
       sessionId: string;
@@ -497,7 +485,6 @@ export const api = {
         backLinks?: string[];
       }>;
       mainCardIndex: number;
-      splitType?: "hard" | "soft";
     }) =>
       fetchJson<SplitApplyResult>("/split/apply", {
         method: "POST",
@@ -697,7 +684,6 @@ export const api = {
       limit?: number;
       deckName?: string;
       status?: SplitHistoryStatus;
-      splitType?: "hard" | "soft";
       startDate?: string;
       endDate?: string;
     }) => {
@@ -706,7 +692,6 @@ export const api = {
       if (opts?.limit) params.set("limit", String(opts.limit));
       if (opts?.deckName) params.set("deckName", opts.deckName);
       if (opts?.status) params.set("status", opts.status);
-      if (opts?.splitType) params.set("splitType", opts.splitType);
       if (opts?.startDate) params.set("startDate", opts.startDate);
       if (opts?.endDate) params.set("endDate", opts.endDate);
       const query = params.toString();
@@ -720,7 +705,6 @@ export const api = {
         filters: {
           deckName: string | null;
           status: SplitHistoryStatus | null;
-          splitType: "hard" | "soft" | null;
           startDate: string;
           endDate: string;
         };

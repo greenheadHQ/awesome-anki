@@ -12,23 +12,16 @@ export function useSplitPreview() {
   return useMutation({
     mutationFn: ({
       noteId,
-      useGemini = false,
       versionId,
       deckName,
     }: {
       noteId: number;
-      useGemini?: boolean;
       versionId?: string;
       deckName?: string;
-    }) => api.split.preview(noteId, useGemini, versionId, deckName),
+    }) => api.split.preview(noteId, versionId, deckName),
     onSuccess: (data, variables) => {
-      // 결과를 React Query 캐시에 저장 (카드별+버전별 독립 캐시)
       queryClient.setQueryData(
-        queryKeys.split.preview(
-          variables.noteId,
-          variables.useGemini,
-          variables.versionId,
-        ),
+        queryKeys.split.preview(variables.noteId, variables.versionId),
         data,
       );
     },
@@ -42,12 +35,9 @@ export function useSplitPreview() {
 export function getCachedSplitPreview(
   queryClient: ReturnType<typeof useQueryClient>,
   noteId: number,
-  useGemini: boolean,
   versionId?: string,
 ): SplitPreviewResult | undefined {
-  return queryClient.getQueryData(
-    queryKeys.split.preview(noteId, useGemini, versionId),
-  );
+  return queryClient.getQueryData(queryKeys.split.preview(noteId, versionId));
 }
 
 export function useSplitApply() {
@@ -67,7 +57,6 @@ export function useSplitApply() {
         backLinks?: string[];
       }>;
       mainCardIndex: number;
-      splitType?: "hard" | "soft";
     }) => api.split.apply(data),
     onSuccess: () => {
       // 카드 목록 캐시 무효화

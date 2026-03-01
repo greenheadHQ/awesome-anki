@@ -68,9 +68,6 @@ const newNoteIds = await ankiConnect('addNotes', {
 ## 연결 확인
 
 ```bash
-# CLI
-bun run cli:status
-
 # 직접 테스트
 curl -s $ANKI_CONNECT_URL -X POST -d '{"action":"deckNames","version":6}' | python3 -m json.tool
 ```

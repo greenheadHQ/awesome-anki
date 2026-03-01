@@ -7,7 +7,6 @@ export interface HistoryListOptions {
   limit?: number;
   deckName?: string;
   status?: SplitHistoryStatus;
-  splitType?: "hard" | "soft";
   startDate?: string;
   endDate?: string;
 }

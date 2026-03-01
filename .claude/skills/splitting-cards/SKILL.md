@@ -2,40 +2,27 @@
 name: splitting-cards
 description: |
   This skill should be used when users request card splitting behavior changes.
-  Triggers: "Hard Split이 뭐야", "Soft Split 결과가 이상해", "파서 버그",
+  Triggers: "Split 결과가 이상해", "파서 버그",
   "분할 미리보기", "nid 승계", "Cloze 번호 리셋", "컨테이너 파서",
   "카드 분할", "atomic card".
-  Covers Hard/Soft Split logic, nid inheritance strategy, and text parsers.
+  Covers Split logic, nid inheritance strategy, and text parsers.
 ---
 
 # 카드 분할
 
 ## 분할 전략 개요
 
-| 전략 | 트리거 | 방식 | 비용 |
-|------|--------|------|------|
-| Hard Split | `####` 헤더 2개 이상 | 정규식 | 없음 |
-| Soft Split | Cloze > 3개, 구분자 없음 | Gemini API | API 호출 |
+Gemini AI 기반 단일 분할 모드. Cloze가 3개 초과인 정보 밀도 높은 카드를 원자적 단위로 분할.
 
-Hard Split과 Soft Split은 **상호 배타적** — Hard 가능하면 Soft는 false.
+| 조건 | 방식 | 비용 |
+|------|------|------|
+| Cloze > 3개 | Gemini API | API 호출 |
 
-## Hard Split
-
-- **기준**: `####` 헤더가 **2개 이상** 있을 때만 분할 가능
-- **`---` 구분선은 제외**: 사용자가 분할 용도로 사용하지 않음 (설계 결정)
-- 정규식 기반으로 빠르고 정확
-- 카드 선택 시 자동 미리보기 (비용 없음)
-
-```typescript
-const headerCount = hardSplitPoints.filter((p) => p.type === 'header').length;
-canHardSplit = headerCount >= 2;
-```
-
-## Soft Split
+## Split
 
 - Gemini 3 Flash Preview에게 분할 제안 요청
 - 현재 **5개 후보만 분석** (API 비용 고려)
-- "Gemini 분석 요청" 버튼 클릭 시에만 API 호출 (자동 호출 방지 — 비용 발생 사전 고지)
+- "분석 요청" 버튼 클릭 시에만 API 호출 (자동 호출 방지 — 비용 발생 사전 고지)
 - 프롬프트 버전 선택 가능 — `managing-prompts` 스킬 참조
 
 ## nid 승계 전략
@@ -75,14 +62,11 @@ canHardSplit = headerCount >= 2;
 
 ## 자주 발생하는 문제
 
-- **canSoftSplit 누락**: `SplitAnalysis` 인터페이스에 `canSoftSplit` 필드 필수
-- **자동 Gemini 호출**: `useSplit.ts`에서 `useGemini` 파라미터는 반드시 `boolean` 타입으로 전달
 - **분할 후보 수 불일치**: 대시보드와 SplitWorkspace 간 필터링 로직 확인
 
 ## 상세 참조
 
-- `references/hard-split.md` — 정규식 기반 Hard Split 상세
-- `references/soft-split.md` — Gemini 기반 Soft Split, 5개 제한
+- `references/split.md` — Gemini 기반 Split 상세, 5개 제한
 - `references/nid-inheritance.md` — mainCardIndex 전략 상세
 - `references/parsers.md` — container/nid/cloze 파서 타입 정의
-- `references/troubleshooting.md` — 파서 설계 시행착오, Phase 4 이슈
+- `references/troubleshooting.md` — 파서 설계 시행착오

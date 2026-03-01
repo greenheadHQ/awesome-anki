@@ -30,18 +30,12 @@ app.get("/:name/stats", async (c) => {
   const notes = await getDeckNotes(deckName);
 
   let splitCandidates = 0;
-  let hardSplitCount = 0;
-  let softSplitCount = 0;
 
   for (const note of notes) {
     const text = extractTextField(note);
     const analysis = analyzeForSplit(text);
 
-    if (analysis.canHardSplit) {
-      hardSplitCount++;
-      splitCandidates++;
-    } else if (analysis.clozeCount > 3) {
-      softSplitCount++;
+    if (analysis.canSplit) {
       splitCandidates++;
     }
   }
@@ -50,8 +44,6 @@ app.get("/:name/stats", async (c) => {
     deckName,
     totalNotes: notes.length,
     splitCandidates,
-    hardSplitCount,
-    softSplitCount,
   });
 });
 

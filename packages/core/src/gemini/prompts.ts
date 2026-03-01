@@ -203,7 +203,6 @@ DNS 레코드 종류 5가지는?
     }
   ],
   "splitReason": "분할 이유 설명",
-  "splitType": "hard 또는 soft",
   "qualityChecks": {
     "allCardsUnder80Chars": true,
     "allClozeHaveHints": true,
@@ -212,10 +211,6 @@ DNS 레코드 종류 5가지는?
   }
 }
 \`\`\`
-
-## 분할 판단 기준
-- **hard split**: #### 헤더나 --- 구분선이 있어 명확히 분리되는 경우
-- **soft split**: 구분자는 없지만 여러 개념이 혼재된 경우 또는 카드가 80자 초과
 
 ## 분할이 불필요한 경우
 shouldSplit: false로 응답하고 splitCards는 빈 배열로:
@@ -226,7 +221,6 @@ shouldSplit: false로 응답하고 splitCards는 빈 배열로:
   "mainCardIndex": 0,
   "splitCards": [],
   "splitReason": "분할이 불필요한 이유 (예: 이미 40~60자, 단일 개념)",
-  "splitType": "none",
   "qualityChecks": null
 }
 \`\`\`
@@ -299,7 +293,6 @@ function SPLIT_RESPONSE_FORMAT(noteId: number): string {
     }
   ],
   "splitReason": "분할 이유 설명",
-  "splitType": "soft",
   "qualityChecks": {
     "allCardsUnder80Chars": true,
     "allClozeHaveHints": true,
@@ -318,7 +311,6 @@ shouldSplit: false로 응답하고 splitCards는 빈 배열로:
   "mainCardIndex": 0,
   "splitCards": [],
   "splitReason": "분할이 불필요한 이유",
-  "splitType": "none",
   "qualityChecks": null
 }
 \`\`\``;

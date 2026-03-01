@@ -9,7 +9,7 @@
 
 ## 향후 개선 방향
 
-### Soft Split 고도화
+### Split 고도화
 - 프롬프트 품질 향상
 - Few-shot learning 예시 확장
 - 분할 기준 조정 UI (Cloze 임계값, 정보 밀도)

@@ -12,14 +12,8 @@ export const queryKeys = {
   },
 
   split: {
-    preview: (noteId: number, useGemini?: boolean, versionId?: string) =>
-      [
-        "split",
-        "preview",
-        noteId,
-        useGemini,
-        useGemini ? versionId : undefined,
-      ] as const,
+    preview: (noteId: number, versionId?: string) =>
+      ["split", "preview", noteId, versionId] as const,
   },
 
   backups: {
@@ -42,7 +36,6 @@ export const queryKeys = {
       limit?: number;
       deckName?: string;
       status?: string;
-      splitType?: "hard" | "soft";
       startDate?: string;
       endDate?: string;
     }) => ["history", "list", opts] as const,

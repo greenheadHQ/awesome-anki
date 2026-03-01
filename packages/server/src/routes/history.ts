@@ -29,14 +29,6 @@ function parseStatus(raw: string | undefined): HistoryStatus | undefined {
   throw new ValidationError(`유효하지 않은 status 값입니다: ${raw}`);
 }
 
-function parseSplitType(raw: string | undefined): "hard" | "soft" | undefined {
-  if (!raw) return undefined;
-  if (raw === "hard" || raw === "soft") {
-    return raw;
-  }
-  throw new ValidationError(`유효하지 않은 splitType 값입니다: ${raw}`);
-}
-
 /**
  * GET /api/history
  * 분할 이력 목록 조회
@@ -53,7 +45,6 @@ history.get("/", async (c) => {
 
   const deckName = c.req.query("deckName") || undefined;
   const status = parseStatus(c.req.query("status"));
-  const splitType = parseSplitType(c.req.query("splitType"));
 
   if (startDate > endDate) {
     throw new ValidationError("startDate는 endDate보다 이후일 수 없습니다.");
@@ -65,7 +56,6 @@ history.get("/", async (c) => {
     limit,
     deckName,
     status,
-    splitType,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
   });
@@ -75,7 +65,6 @@ history.get("/", async (c) => {
     filters: {
       deckName: deckName ?? null,
       status: status ?? null,
-      splitType: splitType ?? null,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
     },

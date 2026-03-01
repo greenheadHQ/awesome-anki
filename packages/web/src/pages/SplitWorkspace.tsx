@@ -16,7 +16,6 @@ import {
   Shield,
   Sparkles,
   X,
-  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -76,8 +75,7 @@ interface SplitCandidate {
   noteId: number;
   text: string;
   analysis: {
-    canHardSplit: boolean;
-    canSoftSplit: boolean;
+    canSplit: boolean;
     clozeCount: number;
   };
   difficulty?: {
@@ -109,8 +107,7 @@ function mapDifficultToCandidate(card: DifficultCard): SplitCandidate {
     noteId: card.noteId,
     text: card.text,
     analysis: {
-      canHardSplit: false,
-      canSoftSplit: true,
+      canSplit: true,
       clozeCount: 0,
     },
     difficulty: {
@@ -129,10 +126,7 @@ function mapCardSummaryToCandidate(card: CardSummary): SplitCandidate {
     noteId: card.noteId,
     text: card.text,
     analysis: {
-      canHardSplit: card.analysis.canHardSplit,
-      canSoftSplit:
-        card.analysis.canSoftSplit ??
-        (!card.analysis.canHardSplit && card.analysis.clozeCount > 3),
+      canSplit: card.analysis.canSplit,
       clozeCount: card.analysis.clozeCount,
     },
   };
@@ -254,7 +248,6 @@ export function SplitWorkspace() {
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
-  const [splitType, setSplitType] = useState<"hard" | "soft">("hard");
   const [showValidation, setShowValidation] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
     null,
@@ -304,7 +297,6 @@ export function SplitWorkspace() {
     ? getCachedSplitPreview(
         queryClient,
         selectedCard.noteId,
-        splitType === "soft",
         activeVersionId || undefined,
       )
     : undefined;
@@ -327,19 +319,12 @@ export function SplitWorkspace() {
   const getCardStatus = (noteId: number): CardAnalysisStatus => {
     if (pendingAnalyses.has(noteId)) return "pending";
     if (errorAnalyses.has(noteId)) return "error";
-    const cachedSoft = getCachedSplitPreview(
+    const cached = getCachedSplitPreview(
       queryClient,
       noteId,
-      true,
       activeVersionId || undefined,
     );
-    const cachedHard = getCachedSplitPreview(
-      queryClient,
-      noteId,
-      false,
-      activeVersionId || undefined,
-    );
-    if (cachedSoft || cachedHard) return "cached";
+    if (cached) return "cached";
     return "none";
   };
 
@@ -348,26 +333,9 @@ export function SplitWorkspace() {
     setSelectedCard(card);
     if (card) {
       splitPreview.reset();
-      const type = card.analysis.canHardSplit ? "hard" : "soft";
-      setSplitType(type);
 
       // 모바일: 원본 탭으로 자동 전환
       if (isMobile) setActivePanel("original");
-
-      const cached = getCachedSplitPreview(
-        queryClient,
-        card.noteId,
-        type === "soft",
-        activeVersionId || undefined,
-      );
-
-      if (!cached && card.analysis.canHardSplit) {
-        splitPreview.mutate({
-          noteId: card.noteId,
-          useGemini: false,
-          deckName: activeDeck || undefined,
-        });
-      }
     }
   };
 
@@ -378,8 +346,8 @@ export function SplitWorkspace() {
     if (found) handleSelectCard(found);
   };
 
-  // Soft Split 분석 요청 핸들러
-  const handleRequestSoftSplit = () => {
+  // 분할 분석 요청 핸들러
+  const handleRequestSplit = () => {
     if (!selectedCard) return;
     // 연타 방지
     if (pendingAnalyses.has(selectedCard.noteId)) return;
@@ -401,7 +369,6 @@ export function SplitWorkspace() {
     splitPreview.mutate(
       {
         noteId,
-        useGemini: true,
         versionId: activeVersionId || undefined,
         deckName: activeDeck || undefined,
       },
@@ -440,7 +407,7 @@ export function SplitWorkspace() {
 
   const candidates = (cardsData?.cards || [])
     .map(mapCardSummaryToCandidate)
-    .filter((card) => card.analysis.canHardSplit || card.analysis.canSoftSplit);
+    .filter((card) => card.analysis.canSplit);
 
   const difficultCards = (difficultData?.cards || []).map(
     mapDifficultToCandidate,
@@ -465,7 +432,6 @@ export function SplitWorkspace() {
           content: c.content,
         })),
         mainCardIndex: previewData.mainCardIndex ?? 0,
-        splitType,
       },
       {
         onSuccess: (result) => {
@@ -519,7 +485,6 @@ export function SplitWorkspace() {
           queryClient.removeQueries({
             queryKey: queryKeys.split.preview(
               selectedCard.noteId,
-              true,
               activeVersionId || undefined,
             ),
           });
@@ -534,20 +499,6 @@ export function SplitWorkspace() {
         },
       },
     );
-  };
-
-  const handleSwitchSplitType = () => {
-    const newType = splitType === "hard" ? "soft" : "hard";
-    setSplitType(newType);
-    if (selectedCard) {
-      if (newType === "hard") {
-        splitPreview.mutate({
-          noteId: selectedCard.noteId,
-          useGemini: false,
-          deckName: activeDeck || undefined,
-        });
-      }
-    }
   };
 
   const isLoadingList =
@@ -589,16 +540,9 @@ export function SplitWorkspace() {
             </p>
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1">
-            {card.analysis.canHardSplit && (
-              <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
-                <Zap className="w-3 h-3 inline mr-0.5" />
-                Hard
-              </span>
-            )}
-            {card.analysis.canSoftSplit && (
+            {card.analysis.clozeCount > 0 && (
               <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
-                <Sparkles className="w-3 h-3 inline mr-0.5" />
-                Soft
+                C{card.analysis.clozeCount}
               </span>
             )}
           </div>
@@ -826,30 +770,6 @@ export function SplitWorkspace() {
       <div className="py-3 px-4 border-b shrink-0">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">분할 미리보기</span>
-          {selectedCard && (
-            <button
-              type="button"
-              onClick={handleSwitchSplitType}
-              className={cn(
-                "text-xs px-2 py-1 rounded transition-colors",
-                splitType === "hard"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-purple-100 text-purple-700",
-              )}
-            >
-              {splitType === "hard" ? (
-                <>
-                  <Zap className="w-3 h-3 inline mr-1" />
-                  Hard Split
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3 h-3 inline mr-1" />
-                  Soft Split
-                </>
-              )}
-            </button>
-          )}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
@@ -869,7 +789,7 @@ export function SplitWorkspace() {
               {currentCardError}
             </p>
             <Button
-              onClick={handleRequestSoftSplit}
+              onClick={handleRequestSplit}
               variant="outline"
               size="sm"
               className="mt-3"
@@ -890,7 +810,7 @@ export function SplitWorkspace() {
               </p>
             )}
             <Button
-              onClick={handleRequestSoftSplit}
+              onClick={handleRequestSplit}
               variant="outline"
               size="sm"
               className="mt-3"
@@ -938,25 +858,25 @@ export function SplitWorkspace() {
             </div>
 
             {/* 모바일: 반려 Popover를 미리보기 콘텐츠 내 표시 */}
-            {isMobile && splitType === "soft" && (
+            {isMobile && (
               <div className="pt-2">
                 <RejectPopover canReject={canReject} onReject={handleReject} />
               </div>
             )}
           </div>
-        ) : splitType === "soft" ? (
-          // Soft Split: Gemini 분석 요청 필요
+        ) : (
+          // 분석 요청 필요
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <Sparkles className="w-12 h-12 mb-4 text-purple-400" />
             <p className="text-center mb-4">
-              Soft Split은 Gemini AI를 사용합니다.
+              Gemini AI로 카드를 분석합니다.
               <br />
               <span className="text-xs text-muted-foreground">
                 API 비용이 발생할 수 있습니다.
               </span>
             </p>
             <Button
-              onClick={handleRequestSoftSplit}
+              onClick={handleRequestSplit}
               disabled={
                 splitPreview.isPending ||
                 pendingAnalyses.has(selectedCard?.noteId ?? -1)
@@ -965,10 +885,10 @@ export function SplitWorkspace() {
               className="bg-purple-50 hover:bg-purple-100 border-purple-200"
             >
               <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
-              Gemini 분석 요청
+              분할 분석 요청
             </Button>
           </div>
-        ) : null}
+        )}
       </div>
     </>
   );
@@ -1136,13 +1056,11 @@ export function SplitWorkspace() {
               {selectedCard && previewData && previewData.splitCards && (
                 <div className="px-4 py-3 border-t shrink-0">
                   <div className="flex gap-2">
-                    {/* 반려 버튼 (Soft Split만) */}
-                    {splitType === "soft" && (
-                      <RejectPopover
-                        canReject={canReject}
-                        onReject={handleReject}
-                      />
-                    )}
+                    {/* 반려 버튼 */}
+                    <RejectPopover
+                      canReject={canReject}
+                      onReject={handleReject}
+                    />
 
                     {/* 적용 버튼 */}
                     <Button

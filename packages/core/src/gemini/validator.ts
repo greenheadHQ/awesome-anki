@@ -35,7 +35,6 @@ const SplitResponseSchema = z.object({
   mainCardIndex: z.number().int().min(0),
   splitCards: z.array(SplitCardSchema),
   splitReason: z.string(),
-  splitType: z.enum(["hard", "soft", "none"]),
   qualityChecks: QualityChecksSchema,
 });
 

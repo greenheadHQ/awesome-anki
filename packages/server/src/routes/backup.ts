@@ -26,7 +26,6 @@ app.get("/", async (c) => {
       deckName: backup.deckName,
       originalNoteId: backup.originalNoteId,
       createdNoteIds: backup.createdNoteIds,
-      splitType: backup.splitType,
     })),
     total: backups.length,
   });

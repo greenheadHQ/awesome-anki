@@ -443,7 +443,6 @@ function getHistoryFileName(date: Date = new Date()): string {
 
 export interface PromptMetricsEvent {
   promptVersionId: string;
-  splitType?: "hard" | "soft";
   userAction: "approved" | "modified" | "rejected";
   splitCards: Array<{
     title?: string;
@@ -517,7 +516,6 @@ export async function recordPromptMetricsEvent(
     userAction: event.userAction,
     modificationDetails: event.modificationDetails,
     qualityChecks: null,
-    splitType: event.splitType,
   };
 
   await updateVersionMetrics(event.promptVersionId, entry);
@@ -578,9 +576,6 @@ async function updateVersionMetrics(
   versionId: string,
   entry: SplitHistoryEntry,
 ): Promise<void> {
-  // Hard Split은 프롬프트 성능과 무관 — 메트릭에서 제외
-  if (entry.splitType === "hard") return;
-
   const version = await getVersion(versionId);
   if (!version) return;
 
