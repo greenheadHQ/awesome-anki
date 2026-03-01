@@ -44,5 +44,4 @@ export const queryKeys = {
   },
 
   health: ["health"] as const,
-  privacyStatus: ["privacy", "status"] as const,
 };

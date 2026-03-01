@@ -3,7 +3,6 @@
  */
 
 import {
-  assertExternalAIEnabled,
   cleanupCache,
   createCache,
   deleteCache,
@@ -29,8 +28,6 @@ const embedding = new Hono();
  * 덱 전체 임베딩 생성 (증분 업데이트)
  */
 embedding.post("/generate", async (c) => {
-  assertExternalAIEnabled("embedding");
-
   const { deckName, forceRegenerate } = await c.req.json<{
     deckName: string;
     forceRegenerate?: boolean;
@@ -162,8 +159,6 @@ embedding.delete("/cache/:deckName", async (c) => {
  * 단일 텍스트 임베딩 생성 (디버깅/테스트용)
  */
 embedding.post("/single", async (c) => {
-  assertExternalAIEnabled("embedding");
-
   const { text, preprocess } = await c.req.json<{
     text: string;
     preprocess?: boolean;

@@ -17,7 +17,6 @@ import decks from "./routes/decks.js";
 import embedding from "./routes/embedding.js";
 import history from "./routes/history.js";
 import media from "./routes/media.js";
-import privacy from "./routes/privacy.js";
 import prompts from "./routes/prompts.js";
 import split from "./routes/split.js";
 import validate from "./routes/validate.js";
@@ -96,7 +95,6 @@ app.route("/api/validate", validate);
 app.route("/api/embedding", embedding);
 app.route("/api/prompts", prompts);
 app.route("/api/history", history);
-app.route("/api/privacy", privacy);
 
 // Error handler
 app.onError((err, c) => {

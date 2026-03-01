@@ -9,10 +9,6 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
-import {
-  assertExternalAIEnabled,
-  sanitizeForExternalAI,
-} from "../privacy/index.js";
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const DEFAULT_DIMENSION = 768;
@@ -65,21 +61,18 @@ export async function getEmbedding(
   text: string,
   options: EmbeddingOptions = {},
 ): Promise<number[]> {
-  assertExternalAIEnabled("embedding");
-
   const client = getClient();
   const dimension = options.dimension ?? DEFAULT_DIMENSION;
 
   const processedText = preprocessTextForEmbedding(text);
-  const sanitizedText = sanitizeForExternalAI(processedText, "embedding");
 
-  if (!sanitizedText) {
+  if (!processedText) {
     throw new Error("전처리 후 텍스트가 비어있습니다");
   }
 
   const response = await client.models.embedContent({
     model: EMBEDDING_MODEL,
-    contents: sanitizedText,
+    contents: processedText,
     config: {
       taskType: "SEMANTIC_SIMILARITY",
       outputDimensionality: dimension,
@@ -108,15 +101,11 @@ export async function getEmbeddings(
   options: EmbeddingOptions = {},
   onProgress?: (completed: number, total: number) => void,
 ): Promise<number[][]> {
-  assertExternalAIEnabled("embedding");
-
   const client = getClient();
   const dimension = options.dimension ?? DEFAULT_DIMENSION;
 
   // 빈 텍스트 필터링 및 전처리
-  const processedTexts = texts.map((text) =>
-    sanitizeForExternalAI(preprocessTextForEmbedding(text), "embedding"),
-  );
+  const processedTexts = texts.map((text) => preprocessTextForEmbedding(text));
 
   // 빈 텍스트 인덱스 추적
   const emptyIndices = new Set<number>();

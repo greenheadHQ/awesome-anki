@@ -201,25 +201,6 @@ export interface EmbeddingGenerateResult {
   lastUpdated: string;
 }
 
-export type PrivacyMode = "standard" | "balanced" | "strict";
-// NOTE: Canonical privacy type definitions live in packages/core/src/privacy/index.ts.
-
-export interface FeaturePrivacyPolicy {
-  enabled: boolean;
-  maskSensitive: boolean;
-  maxChars: number;
-}
-
-export interface PrivacyStatus {
-  mode: PrivacyMode;
-  description: string;
-  featurePolicies: {
-    split: FeaturePrivacyPolicy;
-    validation: FeaturePrivacyPolicy;
-    embedding: FeaturePrivacyPolicy;
-  };
-}
-
 // Prompt Version types
 export interface PromptVersion {
   id: string;
@@ -513,10 +494,6 @@ export const api = {
   },
 
   health: () => fetchJson<{ status: string; timestamp: string }>("/health"),
-
-  privacy: {
-    status: () => fetchJson<PrivacyStatus>("/privacy/status"),
-  },
 
   validate: {
     factCheck: (noteId: number, thorough = false) =>
