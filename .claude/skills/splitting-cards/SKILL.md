@@ -12,18 +12,20 @@ description: |
 
 ## 분할 전략 개요
 
-Gemini AI 기반 단일 분할 모드. Cloze가 3개 초과인 정보 밀도 높은 카드를 원자적 단위로 분할.
+멀티 LLM(Gemini/OpenAI) 기반 단일 분할 모드. Cloze가 3개 초과인 정보 밀도 높은 카드를 원자적 단위로 분할.
 
 | 조건 | 방식 | 비용 |
 |------|------|------|
-| Cloze > 3개 | Gemini API | API 호출 |
+| Cloze > 3개 | LLM API (Gemini or OpenAI) | API 호출 |
 
 ## Split
 
-- Gemini 3 Flash Preview에게 분할 제안 요청
+- 선택된 LLM 모델에 분할 제안 요청 (기본: gemini-3-flash-preview)
 - 현재 **5개 후보만 분석** (API 비용 고려)
 - "분석 요청" 버튼 클릭 시에만 API 호출 (자동 호출 방지 — 비용 발생 사전 고지)
 - 프롬프트 버전 선택 가능 — `managing-prompts` 스킬 참조
+- 비용 추정: `estimateSplitCost()`로 사전 비용 계산, `checkBudget()`으로 예산 가드 (`pricing.ts`)
+- 모델 선택: 클라이언트에서 `provider`/`model` 파라미터로 지정 가능, 미지정 시 서버 기본값 사용 (`factory.ts`의 `getDefaultModelId()`)
 
 ## nid 승계 전략
 
@@ -66,7 +68,7 @@ Gemini AI 기반 단일 분할 모드. Cloze가 3개 초과인 정보 밀도 높
 
 ## 상세 참조
 
-- `references/split.md` — Gemini 기반 Split 상세, 5개 제한
+- `references/split.md` — LLM 기반 Split 상세, 비용/예산 가드, 5개 제한
 - `references/nid-inheritance.md` — mainCardIndex 전략 상세
 - `references/parsers.md` — container/nid/cloze 파서 타입 정의
 - `references/troubleshooting.md` — 파서 설계 시행착오

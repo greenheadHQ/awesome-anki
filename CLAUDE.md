@@ -50,6 +50,7 @@ bun run dev          # 서버 + 클라이언트 동시 실행
 | 팩트 체크 결과가, 유사한 카드 찾아줘, 문맥 검증 | `validating-cards` |
 | 임베딩 생성, 코사인 유사도, 캐시 어디에 | `managing-embeddings` |
 | 프롬프트 버전 관리, A/B 테스트 만들어, SuperMemo 규칙 | `managing-prompts` |
+| LLM 모델 변경, 프로바이더 추가, 비용 추정, 예산 가드 | `managing-llm` |
 | API 라우트 추가, Hono 엔드포인트, 서버 에러 | `developing-web-api` |
 | React 컴포넌트 추가, ContentRenderer 수정, TanStack Query | `developing-web-ui` |
 | TODO 뭐 남았어, 미구현 기능, 기술 부채, 다음에 뭐 해 | `tracking-todo` |

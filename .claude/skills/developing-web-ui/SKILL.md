@@ -17,10 +17,11 @@ description: |
 packages/web/src/
 ├── pages/           # 페이지 컴포넌트
 ├── components/      # 공유 컴포넌트
-│   ├── card/        # ContentRenderer 등
+│   ├── card/        # ContentRenderer, SplitPreviewCard
 │   ├── help/        # HelpTooltip
-│   ├── ui/          # shadcn/ui 스타일 (button, card, popover, select, table, dialog)
-│   └── onboarding/  # OnboardingTour (deprecated 예정)
+│   ├── layout/      # Layout, Sidebar
+│   ├── ui/          # shadcn/ui 스타일 (button, card, popover, select, table, dialog, model-badge)
+│   └── validation/  # ValidationPanel
 ├── hooks/           # TanStack Query 훅
 └── lib/             # api.ts, query-keys.ts, helpContent.ts
 ```
@@ -34,6 +35,7 @@ packages/web/src/
 | CardBrowser | /browse | 카드 테이블 + 검증 상태 |
 | BackupManager | /backups | 백업 목록 + 롤백 |
 | PromptManager | /prompts | 버전/히스토리/실험/메트릭 탭 |
+| SplitHistory | /history | 분할 히스토리 목록 + 세션 상세 |
 | Help | /help | 전체 기능 설명, FAQ, 용어집 |
 
 ## 핵심 컴포넌트
@@ -50,9 +52,9 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반 (ReactMarkdown에서 
 6. 이미지 프록시 (AnkiConnect)
 
 ### SplitWorkspace (3단 레이아웃)
-- 왼쪽 (3/12): 분할 후보 목록 + Hard/Soft 뱃지
+- 왼쪽 (3/12): 분할 후보 목록 + Cloze 수 뱃지
 - 중앙 (5/12): 원본 카드 (ContentRenderer + 검증 패널)
-- 오른쪽 (4/12): 분할 미리보기 + 적용 버튼
+- 오른쪽 (4/12): 분할 미리보기 + LLM 모델 선택 (ModelBadge) + 적용 버튼
 
 ### ValidationPanel
 4종 검증 결과 표시. `validating-cards` 스킬 참조.
@@ -63,7 +65,7 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반 (ReactMarkdown에서 
 // 훅 구조
 export function useCards(deckName: string, options: CardOptions) {
   return useQuery({
-    queryKey: queryKeys.cards.list(deckName, options),
+    queryKey: queryKeys.cards.byDeck(deckName, options),
     queryFn: () => api.cards.list(deckName, options),
     enabled: !!deckName,
   });
@@ -86,7 +88,6 @@ queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
 
 - **`<br>` 태그 미처리**: `preprocessAnkiHtml`에서 `<br>` → `\n` 변환
 - **스크롤 안 됨**: flex 컨테이너에 `min-h-0` 누락
-- **react-joyride import 에러**: 타입은 `type` 키워드로 import (`type CallBackProps`)
 - **분할 미리보기 캐싱**: React Query `setQueryData`로 카드별 독립 캐시
 - **Shadcn 파일 casing 충돌**: `Button.tsx`/`button.tsx` 혼용 시 TS 중복 포함 오류 발생 → 소문자 import 경로 통일
 
@@ -100,7 +101,7 @@ queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
 
 ## 상세 참조
 
-- `references/pages.md` — 6개 페이지 역할 상세
+- `references/pages.md` — 7개 페이지 역할 상세
 - `references/components.md` — ContentRenderer, ValidationPanel 상세
 - `references/query-patterns.md` — TanStack Query 훅, 캐싱 전략
 - `references/troubleshooting.md` — CSS 충돌, 렌더링 문제

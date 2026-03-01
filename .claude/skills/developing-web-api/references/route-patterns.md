@@ -8,14 +8,25 @@ import { AppError } from "@anki-splitter/core";
 import { Hono } from "hono";
 
 const app = new Hono();
+
+// Routes
 app.route("/api/decks", decks);
 app.route("/api/cards", cards);
-// ...
+app.route("/api/split", split);
+app.route("/api/backup", backup);
+app.route("/api/media", media);
+app.route("/api/validate", validate);
+app.route("/api/llm", llm);
+app.route("/api/embedding", embedding);
+app.route("/api/prompts", prompts);
+app.route("/api/history", history);
 
 app.onError((err, c) => {
   if (err instanceof AppError) {
-    return c.json({ error: err.message }, err.statusCode);
+    console.error(`[${err.statusCode}] ${err.name}:`, err.message);
+    return c.json({ error: err.message }, err.statusCode as 400 | 404 | 500 | 502 | 504);
   }
+  console.error("Unhandled server error:", err);
   return c.json({ error: "Internal server error" }, 500);
 });
 

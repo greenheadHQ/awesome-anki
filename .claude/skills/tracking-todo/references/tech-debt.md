@@ -42,11 +42,9 @@
 ### 미완료
 - API 문서 (OpenAPI/Swagger)
 
-## Deprecated 예정
+## 제거 완료
 
-### 온보딩 투어 제거
-- `react-joyride` 기반 온보딩 기능 불필요
-- 제거 대상 파일:
-  - `packages/web/src/hooks/useOnboarding.ts`
-  - `packages/web/src/components/onboarding/OnboardingTour.tsx`
-  - Dashboard "가이드 다시 보기" 버튼
+- ~~온보딩 투어~~: `react-joyride` 기반 온보딩 — 전면 제거 완료
+- ~~Privacy 모듈~~: YAGNI 기반 전면 제거 완료
+- ~~Biome~~: oxc(oxlint + oxfmt)로 마이그레이션 완료
+- ~~Hard Split~~: Split 단일화 완료

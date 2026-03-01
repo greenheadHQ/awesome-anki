@@ -7,14 +7,14 @@
 
 ## 1. 팩트 체크 (fact-checker.ts)
 
-- **방식**: Gemini 기반
+- **방식**: LLM 기반 (Gemini/OpenAI)
 - **API**: `POST /api/validate/fact-check`
 - **입력**: 카드 텍스트
 - **출력**: 사실 여부, 부정확한 부분 지적, 수정 제안
 
 ## 2. 최신성 검사 (freshness-checker.ts)
 
-- **방식**: Gemini 기반
+- **방식**: LLM 기반 (Gemini/OpenAI)
 - **API**: `POST /api/validate/freshness`
 - **입력**: 카드 텍스트
 - **출력**: 기술 최신성 여부, 구버전 정보 지적, 업데이트 제안
@@ -38,7 +38,7 @@
 
 ## 4. 문맥 일관성 검사 (context-checker.ts)
 
-- **방식**: Gemini 기반
+- **방식**: LLM 기반 (Gemini/OpenAI)
 - **API**: `POST /api/validate/context`
 - **특징**:
   - nid 링크로 연결된 카드 그룹 분석

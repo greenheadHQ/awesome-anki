@@ -46,12 +46,26 @@ export default {
 - highlight.js로 코드 하이라이팅
 - KaTeX CSS: `import 'katex/dist/katex.min.css'`
 
-## Gemini 3 Flash Preview (LLM)
+## Multi-LLM (Gemini + OpenAI)
 
-- 1M 토큰 입력 지원
-- 구조화된 출력 (zod 스키마 기반)
-- `@google/genai` 패키지 사용
-- `.env`에 `GEMINI_API_KEY` 필요
+- **factory 패턴**: `createLLMClient(provider)` → `LLMProvider` 어댑터 반환
+- **프로바이더**: Gemini (`@google/genai`), OpenAI (`openai` Responses API)
+- **기본 모델**: Gemini 3 Flash Preview (`gemini-3-flash-preview`), GPT-5 Mini (`gpt-5-mini`)
+- **환경변수**:
+  - `GEMINI_API_KEY` (필수) — Split, 검증, 임베딩용
+  - `OPENAI_API_KEY` (선택) — OpenAI 프로바이더 사용 시
+  - `ANKI_SPLITTER_DEFAULT_LLM_PROVIDER` — 기본 프로바이더 (`gemini` | `openai`)
+  - `ANKI_SPLITTER_DEFAULT_LLM_MODEL` — 기본 모델 오버라이드
+  - `ANKI_SPLITTER_BUDGET_CAP_USD` — 서버 사이드 예산 상한 (기본 $1.0)
+- **가격/비용 추정**: `pricing.ts`에서 모델별 가격표 관리, 요청마다 실제 비용 계산
+- **graceful fallback**: 설정된 provider가 미가용이면 가용 provider로 자동 전환
+
+## Linter / Formatter (oxc)
+
+- **oxlint**: 린터 (`bunx oxlint src`)
+- **oxfmt**: 포매터 (`bunx oxfmt --check src`)
+- 루트 `package.json`에 devDependencies로 `oxlint`, `oxfmt` 설치
+- 각 패키지 `lint` 스크립트: `bunx oxlint src && bunx oxfmt --check src`
 
 ## Gemini Embedding (gemini-embedding-001)
 

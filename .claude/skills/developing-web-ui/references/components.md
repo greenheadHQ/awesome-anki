@@ -44,6 +44,7 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 - `packages/web/src/components/ui/select.tsx`: Dashboard/CardBrowser/SplitWorkspace 헤더 필터
 - `packages/web/src/components/ui/table.tsx`: CardBrowser/PromptManager 목록
 - `packages/web/src/components/ui/dialog.tsx`: BackupManager 롤백 확인/결과 모달
+- `packages/web/src/components/ui/model-badge.tsx`: LLM 프로바이더/모델 배지 + `formatCostUsd`
 
 ## SplitPreviewCard
 
@@ -113,8 +114,16 @@ Route에 `errorElement={<RouteError />}` 반드시 포함:
 - `packages/web/tests/components/card.test.tsx`
 - `packages/web/tests/components/dialog.test.tsx`
 
-## OnboardingTour (deprecated 예정)
+## SyncStatusBadge
 
-- `react-joyride` 기반 7단계 투어
-- `useOnboarding.ts`로 localStorage 완료 상태 관리
-- 제거 예정 (`tracking-todo` 참조)
+- `packages/web/src/components/SyncStatusBadge.tsx`
+- 동기화 상태 표시 배지 (미동기화/성공/기록 없음)
+- `SyncStatusState` 타입 기반, `sync-status.ts` 연동
+- SplitHistory 페이지에서 사용
+
+## ModelBadge
+
+- `packages/web/src/components/ui/model-badge.tsx`
+- LLM 프로바이더/모델 표시 (Gemini: 파란색, OpenAI: 녹색)
+- `formatCostUsd` 유틸 함수 함께 export
+- SplitWorkspace, SplitHistory 페이지에서 사용

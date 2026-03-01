@@ -47,6 +47,10 @@ output/prompts/
 5. **No Enumerations**: 개별 카드로 분리
 6. **No Example Trap**: 역방향 질문 금지 ("X의 예시?" ❌)
 
+## LLM 경로 구분
+
+> **Note**: Split 프롬프트는 `packages/core/src/llm/factory.ts`를 통해 멀티 LLM(Gemini/OpenAI) 지원. Cloze Enhancer는 `packages/core/src/gemini/cloze-enhancer.ts`에 위치하며, LLM API 호출 없이 순수 로컬 패턴 매칭 로직으로 동작합니다 (LLM 추상화 계층 미사용).
+
 ## Cloze Enhancer (gemini/cloze-enhancer.ts)
 
 이진 패턴 자동 감지 (25개)로 Yes/No Cloze에 힌트 자동 추가.

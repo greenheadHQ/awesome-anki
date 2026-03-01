@@ -17,6 +17,10 @@ description: |
 - **입력 한도**: 8K 토큰
 - **taskType**: `SEMANTIC_SIMILARITY` (문자열로 직접 지정)
 
+## LLM 추상화 미사용
+
+> **Note**: 임베딩은 `packages/core/src/llm/` 추상화 계층을 사용하지 않고, `packages/core/src/embedding/client.ts`에서 `@google/genai` (GoogleGenAI)를 직접 호출합니다. 따라서 임베딩은 Gemini 전용이며, OpenAI 등 다른 프로바이더로 전환할 수 없습니다.
+
 ## 모듈 구조 (packages/core/src/embedding/)
 
 | 파일 | 역할 |

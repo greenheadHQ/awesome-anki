@@ -19,9 +19,12 @@ packages/server/src/
     ├── cards.ts      # 카드 관련
     ├── split.ts      # 분할
     ├── backup.ts     # 백업/롤백
+    ├── media.ts      # Anki 미디어 프록시
     ├── validate.ts   # 검증 4종
+    ├── llm.ts        # LLM 모델/프로바이더 정보
     ├── embedding.ts  # 임베딩
-    └── prompts.ts    # 프롬프트 버전 관리
+    ├── prompts.ts    # 프롬프트 버전 관리
+    └── history.ts    # 분할 히스토리
 ```
 
 ## 전체 엔드포인트 목록
@@ -58,6 +61,23 @@ packages/server/src/
 | GET | /api/embedding/status/:deckName | 캐시 상태 |
 | DELETE | /api/embedding/cache/:deckName | 캐시 삭제 |
 | POST | /api/embedding/single | 단일 텍스트 임베딩 (디버깅) |
+
+### LLM
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | /api/llm/models | 사용 가능한 프로바이더/모델 목록, 가격 정보, 기본 모델, 서버 예산 캡 |
+
+### History
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | /api/history | 분할 히스토리 목록 (페이지네이션, 필터: deckName, status, startDate, endDate) |
+| GET | /api/history/sync/health | 히스토리 동기화 상태 |
+| GET | /api/history/:sessionId | 세션 상세 조회 |
+
+### Media
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | /api/media/:filename | Anki 미디어 파일 프록시 (Base64 디코딩, MIME 자동 감지, 24시간 캐시) |
 
 ### Prompts — `managing-prompts` 스킬 참조
 | Method | Path | 설명 |

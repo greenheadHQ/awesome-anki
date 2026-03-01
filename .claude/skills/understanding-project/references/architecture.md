@@ -12,7 +12,14 @@ anki-claude-code/
 │   │       │   ├── operations.ts # 카드 CRUD, 분할 적용
 │   │       │   ├── backup.ts     # 백업, 롤백
 │   │       │   └── scheduling.ts # ease factor 복제
-│   │       ├── gemini/       # Gemini API 호출
+│   │       ├── llm/          # 멀티 LLM 추상화 계층
+│   │       │   ├── factory.ts   # createLLMClient, getDefaultModelId
+│   │       │   ├── gemini.ts    # GeminiAdapter (LLMProvider 구현)
+│   │       │   ├── openai.ts    # OpenAIAdapter (LLMProvider 구현)
+│   │       │   ├── pricing.ts   # 모델 가격표, 비용 계산, 예산 가드레일
+│   │       │   ├── types.ts     # LLMProvider 인터페이스, TokenUsage, CostEstimate
+│   │       │   └── index.ts     # barrel export
+│   │       ├── gemini/       # Gemini 전용 API
 │   │       │   ├── client.ts         # Gemini API 기본 클라이언트
 │   │       │   ├── prompts.ts        # 시스템/분할 프롬프트 (SuperMemo 기반)
 │   │       │   ├── validator.ts      # 응답 검증 (zod 스키마)
@@ -48,12 +55,13 @@ anki-claude-code/
 │   │           ├── decks.ts, cards.ts, split.ts
 │   │           ├── backup.ts, validate.ts
 │   │           ├── embedding.ts, prompts.ts
+│   │           ├── llm.ts, history.ts, media.ts
 │   │
 │   └── web/                  # React 프론트엔드
 │       └── src/
 │           ├── pages/        # Dashboard, SplitWorkspace, CardBrowser,
-│           │                 # BackupManager, PromptManager, Help
-│           ├── components/   # card/, help/, ui/, onboarding/
+│           │                 # BackupManager, PromptManager, SplitHistory, Help
+│           ├── components/   # card/, help/, layout/, ui/, validation/
 │           ├── hooks/        # useCards, useSplit, usePrompts 등
 │           └── lib/          # api.ts, query-keys.ts, helpContent.ts
 │
