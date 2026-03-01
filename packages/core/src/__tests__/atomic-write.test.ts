@@ -2,11 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  atomicWriteFile,
-  atomicWriteFileSync,
-  withFileMutex,
-} from "../utils/atomic-write.js";
+
+import { atomicWriteFile, atomicWriteFileSync, withFileMutex } from "../utils/atomic-write.js";
 
 const TEST_DIR = join(import.meta.dir, "__atomic_test_tmp__");
 

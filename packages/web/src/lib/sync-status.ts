@@ -28,10 +28,7 @@ export function readSyncStatus(): SyncStatusState | null {
     const parsed = JSON.parse(raw) as SyncStatusState;
     if (!parsed || typeof parsed !== "object") return null;
     if (typeof parsed.lastAttemptAt !== "string") return null;
-    if (
-      parsed.lastSuccessAt !== null &&
-      typeof parsed.lastSuccessAt !== "string"
-    ) {
+    if (parsed.lastSuccessAt !== null && typeof parsed.lastSuccessAt !== "string") {
       return null;
     }
     if (typeof parsed.hasPendingChanges !== "boolean") return null;
@@ -57,9 +54,7 @@ export function recordSyncAttempt(result?: SyncResultPayload): SyncStatusState {
   const next: SyncStatusState = {
     lastAttemptAt: now,
     lastSuccessAt:
-      result?.success === true
-        ? result.syncedAt || now
-        : previous?.lastSuccessAt || null,
+      result?.success === true ? result.syncedAt || now : previous?.lastSuccessAt || null,
     hasPendingChanges: result?.success !== true,
     lastError: result?.success === true ? null : result?.error || "unknown",
   };

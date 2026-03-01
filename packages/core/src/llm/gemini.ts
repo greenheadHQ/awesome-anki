@@ -4,6 +4,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+
 import { computeCost, getModelPricing } from "./pricing.js";
 import type {
   LLMGenerationOptions,
@@ -20,9 +21,7 @@ function getClient(): GoogleGenAI {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        "GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.",
-      );
+      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.");
     }
     genAI = new GoogleGenAI({ apiKey });
   }
@@ -57,9 +56,7 @@ export class GeminiAdapter implements LLMProvider {
 
     const text = response.text;
     if (!text) {
-      throw new Error(
-        `LLM 응답이 비어있습니다 (provider: gemini, model: ${model})`,
-      );
+      throw new Error(`LLM 응답이 비어있습니다 (provider: gemini, model: ${model})`);
     }
 
     const usage = response.usageMetadata;

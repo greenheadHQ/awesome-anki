@@ -63,11 +63,7 @@ export function getUsedClozeNumbers(content: string): number[] {
 /**
  * Cloze 생성
  */
-export function createCloze(
-  number: number,
-  content: string,
-  hint?: string,
-): string {
+export function createCloze(number: number, content: string, hint?: string): string {
   if (hint) {
     return `{{c${number}::${content}::${hint}}}`;
   }
@@ -104,10 +100,7 @@ export function renumberClozes(content: string): string {
     const cloze = clozes[i];
     const newNumber = numberMap[cloze.clozeNumber];
     const newCloze = createCloze(newNumber, cloze.content, cloze.hint);
-    result =
-      result.slice(0, cloze.startIndex) +
-      newCloze +
-      result.slice(cloze.endIndex);
+    result = result.slice(0, cloze.startIndex) + newCloze + result.slice(cloze.endIndex);
   }
 
   return result;
@@ -125,8 +118,7 @@ export function getClozeStats(content: string): {
   const numberCounts: Record<number, number> = {};
 
   for (const cloze of clozes) {
-    numberCounts[cloze.clozeNumber] =
-      (numberCounts[cloze.clozeNumber] || 0) + 1;
+    numberCounts[cloze.clozeNumber] = (numberCounts[cloze.clozeNumber] || 0) + 1;
   }
 
   return {

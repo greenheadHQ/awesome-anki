@@ -3,6 +3,7 @@
  */
 import "dotenv/config";
 import { timingSafeEqual } from "node:crypto";
+
 import {
   AppError,
   getAvailableProviders,
@@ -13,6 +14,7 @@ import {
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+
 import { getSplitHistoryStore } from "./history/store.js";
 import backup from "./routes/backup.js";
 import cards from "./routes/cards.js";
@@ -38,10 +40,7 @@ function timingSafeKeyEqual(left: string, right: string): boolean {
   leftBytes.copy(leftBuffer);
   rightBytes.copy(rightBuffer);
 
-  return (
-    timingSafeEqual(leftBuffer, rightBuffer) &&
-    leftBytes.length === rightBytes.length
-  );
+  return timingSafeEqual(leftBuffer, rightBuffer) && leftBytes.length === rightBytes.length;
 }
 
 // Middleware
@@ -105,10 +104,7 @@ app.route("/api/history", history);
 app.onError((err, c) => {
   if (err instanceof AppError) {
     console.error(`[${err.statusCode}] ${err.name}:`, err.message);
-    return c.json(
-      { error: err.message },
-      err.statusCode as 400 | 404 | 500 | 502 | 504,
-    );
+    return c.json({ error: err.message }, err.statusCode as 400 | 404 | 500 | 502 | 504);
   }
   console.error("Unhandled server error:", err);
   return c.json({ error: "Internal server error" }, 500);
@@ -159,10 +155,7 @@ async function runStartupTasks(): Promise<void> {
   if (historyResult.status === "fulfilled") {
     console.log("📚 Split history store initialized");
   } else {
-    console.error(
-      "⚠️ Split history store initialization failed:",
-      historyResult.reason,
-    );
+    console.error("⚠️ Split history store initialization failed:", historyResult.reason);
   }
 
   if (migrationResult.status === "fulfilled") {
@@ -188,10 +181,7 @@ async function runStartupTasks(): Promise<void> {
     return;
   }
 
-  console.error(
-    "⚠️ Prompt system SoT migration failed:",
-    migrationResult.reason,
-  );
+  console.error("⚠️ Prompt system SoT migration failed:", migrationResult.reason);
 }
 
 await runStartupTasks();
@@ -208,15 +198,11 @@ declare global {
 
 if (globalThis.__ankiServer) {
   globalThis.__ankiServer.reload({ fetch: app.fetch });
-  console.log(
-    `🔄 Anki Splitter API Server reloaded on http://localhost:${port}`,
-  );
+  console.log(`🔄 Anki Splitter API Server reloaded on http://localhost:${port}`);
 } else {
   globalThis.__ankiServer = Bun.serve({
     port,
     fetch: app.fetch,
   });
-  console.log(
-    `🚀 Anki Splitter API Server started on http://localhost:${port}`,
-  );
+  console.log(`🚀 Anki Splitter API Server started on http://localhost:${port}`);
 }

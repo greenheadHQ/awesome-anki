@@ -2,12 +2,7 @@
  * LLM 모델 가격표 + 비용 계산 + 예산 가드레일
  */
 
-import type {
-  ActualCost,
-  CostEstimate,
-  LLMProviderName,
-  TokenUsage,
-} from "./types.js";
+import type { ActualCost, CostEstimate, LLMProviderName, TokenUsage } from "./types.js";
 
 export interface ModelPricing {
   provider: LLMProviderName;
@@ -48,9 +43,7 @@ export function getModelPricing(
   provider: LLMProviderName,
   model: string,
 ): ModelPricing | undefined {
-  return MODEL_PRICING_TABLE.find(
-    (p) => p.provider === provider && p.model === model,
-  );
+  return MODEL_PRICING_TABLE.find((p) => p.provider === provider && p.model === model);
 }
 
 function calculateCost(
@@ -58,10 +51,8 @@ function calculateCost(
   outputTokens: number,
   pricing: ModelPricing,
 ): { inputCostUsd: number; outputCostUsd: number; totalCostUsd: number } {
-  const inputCostUsd =
-    (inputTokens / 1_000_000) * pricing.inputPricePerMillionTokens;
-  const outputCostUsd =
-    (outputTokens / 1_000_000) * pricing.outputPricePerMillionTokens;
+  const inputCostUsd = (inputTokens / 1_000_000) * pricing.inputPricePerMillionTokens;
+  const outputCostUsd = (outputTokens / 1_000_000) * pricing.outputPricePerMillionTokens;
   return {
     inputCostUsd,
     outputCostUsd,
@@ -69,15 +60,8 @@ function calculateCost(
   };
 }
 
-export function computeCost(
-  tokenUsage: TokenUsage,
-  pricing: ModelPricing,
-): ActualCost {
-  return calculateCost(
-    tokenUsage.promptTokens ?? 0,
-    tokenUsage.completionTokens ?? 0,
-    pricing,
-  );
+export function computeCost(tokenUsage: TokenUsage, pricing: ModelPricing): ActualCost {
+  return calculateCost(tokenUsage.promptTokens ?? 0, tokenUsage.completionTokens ?? 0, pricing);
 }
 
 export function estimateCost(
@@ -113,9 +97,7 @@ export function checkBudget(
   const serverCap = getServerBudgetCapUsd();
 
   const effectiveCap =
-    clientBudgetCapUsd != null &&
-    Number.isFinite(clientBudgetCapUsd) &&
-    clientBudgetCapUsd > 0
+    clientBudgetCapUsd != null && Number.isFinite(clientBudgetCapUsd) && clientBudgetCapUsd > 0
       ? Math.min(clientBudgetCapUsd, serverCap)
       : serverCap;
 

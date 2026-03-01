@@ -7,6 +7,7 @@
 
 import { Code, Eye } from "lucide-react";
 import { useMemo, useState } from "react";
+
 import { renderAnkiContent } from "../../lib/markdown-renderer";
 import { cn } from "../../lib/utils";
 
@@ -53,9 +54,7 @@ export function ContentRenderer({
             onClick={() => setView("raw")}
             className={cn(
               "p-1.5 rounded transition-colors",
-              view === "raw"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted hover:bg-muted/80",
+              view === "raw" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80",
             )}
             title="원본 텍스트"
           >
@@ -71,9 +70,9 @@ export function ContentRenderer({
             {content}
           </pre>
         ) : (
+          // SAFETY: 사용자 로컬 Anki DB에서 AnkiConnect로 가져온 HTML. KaTeX/MathML 충실도를 위해 html:true passthrough 의도적 사용.
           <div
             className="prose prose-sm dark:prose-invert max-w-none content-rendered"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: Anki card HTML from user's own local database via AnkiConnect; html:true passthrough is intentional for KaTeX/MathML fidelity
             dangerouslySetInnerHTML={{ __html: processedContent }}
           />
         )}
@@ -83,22 +82,13 @@ export function ContentRenderer({
 }
 
 // 컴팩트 버전 (토글 없이 렌더링만)
-export function ContentPreview({
-  content,
-  className,
-}: {
-  content: string;
-  className?: string;
-}) {
+export function ContentPreview({ content, className }: { content: string; className?: string }) {
   const processedContent = useMemo(() => renderAnkiContent(content), [content]);
 
   return (
     <div
-      className={cn(
-        "prose prose-sm dark:prose-invert max-w-none content-rendered",
-        className,
-      )}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: Anki card HTML from user's own local database via AnkiConnect; html:true passthrough is intentional for KaTeX/MathML fidelity
+      className={cn("prose prose-sm dark:prose-invert max-w-none content-rendered", className)}
+      // SAFETY: 사용자 로컬 Anki DB에서 AnkiConnect로 가져온 HTML
       dangerouslySetInnerHTML={{ __html: processedContent }}
     />
   );

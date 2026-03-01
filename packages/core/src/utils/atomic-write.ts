@@ -25,7 +25,7 @@ export function atomicWriteFileSync(filePath: string, data: string): void {
     if (existsSync(tmpPath)) {
       try {
         unlinkSync(tmpPath);
-      } catch (_) {
+      } catch {
         // 정리 실패 무시
       }
     }
@@ -35,10 +35,7 @@ export function atomicWriteFileSync(filePath: string, data: string): void {
 /**
  * 비동기 원자적 파일 쓰기
  */
-export async function atomicWriteFile(
-  filePath: string,
-  data: string,
-): Promise<void> {
+export async function atomicWriteFile(filePath: string, data: string): Promise<void> {
   const tmpPath = getTmpPath(filePath);
   try {
     await writeFile(tmpPath, data, "utf-8");
@@ -47,7 +44,7 @@ export async function atomicWriteFile(
     if (existsSync(tmpPath)) {
       try {
         await unlink(tmpPath);
-      } catch (_) {
+      } catch {
         // 정리 실패 무시
       }
     }
@@ -62,10 +59,7 @@ export async function atomicWriteFile(
  */
 const fileLocks = new Map<string, Promise<void>>();
 
-export async function withFileMutex<T>(
-  filePath: string,
-  fn: () => Promise<T>,
-): Promise<T> {
+export async function withFileMutex<T>(filePath: string, fn: () => Promise<T>): Promise<T> {
   const key = resolve(filePath);
   const existing = fileLocks.get(key) ?? Promise.resolve();
 

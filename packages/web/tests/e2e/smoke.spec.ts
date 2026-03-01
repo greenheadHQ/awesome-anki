@@ -13,9 +13,7 @@ const routes = [
 for (const route of routes) {
   test(`route ${route.path} renders without crash`, async ({ page }) => {
     await page.goto(route.path);
-    await expect(
-      page.getByRole("heading", { name: route.heading }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: route.heading })).toBeVisible();
   });
 }
 

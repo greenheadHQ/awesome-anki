@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import {
   getSplitHistoryStore,
   resetSplitHistoryStoreForTests,
@@ -71,11 +72,7 @@ describe("SplitHistoryStore", () => {
     expect(detail?.splitCards.length).toBe(2);
 
     const eventTypes = detail?.events.map((event) => event.eventType) || [];
-    expect(eventTypes).toEqual([
-      "session_created",
-      "preview_generated",
-      "split_applied",
-    ]);
+    expect(eventTypes).toEqual(["session_created", "preview_generated", "split_applied"]);
   });
 
   test("목록 필터(status)가 동작한다", async () => {
@@ -143,9 +140,7 @@ describe("SplitHistoryStore", () => {
       endDate: "2100-01-01T00:00:00.000Z",
     });
 
-    expect(filtered.items.some((item) => item.sessionId === sessionId)).toBe(
-      true,
-    );
+    expect(filtered.items.some((item) => item.sessionId === sessionId)).toBe(true);
   });
 
   test("rejected 상태 전이와 필터가 동작한다", async () => {
@@ -177,9 +172,7 @@ describe("SplitHistoryStore", () => {
       endDate: "2100-01-01T00:00:00.000Z",
     });
 
-    expect(filtered.items.some((item) => item.sessionId === sessionId)).toBe(
-      true,
-    );
+    expect(filtered.items.some((item) => item.sessionId === sessionId)).toBe(true);
   });
 
   test("초기화가 일시적으로 실패해도 다음 호출에서 재시도할 수 있다", async () => {
@@ -187,19 +180,16 @@ describe("SplitHistoryStore", () => {
     let initializeCalls = 0;
     let recoveredStore: SplitHistoryStore | null = null;
 
-    SplitHistoryStore.prototype.initialize =
-      async function patchedInitialize() {
-        initializeCalls += 1;
-        if (initializeCalls === 1) {
-          throw new Error("transient initialize failure");
-        }
-        return originalInitialize.call(this);
-      };
+    SplitHistoryStore.prototype.initialize = async function patchedInitialize() {
+      initializeCalls += 1;
+      if (initializeCalls === 1) {
+        throw new Error("transient initialize failure");
+      }
+      return originalInitialize.call(this);
+    };
 
     try {
-      await expect(getSplitHistoryStore()).rejects.toThrow(
-        "transient initialize failure",
-      );
+      await expect(getSplitHistoryStore()).rejects.toThrow("transient initialize failure");
 
       recoveredStore = await getSplitHistoryStore();
       const { sessionId } = recoveredStore.createSession({
@@ -403,9 +393,7 @@ describe("split_type 컬럼 제거 마이그레이션", () => {
     // FK ON 여부 확인: 존재하지 않는 session_id로 이벤트 삽입하면 FK 위반 발생해야 함
     const rawDb = new Database(dbPath, { strict: true });
     rawDb.exec("PRAGMA foreign_keys = ON;");
-    const fkResult = rawDb
-      .query<{ foreign_keys: number }, []>("PRAGMA foreign_keys;")
-      .get();
+    const fkResult = rawDb.query<{ foreign_keys: number }, []>("PRAGMA foreign_keys;").get();
     expect(fkResult?.foreign_keys).toBe(1);
     rawDb.close();
 

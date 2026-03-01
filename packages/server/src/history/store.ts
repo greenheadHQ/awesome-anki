@@ -3,7 +3,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
+
 import type { SplitHistoryEntry } from "@anki-splitter/core";
+
 import type {
   CreateSessionInput,
   HistoryListQuery,
@@ -165,9 +167,7 @@ export class SplitHistoryStore {
   }
 
   private markMigration(name: string): void {
-    const stmt = this.db.query(
-      "INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)",
-    );
+    const stmt = this.db.query("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)");
     stmt.run(name, nowIso());
   }
 
@@ -300,9 +300,7 @@ export class SplitHistoryStore {
 
         // 3. 기존 테이블 삭제 + 리네임
         this.db.exec("DROP TABLE split_sessions;");
-        this.db.exec(
-          "ALTER TABLE split_sessions_new RENAME TO split_sessions;",
-        );
+        this.db.exec("ALTER TABLE split_sessions_new RENAME TO split_sessions;");
 
         // 4. 인덱스 재생성 (idx_split_sessions_split_type 제외)
         this.db.exec(`
@@ -339,19 +337,13 @@ export class SplitHistoryStore {
 
     this.db.transaction(() => {
       if (!hasProvider) {
-        this.db.exec(
-          "ALTER TABLE split_sessions ADD COLUMN provider TEXT DEFAULT 'gemini';",
-        );
+        this.db.exec("ALTER TABLE split_sessions ADD COLUMN provider TEXT DEFAULT 'gemini';");
       }
       if (!hasEstimatedCost) {
-        this.db.exec(
-          "ALTER TABLE split_sessions ADD COLUMN estimated_cost_usd REAL;",
-        );
+        this.db.exec("ALTER TABLE split_sessions ADD COLUMN estimated_cost_usd REAL;");
       }
       if (!hasActualCost) {
-        this.db.exec(
-          "ALTER TABLE split_sessions ADD COLUMN actual_cost_usd REAL;",
-        );
+        this.db.exec("ALTER TABLE split_sessions ADD COLUMN actual_cost_usd REAL;");
       }
       this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
     })();
@@ -390,13 +382,11 @@ export class SplitHistoryStore {
       }
     }
 
-    const importAllEntries = this.db.transaction(
-      (entries: SplitHistoryEntry[]) => {
-        for (const entry of entries) {
-          this.importLegacyEntry(entry);
-        }
-      },
-    );
+    const importAllEntries = this.db.transaction((entries: SplitHistoryEntry[]) => {
+      for (const entry of entries) {
+        this.importLegacyEntry(entry);
+      }
+    });
     importAllEntries(allEntries);
 
     this.markMigration(SCHEMA_MIGRATION_LEGACY);
@@ -419,10 +409,7 @@ export class SplitHistoryStore {
     );
 
     const hasAiResponseMetadata = Boolean(
-      entry.aiModel ||
-        entry.splitReason ||
-        entry.executionTimeMs ||
-        entry.tokenUsage,
+      entry.aiModel || entry.splitReason || entry.executionTimeMs || entry.tokenUsage,
     );
     const aiResponse = hasAiResponseMetadata
       ? {
@@ -781,9 +768,7 @@ export class SplitHistoryStore {
       estimatedCostUsd: row.estimated_cost_usd ?? undefined,
       actualCostUsd: row.actual_cost_usd ?? undefined,
       executionTimeMs: row.execution_time_ms ?? undefined,
-      tokenUsage:
-        safeJsonParse<TokenUsage | null>(row.token_usage_json, null) ??
-        undefined,
+      tokenUsage: safeJsonParse<TokenUsage | null>(row.token_usage_json, null) ?? undefined,
       rejectionReason: row.rejection_reason ?? undefined,
       errorMessage: row.error_message ?? undefined,
       source: row.source,
@@ -860,9 +845,7 @@ export class SplitHistoryStore {
     const stmt = this.db.query<
       Pick<SessionRow, "id" | "prompt_version_id" | "split_cards_json">,
       [string]
-    >(
-      "SELECT id, prompt_version_id, split_cards_json FROM split_sessions WHERE id = ?",
-    );
+    >("SELECT id, prompt_version_id, split_cards_json FROM split_sessions WHERE id = ?");
 
     const row = stmt.get(sessionId);
     if (!row) return null;

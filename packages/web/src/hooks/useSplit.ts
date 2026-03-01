@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import {
   api,
   type LLMModelsResponse,
@@ -68,9 +69,7 @@ export function getCachedSplitPreview(
   provider?: string,
   model?: string,
 ): SplitPreviewResult | undefined {
-  return queryClient.getQueryData(
-    queryKeys.split.preview(noteId, versionId, provider, model),
-  );
+  return queryClient.getQueryData(queryKeys.split.preview(noteId, versionId, provider, model));
 }
 
 export function useSplitApply() {
@@ -102,8 +101,7 @@ export function useSplitApply() {
 
 export function useSplitReject() {
   return useMutation({
-    mutationFn: (data: { sessionId: string; rejectionReason: string }) =>
-      api.split.reject(data),
+    mutationFn: (data: { sessionId: string; rejectionReason: string }) => api.split.reject(data),
   });
 }
 

@@ -41,17 +41,11 @@ interface PromptConflictLatest {
   updatedAt: string;
 }
 
-function buildSystemPromptVersionName(
-  baseName: string,
-  revision: number,
-): string {
+function buildSystemPromptVersionName(baseName: string, revision: number): string {
   return `${baseName} (systemPrompt rev${revision})`;
 }
 
-function buildDescriptionWithReason(
-  baseDescription: string,
-  reason: string,
-): string {
+function buildDescriptionWithReason(baseDescription: string, reason: string): string {
   const normalized = reason.trim();
   if (!normalized) {
     return baseDescription;
@@ -98,24 +92,17 @@ function buildRollbackPayload(
 prompts.get("/system", async (c) => {
   const activeInfo = await getActiveVersion();
   if (!activeInfo) {
-    throw new ValidationError(
-      "활성 버전이 없습니다. 먼저 버전을 생성/활성화하세요.",
-    );
+    throw new ValidationError("활성 버전이 없습니다. 먼저 버전을 생성/활성화하세요.");
   }
 
   const activeVersion = await getPromptVersion(activeInfo.versionId);
   if (!activeVersion) {
-    throw new NotFoundError(
-      `활성 버전 ${activeInfo.versionId}을(를) 찾을 수 없습니다.`,
-    );
+    throw new NotFoundError(`활성 버전 ${activeInfo.versionId}을(를) 찾을 수 없습니다.`);
   }
 
   const payload = await getRemoteSystemPromptPayload();
   if (!payload) {
-    return c.json(
-      { error: "원격 systemPrompt가 아직 초기화되지 않았습니다." },
-      404,
-    );
+    return c.json({ error: "원격 systemPrompt가 아직 초기화되지 않았습니다." }, 404);
   }
 
   return c.json({
@@ -149,10 +136,7 @@ prompts.post("/system", async (c) => {
   }
 
   const rawSystemPrompt = body.systemPrompt;
-  if (
-    typeof rawSystemPrompt !== "string" ||
-    rawSystemPrompt.trim().length === 0
-  ) {
+  if (typeof rawSystemPrompt !== "string" || rawSystemPrompt.trim().length === 0) {
     throw new ValidationError("systemPrompt는 비어 있을 수 없습니다.");
   }
   const nextSystemPrompt = rawSystemPrompt.trim();
@@ -165,16 +149,12 @@ prompts.post("/system", async (c) => {
 
   const activeInfo = await getActiveVersion();
   if (!activeInfo) {
-    throw new ValidationError(
-      "활성 버전이 없습니다. 먼저 버전을 생성/활성화하세요.",
-    );
+    throw new ValidationError("활성 버전이 없습니다. 먼저 버전을 생성/활성화하세요.");
   }
 
   const activeVersion = await getPromptVersion(activeInfo.versionId);
   if (!activeVersion) {
-    throw new NotFoundError(
-      `활성 버전 ${activeInfo.versionId}을(를) 찾을 수 없습니다.`,
-    );
+    throw new NotFoundError(`활성 버전 ${activeInfo.versionId}을(를) 찾을 수 없습니다.`);
   }
 
   // NOTE:
@@ -255,9 +235,7 @@ prompts.post("/system", async (c) => {
       } catch (rollbackError) {
         rollbackErrors.push(
           `remote rollback 실패: ${
-            rollbackError instanceof Error
-              ? rollbackError.message
-              : String(rollbackError)
+            rollbackError instanceof Error ? rollbackError.message : String(rollbackError)
           }`,
         );
       }
@@ -269,9 +247,7 @@ prompts.post("/system", async (c) => {
       } catch (rollbackError) {
         rollbackErrors.push(
           `active rollback 실패: ${
-            rollbackError instanceof Error
-              ? rollbackError.message
-              : String(rollbackError)
+            rollbackError instanceof Error ? rollbackError.message : String(rollbackError)
           }`,
         );
       }
@@ -340,9 +316,7 @@ prompts.post("/versions", async (c) => {
   }>();
 
   if (!body.name || !body.systemPrompt || !body.splitPromptTemplate) {
-    throw new ValidationError(
-      "name, systemPrompt, splitPromptTemplate가 필요합니다",
-    );
+    throw new ValidationError("name, systemPrompt, splitPromptTemplate가 필요합니다");
   }
 
   const version = await createPromptVersion({
@@ -374,18 +348,17 @@ prompts.put("/versions/:id", async (c) => {
     throw new NotFoundError(`버전 ${versionId}를 찾을 수 없습니다`);
   }
 
-  const body =
-    await c.req.json<
-      Partial<{
-        name: string;
-        description: string;
-        systemPrompt: string;
-        splitPromptTemplate: string;
-        analysisPromptTemplate: string;
-        examples: FewShotExample[];
-        config: Partial<PromptConfig>;
-      }>
-    >();
+  const body = await c.req.json<
+    Partial<{
+      name: string;
+      description: string;
+      systemPrompt: string;
+      splitPromptTemplate: string;
+      analysisPromptTemplate: string;
+      examples: FewShotExample[];
+      config: Partial<PromptConfig>;
+    }>
+  >();
 
   if (Object.hasOwn(body, "systemPrompt")) {
     throw new ValidationError(
@@ -398,14 +371,10 @@ prompts.put("/versions/:id", async (c) => {
     name: body.name ?? existing.name,
     description: body.description ?? existing.description,
     systemPrompt: existing.systemPrompt,
-    splitPromptTemplate:
-      body.splitPromptTemplate ?? existing.splitPromptTemplate,
-    analysisPromptTemplate:
-      body.analysisPromptTemplate ?? existing.analysisPromptTemplate,
+    splitPromptTemplate: body.splitPromptTemplate ?? existing.splitPromptTemplate,
+    analysisPromptTemplate: body.analysisPromptTemplate ?? existing.analysisPromptTemplate,
     examples: body.examples ?? existing.examples,
-    config: body.config
-      ? { ...existing.config, ...body.config }
-      : existing.config,
+    config: body.config ? { ...existing.config, ...body.config } : existing.config,
     updatedAt: new Date().toISOString(),
   };
 
@@ -424,9 +393,7 @@ prompts.delete("/versions/:id", async (c) => {
   // 활성 버전은 삭제 불가
   const activeInfo = await getActiveVersion();
   if (activeInfo?.versionId === versionId) {
-    throw new ValidationError(
-      "활성 버전은 삭제할 수 없습니다. 다른 버전을 먼저 활성화하세요.",
-    );
+    throw new ValidationError("활성 버전은 삭제할 수 없습니다. 다른 버전을 먼저 활성화하세요.");
   }
 
   const deleted = await deletePromptVersion(versionId);
@@ -531,9 +498,7 @@ prompts.get("/experiments/:id", async (c) => {
   }
 
   const controlVersion = await getPromptVersion(experiment.controlVersionId);
-  const treatmentVersion = await getPromptVersion(
-    experiment.treatmentVersionId,
-  );
+  const treatmentVersion = await getPromptVersion(experiment.treatmentVersionId);
 
   return c.json({ experiment, controlVersion, treatmentVersion });
 });
@@ -550,23 +515,17 @@ prompts.post("/experiments", async (c) => {
   }>();
 
   if (!body.name || !body.controlVersionId || !body.treatmentVersionId) {
-    throw new ValidationError(
-      "name, controlVersionId, treatmentVersionId가 필요합니다",
-    );
+    throw new ValidationError("name, controlVersionId, treatmentVersionId가 필요합니다");
   }
 
   const controlVersion = await getPromptVersion(body.controlVersionId);
   const treatmentVersion = await getPromptVersion(body.treatmentVersionId);
 
   if (!controlVersion) {
-    throw new NotFoundError(
-      `Control 버전 ${body.controlVersionId}를 찾을 수 없습니다`,
-    );
+    throw new NotFoundError(`Control 버전 ${body.controlVersionId}를 찾을 수 없습니다`);
   }
   if (!treatmentVersion) {
-    throw new NotFoundError(
-      `Treatment 버전 ${body.treatmentVersionId}를 찾을 수 없습니다`,
-    );
+    throw new NotFoundError(`Treatment 버전 ${body.treatmentVersionId}를 찾을 수 없습니다`);
   }
 
   const experiment = await createExperiment(

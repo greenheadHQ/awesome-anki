@@ -19,6 +19,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+
 import {
   type AllValidationResult,
   api,
@@ -63,18 +64,11 @@ function getStatusBg(status: ValidationStatus): string {
   }
 }
 
-export function ValidationPanel({
-  noteId,
-  deckName,
-  className,
-}: ValidationPanelProps) {
+export function ValidationPanel({ noteId, deckName, className }: ValidationPanelProps) {
   const [result, setResult] = useState<AllValidationResult | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(),
-  );
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [useEmbedding, setUseEmbedding] = useState(false);
-  const [similarityResult, setSimilarityResult] =
-    useState<SimilarityResult | null>(null);
+  const [similarityResult, setSimilarityResult] = useState<SimilarityResult | null>(null);
 
   // 임베딩 상태 조회
   const { data: embeddingStatus } = useQuery({
@@ -190,38 +184,32 @@ export function ValidationPanel({
               </button>
               {expandedSections.has("factCheck") && (
                 <div className="p-3 border-t bg-muted/30">
-                  <p className="text-sm mb-2">
-                    {result.results.factCheck.message}
-                  </p>
+                  <p className="text-sm mb-2">{result.results.factCheck.message}</p>
                   <div className="text-xs text-muted-foreground">
                     정확도: {result.results.factCheck.details.overallAccuracy}%
                   </div>
                   {result.results.factCheck.details.claims.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      {result.results.factCheck.details.claims.map(
-                        (claim, i) => (
-                          <div
-                            key={`claim-${claim.claim.slice(0, 20)}-${i}`}
-                            className="text-xs p-2 bg-background rounded"
-                          >
-                            <div className="flex items-start gap-2">
-                              {claim.isVerified ? (
-                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
-                              ) : (
-                                <XCircle className="w-3 h-3 text-red-500 mt-0.5" />
+                      {result.results.factCheck.details.claims.map((claim, i) => (
+                        <div
+                          key={`claim-${claim.claim.slice(0, 20)}-${i}`}
+                          className="text-xs p-2 bg-background rounded"
+                        >
+                          <div className="flex items-start gap-2">
+                            {claim.isVerified ? (
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500 mt-0.5" />
+                            )}
+                            <div>
+                              <p>{claim.claim}</p>
+                              {claim.correction && (
+                                <p className="text-red-600 mt-1">수정: {claim.correction}</p>
                               )}
-                              <div>
-                                <p>{claim.claim}</p>
-                                {claim.correction && (
-                                  <p className="text-red-600 mt-1">
-                                    수정: {claim.correction}
-                                  </p>
-                                )}
-                              </div>
                             </div>
                           </div>
-                        ),
-                      )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -248,30 +236,21 @@ export function ValidationPanel({
               </button>
               {expandedSections.has("freshness") && (
                 <div className="p-3 border-t bg-muted/30">
-                  <p className="text-sm mb-2">
-                    {result.results.freshness.message}
-                  </p>
-                  {result.results.freshness.details.outdatedItems.length >
-                    0 && (
+                  <p className="text-sm mb-2">{result.results.freshness.message}</p>
+                  {result.results.freshness.details.outdatedItems.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      {result.results.freshness.details.outdatedItems.map(
-                        (item, i) => (
-                          <div
-                            key={`freshness-${item.content.slice(0, 20)}-${i}`}
-                            className="text-xs p-2 bg-background rounded"
-                          >
-                            <p className="font-medium">{item.content}</p>
-                            <p className="text-muted-foreground">
-                              {item.reason}
-                            </p>
-                            {item.currentInfo && (
-                              <p className="text-green-600 mt-1">
-                                현재: {item.currentInfo}
-                              </p>
-                            )}
-                          </div>
-                        ),
-                      )}
+                      {result.results.freshness.details.outdatedItems.map((item, i) => (
+                        <div
+                          key={`freshness-${item.content.slice(0, 20)}-${i}`}
+                          className="text-xs p-2 bg-background rounded"
+                        >
+                          <p className="font-medium">{item.content}</p>
+                          <p className="text-muted-foreground">{item.reason}</p>
+                          {item.currentInfo && (
+                            <p className="text-green-600 mt-1">현재: {item.currentInfo}</p>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -289,10 +268,7 @@ export function ValidationPanel({
                   <Copy className="w-4 h-4" />
                   <span className="font-medium">유사성 검사</span>
                   <StatusIcon
-                    status={
-                      similarityResult?.status ??
-                      result.results.similarity.status
-                    }
+                    status={similarityResult?.status ?? result.results.similarity.status}
                   />
                   {/* 검사 방식 뱃지 */}
                   {(similarityResult?.details.method ||
@@ -301,15 +277,13 @@ export function ValidationPanel({
                       className={cn(
                         "px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-1",
                         (similarityResult?.details.method ??
-                          result.results.similarity.details.method) ===
-                          "embedding"
+                          result.results.similarity.details.method) === "embedding"
                           ? "bg-purple-100 text-purple-700"
                           : "bg-gray-100 text-gray-700",
                       )}
                     >
                       {(similarityResult?.details.method ??
-                        result.results.similarity.details.method) ===
-                      "embedding" ? (
+                        result.results.similarity.details.method) === "embedding" ? (
                         <>
                           <Sparkles className="w-3 h-3" />
                           임베딩
@@ -333,9 +307,7 @@ export function ValidationPanel({
                 <div className="p-3 border-t bg-muted/30">
                   {/* 검사 방식 토글 */}
                   <div className="flex items-center justify-between mb-3 pb-2 border-b">
-                    <span className="text-xs text-muted-foreground">
-                      검사 방식
-                    </span>
+                    <span className="text-xs text-muted-foreground">검사 방식</span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -365,19 +337,16 @@ export function ValidationPanel({
                         disabled={similarityMutation.isPending}
                         className={cn(
                           "px-2 py-1 text-xs rounded flex items-center gap-1 transition",
-                          useEmbedding
-                            ? "bg-purple-600 text-white"
-                            : "bg-muted hover:bg-muted/80",
+                          useEmbedding ? "bg-purple-600 text-white" : "bg-muted hover:bg-muted/80",
                         )}
                       >
                         <Sparkles className="w-3 h-3" />
                         임베딩
-                        {embeddingStatus?.exists &&
-                          embeddingStatus.coverage > 0 && (
-                            <span className="text-[10px] opacity-80">
-                              ({embeddingStatus.coverage}%)
-                            </span>
-                          )}
+                        {embeddingStatus?.exists && embeddingStatus.coverage > 0 && (
+                          <span className="text-[10px] opacity-80">
+                            ({embeddingStatus.coverage}%)
+                          </span>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -385,17 +354,14 @@ export function ValidationPanel({
                   {similarityMutation.isPending && (
                     <div className="flex items-center justify-center py-2">
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      <span className="text-xs text-muted-foreground">
-                        검사 중...
-                      </span>
+                      <span className="text-xs text-muted-foreground">검사 중...</span>
                     </div>
                   )}
 
                   {!similarityMutation.isPending && (
                     <>
                       <p className="text-sm mb-2">
-                        {similarityResult?.message ??
-                          result.results.similarity.message}
+                        {similarityResult?.message ?? result.results.similarity.message}
                       </p>
                       {(
                         similarityResult?.details.similarCards ??
@@ -411,9 +377,7 @@ export function ValidationPanel({
                               className="text-xs p-2 bg-background rounded"
                             >
                               <div className="flex justify-between items-start">
-                                <span className="font-mono">
-                                  #{card.noteId}
-                                </span>
+                                <span className="font-mono">#{card.noteId}</span>
                                 <span
                                   className={cn(
                                     "px-1.5 py-0.5 rounded",
@@ -460,51 +424,45 @@ export function ValidationPanel({
               </button>
               {expandedSections.has("context") && (
                 <div className="p-3 border-t bg-muted/30">
-                  <p className="text-sm mb-2">
-                    {result.results.context.message}
-                  </p>
+                  <p className="text-sm mb-2">{result.results.context.message}</p>
                   {result.results.context.details.relatedCards.length > 0 && (
                     <div className="text-xs text-muted-foreground mb-2">
-                      연결된 카드:{" "}
-                      {result.results.context.details.relatedCards.length}개
+                      연결된 카드: {result.results.context.details.relatedCards.length}개
                     </div>
                   )}
-                  {result.results.context.details.inconsistencies.length >
-                    0 && (
+                  {result.results.context.details.inconsistencies.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      {result.results.context.details.inconsistencies.map(
-                        (inc, i) => (
-                          <div
-                            key={`inc-${inc.conflictingNoteId ?? "unknown"}-${i}`}
-                            className="text-xs p-2 bg-background rounded"
-                          >
-                            <div className="flex items-start gap-2">
-                              <span
-                                className={cn(
-                                  "px-1.5 py-0.5 rounded text-[10px] font-medium",
-                                  inc.severity === "high"
-                                    ? "bg-red-100 text-red-700"
-                                    : inc.severity === "medium"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-gray-100 text-gray-700",
-                                )}
-                              >
-                                {inc.severity === "high"
-                                  ? "심각"
+                      {result.results.context.details.inconsistencies.map((inc, i) => (
+                        <div
+                          key={`inc-${inc.conflictingNoteId ?? "unknown"}-${i}`}
+                          className="text-xs p-2 bg-background rounded"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                                inc.severity === "high"
+                                  ? "bg-red-100 text-red-700"
                                   : inc.severity === "medium"
-                                    ? "주의"
-                                    : "경미"}
-                              </span>
-                              {inc.conflictingNoteId && (
-                                <span className="font-mono text-muted-foreground">
-                                  #{inc.conflictingNoteId}
-                                </span>
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-gray-100 text-gray-700",
                               )}
-                            </div>
-                            <p className="mt-1">{inc.description}</p>
+                            >
+                              {inc.severity === "high"
+                                ? "심각"
+                                : inc.severity === "medium"
+                                  ? "주의"
+                                  : "경미"}
+                            </span>
+                            {inc.conflictingNoteId && (
+                              <span className="font-mono text-muted-foreground">
+                                #{inc.conflictingNoteId}
+                              </span>
+                            )}
                           </div>
-                        ),
-                      )}
+                          <p className="mt-1">{inc.description}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

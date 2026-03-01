@@ -2,14 +2,9 @@
  * 백업 및 롤백 관리
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
+
 import { atomicWriteFileSync, withFileMutex } from "../utils/atomic-write.js";
 import {
   addTags,
@@ -21,10 +16,7 @@ import {
 } from "./client.js";
 
 function getBackupDir(): string {
-  return (
-    process.env.ANKI_SPLITTER_BACKUP_DIR ||
-    join(process.cwd(), "output", "backups")
-  );
+  return process.env.ANKI_SPLITTER_BACKUP_DIR || join(process.cwd(), "output", "backups");
 }
 
 export interface BackupEntry {
@@ -78,10 +70,7 @@ function listBackupFiles(): string[] {
 
 function getBackupFileCandidates(): string[] {
   const todayFilePath = getBackupFilePath();
-  return [
-    todayFilePath,
-    ...listBackupFiles().filter((path) => path !== todayFilePath),
-  ];
+  return [todayFilePath, ...listBackupFiles().filter((path) => path !== todayFilePath)];
 }
 
 function isBackupFile(data: unknown): data is BackupFile {
@@ -100,9 +89,7 @@ function quarantineCorruptedBackup(filePath: string): string | null {
     return quarantinedPath;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `손상된 백업 파일 격리에 실패했습니다: ${filePath} (${reason})`,
-    );
+    console.warn(`손상된 백업 파일 격리에 실패했습니다: ${filePath} (${reason})`);
     return null;
   }
 }
@@ -126,13 +113,9 @@ function loadBackupFile(filePath: string): BackupFile {
     const quarantinedPath = quarantineCorruptedBackup(filePath);
     const reason = error instanceof Error ? error.message : String(error);
     if (quarantinedPath) {
-      console.warn(
-        `손상된 백업 파일을 격리했습니다: ${quarantinedPath} (${reason})`,
-      );
+      console.warn(`손상된 백업 파일을 격리했습니다: ${quarantinedPath} (${reason})`);
     } else {
-      console.warn(
-        `손상된 백업 파일을 읽지 못해 빈 백업으로 대체합니다: ${filePath} (${reason})`,
-      );
+      console.warn(`손상된 백업 파일을 읽지 못해 빈 백업으로 대체합니다: ${filePath} (${reason})`);
     }
     return { version: 1, entries: [] };
   }
@@ -174,9 +157,7 @@ async function appendBackupEntry(entry: BackupEntry): Promise<void> {
   });
 }
 
-async function findBackupFileContainingEntry(
-  backupId: string,
-): Promise<string | null> {
+async function findBackupFileContainingEntry(backupId: string): Promise<string | null> {
   for (const filePath of getBackupFileCandidates()) {
     const hasEntry = await withFileMutex(filePath, async () => {
       const backupFile = loadBackupFile(filePath);
@@ -271,17 +252,13 @@ export async function updateBackupWithCreatedNotes(
   for (const filePath of getBackupFileCandidates()) {
     const updated = await withFileMutex(filePath, async () => {
       const backupFile = loadBackupFile(filePath);
-      const entry = backupFile.entries.find(
-        (current) => current.id === backupId,
-      );
+      const entry = backupFile.entries.find((current) => current.id === backupId);
 
       if (!entry) {
         return false;
       }
 
-      entry.createdNoteIds = Array.from(
-        new Set([...entry.createdNoteIds, ...createdNoteIds]),
-      );
+      entry.createdNoteIds = Array.from(new Set([...entry.createdNoteIds, ...createdNoteIds]));
       saveBackupFile(filePath, backupFile);
       return true;
     });
@@ -317,9 +294,7 @@ export async function rollback(backupId: string): Promise<{
 
   const entry = await withFileMutex(filePath, async () => {
     const backupFile = loadBackupFile(filePath);
-    const target = backupFile.entries.find(
-      (current) => current.id === backupId,
-    );
+    const target = backupFile.entries.find((current) => current.id === backupId);
     if (!target) {
       return null;
     }
@@ -346,19 +321,14 @@ export async function rollback(backupId: string): Promise<{
 
     const [currentNote] = await getNotesInfo([entry.originalNoteId]);
     if (!currentNote) {
-      throw new Error(
-        `롤백 대상 노트 ${entry.originalNoteId}를 찾을 수 없습니다.`,
-      );
+      throw new Error(`롤백 대상 노트 ${entry.originalNoteId}를 찾을 수 없습니다.`);
     }
 
     if (currentNote.tags.length > 0) {
       await removeTags([entry.originalNoteId], currentNote.tags.join(" "));
     }
     if (entry.originalContent.tags.length > 0) {
-      await addTags(
-        [entry.originalNoteId],
-        entry.originalContent.tags.join(" "),
-      );
+      await addTags([entry.originalNoteId], entry.originalContent.tags.join(" "));
     }
 
     // 백업 엔트리 제거 (롤백 완료 표시)

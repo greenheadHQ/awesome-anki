@@ -2,6 +2,7 @@
  * usePrompts - 프롬프트 버전 관리 훅
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { api } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 
@@ -67,11 +68,8 @@ export function useActivatePrompt() {
 export function useSaveSystemPrompt() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: {
-      expectedRevision: number;
-      systemPrompt: string;
-      reason: string;
-    }) => api.prompts.saveSystemPrompt(data),
+    mutationFn: (data: { expectedRevision: number; systemPrompt: string; reason: string }) =>
+      api.prompts.saveSystemPrompt(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.system });
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.versions });

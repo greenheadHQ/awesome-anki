@@ -73,10 +73,7 @@ function getWordSet(text: string, ngramSize: number = 2): Set<string> {
 /**
  * Jaccard 유사도 계산
  */
-function calculateJaccardSimilarity(
-  set1: Set<string>,
-  set2: Set<string>,
-): number {
+function calculateJaccardSimilarity(set1: Set<string>, set2: Set<string>): number {
   if (set1.size === 0 && set2.size === 0) return 100;
   if (set1.size === 0 || set2.size === 0) return 0;
 
@@ -143,8 +140,7 @@ async function checkSimilarityWithJaccard(
       similarCards.push({
         noteId: card.noteId,
         similarity,
-        matchedContent:
-          card.text.slice(0, 100) + (card.text.length > 100 ? "..." : ""),
+        matchedContent: card.text.slice(0, 100) + (card.text.length > 100 ? "..." : ""),
       });
     }
   }
@@ -172,21 +168,12 @@ async function checkSimilarityWithEmbedding(
 
   // 타겟 카드 임베딩
   const targetTextHash = getTextHash(targetCard.text);
-  let targetEmbedding = getCachedEmbedding(
-    cache,
-    targetCard.noteId,
-    targetTextHash,
-  );
+  let targetEmbedding = getCachedEmbedding(cache, targetCard.noteId, targetTextHash);
 
   if (!targetEmbedding) {
     try {
       targetEmbedding = await getEmbedding(targetCard.text);
-      setCachedEmbedding(
-        cache,
-        targetCard.noteId,
-        targetEmbedding,
-        targetTextHash,
-      );
+      setCachedEmbedding(cache, targetCard.noteId, targetEmbedding, targetTextHash);
     } catch (error) {
       // 임베딩 실패 시 Jaccard로 폴백
       console.warn(`임베딩 생성 실패, Jaccard로 폴백: ${error}`);
@@ -210,7 +197,7 @@ async function checkSimilarityWithEmbedding(
       try {
         cardEmbedding = await getEmbedding(card.text);
         setCachedEmbedding(cache, card.noteId, cardEmbedding, cardTextHash);
-      } catch (_error) {
+      } catch {
         console.warn(`카드 ${card.noteId} 임베딩 실패, 스킵`);
         continue;
       }
@@ -223,8 +210,7 @@ async function checkSimilarityWithEmbedding(
       similarCards.push({
         noteId: card.noteId,
         similarity,
-        matchedContent:
-          card.text.slice(0, 100) + (card.text.length > 100 ? "..." : ""),
+        matchedContent: card.text.slice(0, 100) + (card.text.length > 100 ? "..." : ""),
       });
     }
   }
@@ -251,9 +237,7 @@ function buildSimilarityResult(
 
   // 중복 여부 판단 (95% 이상이면 중복으로 간주 - 임베딩에서 더 엄격)
   const duplicateThreshold = method === "embedding" ? 95 : 90;
-  const isDuplicate = topSimilar.some(
-    (c) => c.similarity >= duplicateThreshold,
-  );
+  const isDuplicate = topSimilar.some((c) => c.similarity >= duplicateThreshold);
 
   // 상태 결정
   let status: SimilarityResult["status"] = "valid";
@@ -280,11 +264,7 @@ function buildSimilarityResult(
   };
 }
 
-function getStatusMessage(
-  _status: string,
-  count: number,
-  isDuplicate: boolean,
-): string {
+function getStatusMessage(_status: string, count: number, isDuplicate: boolean): string {
   if (isDuplicate) {
     return "중복 카드가 존재합니다.";
   }

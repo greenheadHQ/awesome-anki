@@ -52,10 +52,7 @@ export interface LLMGenerationOptions {
 export interface LLMProvider {
   readonly name: LLMProviderName;
 
-  generateContent(
-    prompt: string,
-    options: LLMGenerationOptions,
-  ): Promise<LLMGenerationResult>;
+  generateContent(prompt: string, options: LLMGenerationOptions): Promise<LLMGenerationResult>;
 
   countTokens(text: string, model?: string): Promise<number>;
 }

@@ -1,11 +1,17 @@
 pre-commit:
   parallel: true
   commands:
-    biome-format:
-      glob: "*.{ts,tsx,js,jsx}"
-      run: biome format --no-errors-on-unmatched {staged_files}
+    oxfmt:
+      glob: "*.{ts,tsx,js,jsx,css}"
+      run: oxfmt --no-error-on-unmatched-pattern {staged_files}
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
     docs-freshness:
       glob: "packages/**/*.{ts,tsx}"
       run: .claude/scripts/check-docs-freshness.sh {staged_files}
+
+pre-push:
+  parallel: false
+  commands:
+    quality-gate:
+      run: bun run lint && bun run typecheck && bun run test

@@ -11,13 +11,7 @@
 export interface BinaryPattern {
   pattern: RegExp;
   hint: string;
-  category:
-    | "existence"
-    | "direction"
-    | "connection"
-    | "state"
-    | "layer"
-    | "evaluation";
+  category: "existence" | "direction" | "connection" | "state" | "layer" | "evaluation";
 }
 
 /**
@@ -176,9 +170,7 @@ export function analyzeClozes(text: string): ClozeAnalysis {
 /**
  * 카드 배열에 대해 일괄 힌트 추가
  */
-export function enhanceCardsWithHints(
-  cards: Array<{ content: string }>,
-): Array<{
+export function enhanceCardsWithHints(cards: Array<{ content: string }>): Array<{
   content: string;
   enhanced: boolean;
   enhancedCount: number;
@@ -247,8 +239,7 @@ export function checkCardQuality(content: string): CardQualityCheck {
   const cardType = detectCardType(content);
 
   // 맥락 태그 확인 [A > B > C] 형식
-  const hasContextTag =
-    /^\s*\[.+>.+\]/.test(content) || /\[.+>.+\]/.test(content);
+  const hasContextTag = /^\s*\[.+>.+\]/.test(content) || /\[.+>.+\]/.test(content);
 
   const issues: string[] = [];
 
@@ -268,7 +259,7 @@ export function checkCardQuality(content: string): CardQualityCheck {
 
   // 힌트 필요 여부
   const needsHint = analysis.clozeMatches.some((c) => c.needsHint);
-  const hasHint = analysis.clozeMatches.some((c) => c.hasHint);
+  const someHasHint = analysis.clozeMatches.some((c) => c.hasHint);
 
   if (needsHint) {
     issues.push("이진 패턴 Cloze에 힌트 필요");
@@ -282,7 +273,7 @@ export function checkCardQuality(content: string): CardQualityCheck {
   return {
     charCount,
     isUnder80Chars: charCount <= 80,
-    hasHint,
+    hasHint: someHasHint,
     needsHint,
     hasContextTag,
     cardType,

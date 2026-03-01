@@ -52,10 +52,7 @@ export function computeDifficultyScore(
 
   // ease factor 점수: 2500(기본)~1300(최소) → 0~30점
   // ease가 낮을수록 점수가 높음
-  const easeNormalized = Math.max(
-    0,
-    Math.min(1, (2500 - easeFactor) / (2500 - 1300)),
-  );
+  const easeNormalized = Math.max(0, Math.min(1, (2500 - easeFactor) / (2500 - 1300)));
   const easeScore = easeNormalized * 30;
 
   // interval 점수: 간격이 짧을수록 불안정 → 0~20점
@@ -129,27 +126,13 @@ export async function getDifficultCards(
   // 임계값 필터링 + 변환
   const results: DifficultCardInfo[] = [];
   for (const card of byNote.values()) {
-    if (
-      card.reps < t.minReps ||
-      card.lapses < t.minLapses ||
-      card.factor > t.maxEaseFactor
-    ) {
+    if (card.reps < t.minReps || card.lapses < t.minLapses || card.factor > t.maxEaseFactor) {
       continue;
     }
 
     const text = extractTextFromFields(card.fields);
-    const score = computeDifficultyScore(
-      card.lapses,
-      card.factor,
-      card.interval,
-      card.reps,
-    );
-    const reasons = getDifficultyReasons(
-      card.lapses,
-      card.factor,
-      card.reps,
-      t,
-    );
+    const score = computeDifficultyScore(card.lapses, card.factor, card.interval, card.reps);
+    const reasons = getDifficultyReasons(card.lapses, card.factor, card.reps, t);
 
     results.push({
       noteId: card.noteId,
@@ -194,8 +177,6 @@ async function fetchCardInfoInBatches(cardIds: number[]): Promise<
 }
 
 /** NoteInfo의 fields에서 Text 필드 추출 (operations.ts의 extractTextField는 NoteInfo 객체를 받으므로 별도 헬퍼) */
-function extractTextFromFields(
-  fields: Record<string, { value: string; order: number }>,
-): string {
+function extractTextFromFields(fields: Record<string, { value: string; order: number }>): string {
   return fields.Text?.value || "";
 }

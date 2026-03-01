@@ -16,6 +16,7 @@ import {
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
+
 import { resolveModelId } from "../lib/resolve-model.js";
 
 const validate = new Hono();
@@ -81,14 +82,13 @@ validate.post("/freshness", async (c) => {
  * 카드 유사성 검사
  */
 validate.post("/similarity", async (c) => {
-  const { noteId, deckName, threshold, maxResults, useEmbedding } =
-    await c.req.json<{
-      noteId: number;
-      deckName: string;
-      threshold?: number;
-      maxResults?: number;
-      useEmbedding?: boolean;
-    }>();
+  const { noteId, deckName, threshold, maxResults, useEmbedding } = await c.req.json<{
+    noteId: number;
+    deckName: string;
+    threshold?: number;
+    maxResults?: number;
+    useEmbedding?: boolean;
+  }>();
 
   if (!noteId || !deckName) {
     throw new ValidationError("noteId와 deckName이 필요합니다");
@@ -121,21 +121,15 @@ validate.post("/similarity", async (c) => {
  * 문맥 일관성 검사
  */
 validate.post("/context", async (c) => {
-  const {
-    noteId,
-    includeReverseLinks,
-    maxRelatedCards,
-    thorough,
-    provider,
-    model,
-  } = await c.req.json<{
-    noteId: number;
-    includeReverseLinks?: boolean;
-    maxRelatedCards?: number;
-    thorough?: boolean;
-    provider?: string;
-    model?: string;
-  }>();
+  const { noteId, includeReverseLinks, maxRelatedCards, thorough, provider, model } =
+    await c.req.json<{
+      noteId: number;
+      includeReverseLinks?: boolean;
+      maxRelatedCards?: number;
+      thorough?: boolean;
+      provider?: string;
+      model?: string;
+    }>();
 
   if (!noteId) {
     throw new ValidationError("noteId가 필요합니다");
@@ -184,34 +178,28 @@ validate.post("/all", async (c) => {
   const text = extractTextField(note);
   const modelId = resolveModelId(provider, model);
 
-  const [factCheckResult, freshnessResult, similarityResult, contextResult] =
-    await Promise.all([
-      checkFacts(text, { modelId }),
-      checkFreshness(text, { modelId }),
-      (async () => {
-        const allNotes = await getDeckNotes(deckName);
-        const allCards: CardForComparison[] = allNotes.map((n) => ({
-          noteId: n.noteId,
-          text: extractTextField(n),
-        }));
-        return checkSimilarity({ noteId, text }, allCards);
-      })(),
-      (async () => {
-        const targetCard: CardForContext = {
-          noteId,
-          text,
-          tags: note.tags,
-        };
-        return checkContext(targetCard, { includeReverseLinks: true, modelId });
-      })(),
-    ]);
+  const [factCheckResult, freshnessResult, similarityResult, contextResult] = await Promise.all([
+    checkFacts(text, { modelId }),
+    checkFreshness(text, { modelId }),
+    (async () => {
+      const allNotes = await getDeckNotes(deckName);
+      const allCards: CardForComparison[] = allNotes.map((n) => ({
+        noteId: n.noteId,
+        text: extractTextField(n),
+      }));
+      return checkSimilarity({ noteId, text }, allCards);
+    })(),
+    (async () => {
+      const targetCard: CardForContext = {
+        noteId,
+        text,
+        tags: note.tags,
+      };
+      return checkContext(targetCard, { includeReverseLinks: true, modelId });
+    })(),
+  ]);
 
-  const results = [
-    factCheckResult,
-    freshnessResult,
-    similarityResult,
-    contextResult,
-  ];
+  const results = [factCheckResult, freshnessResult, similarityResult, contextResult];
   let overallStatus: "valid" | "warning" | "error" | "unknown" = "valid";
 
   if (results.some((r) => r.status === "error")) {

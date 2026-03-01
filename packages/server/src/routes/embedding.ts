@@ -120,17 +120,14 @@ embedding.get("/status/:deckName", async (c) => {
   try {
     const notes = await getDeckNotes(deckName);
     totalNotes = notes.length;
-  } catch (_e) {
+  } catch {
     // 덱을 찾을 수 없는 경우
   }
 
   return c.json({
     ...status,
     totalNotes,
-    coverage:
-      totalNotes > 0
-        ? Math.round((status.totalEmbeddings / totalNotes) * 100)
-        : 0,
+    coverage: totalNotes > 0 ? Math.round((status.totalEmbeddings / totalNotes) * 100) : 0,
   });
 });
 
@@ -168,8 +165,7 @@ embedding.post("/single", async (c) => {
     throw new ValidationError("text가 필요합니다");
   }
 
-  const processedText =
-    preprocess !== false ? preprocessTextForEmbedding(text) : text;
+  const processedText = preprocess !== false ? preprocessTextForEmbedding(text) : text;
 
   const emb = await getEmbedding(processedText);
 

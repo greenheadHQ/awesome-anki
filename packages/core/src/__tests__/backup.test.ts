@@ -1,18 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const tempRoot = join(
-  tmpdir(),
-  `anki-backup-test-${Date.now()}-${process.pid}`,
-);
+const tempRoot = join(tmpdir(), `anki-backup-test-${Date.now()}-${process.pid}`);
 const backupDir = join(tempRoot, "backups");
 const today = new Date().toISOString().split("T")[0];
 const backupFilePath = join(backupDir, `backup-${today}.json`);
@@ -109,9 +100,9 @@ describe("backup storage integrity", () => {
       ),
     );
 
-    await expect(
-      backupModule.updateBackupWithCreatedNotes("missing-id", [999]),
-    ).rejects.toThrow("백업 ID missing-id를 찾을 수 없습니다.");
+    await expect(backupModule.updateBackupWithCreatedNotes("missing-id", [999])).rejects.toThrow(
+      "백업 ID missing-id를 찾을 수 없습니다.",
+    );
   });
 
   test("listBackups는 손상된 백업 파일을 격리하지 않고 건너뛴다", () => {
@@ -122,9 +113,7 @@ describe("backup storage integrity", () => {
     expect(backups).toEqual([]);
 
     const files = readdirSync(backupDir);
-    const quarantined = files.find((file) =>
-      file.startsWith(`backup-${today}.json.corrupt-`),
-    );
+    const quarantined = files.find((file) => file.startsWith(`backup-${today}.json.corrupt-`));
 
     expect(quarantined).toBeUndefined();
   });
@@ -133,15 +122,14 @@ describe("backup storage integrity", () => {
     resetBackupDir();
     writeFileSync(backupFilePath, "{ not-valid-json");
 
-    await expect(
-      backupModule.updateBackupWithCreatedNotes("missing-id", [999]),
-    ).rejects.toThrow("백업 ID missing-id를 찾을 수 없습니다.");
+    await expect(backupModule.updateBackupWithCreatedNotes("missing-id", [999])).rejects.toThrow(
+      "백업 ID missing-id를 찾을 수 없습니다.",
+    );
 
     const files = readdirSync(backupDir);
     const quarantined = files.find(
       (file) =>
-        file.startsWith(`backup-${today}.json.corrupt-`) &&
-        existsSync(join(backupDir, file)),
+        file.startsWith(`backup-${today}.json.corrupt-`) && existsSync(join(backupDir, file)),
     );
 
     expect(quarantined).toBeDefined();

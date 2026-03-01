@@ -5,10 +5,7 @@
  */
 
 import { parseClozes } from "../parser/cloze-parser.js";
-import {
-  isTodoContainer,
-  parseContainers,
-} from "../parser/container-parser.js";
+import { isTodoContainer, parseContainers } from "../parser/container-parser.js";
 
 /** 카드당 최대 Cloze 수. 이를 초과하면 분할 대상 (UI: "N+1개 이상") */
 export const MAX_CLOZES_PER_CARD = 3;

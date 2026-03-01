@@ -1,5 +1,6 @@
 import { HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+
 import { type HelpItem, helpContent } from "../../lib/helpContent";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
@@ -14,12 +15,7 @@ interface HelpTooltipProps {
   className?: string;
 }
 
-export function HelpTooltip({
-  helpKey,
-  custom,
-  size = "sm",
-  className = "",
-}: HelpTooltipProps) {
+export function HelpTooltip({ helpKey, custom, size = "sm", className = "" }: HelpTooltipProps) {
   const content = custom || helpContent[helpKey];
 
   if (!content) {
@@ -43,9 +39,7 @@ export function HelpTooltip({
       <PopoverContent className="w-80" align="start">
         <div className="space-y-2">
           <h4 className="font-medium text-sm">{content.title}</h4>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {content.description}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{content.description}</p>
           {content.learnMore && (
             <Link
               to={content.learnMore}

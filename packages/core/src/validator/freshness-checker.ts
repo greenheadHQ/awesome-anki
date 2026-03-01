@@ -62,8 +62,7 @@ export async function checkFreshness(
     .replace(/^:::\s*$/gm, "")
     .trim();
 
-  const currentDate =
-    options.checkDate || new Date().toISOString().split("T")[0];
+  const currentDate = options.checkDate || new Date().toISOString().split("T")[0];
 
   const prompt = `
 ${FRESHNESS_CHECK_PROMPT}
@@ -86,12 +85,7 @@ ${cleanContent}
 
     // 결과 변환
     const outdatedItems: OutdatedItem[] = (parsed.outdatedItems || []).map(
-      (item: {
-        content?: string;
-        reason?: string;
-        currentInfo?: string;
-        severity?: string;
-      }) => ({
+      (item: { content?: string; reason?: string; currentInfo?: string; severity?: string }) => ({
         content: item.content || "",
         reason: item.reason || "",
         currentInfo: item.currentInfo,
@@ -103,12 +97,8 @@ ${cleanContent}
 
     // 상태 결정
     let status: FreshnessResult["status"] = "valid";
-    const highSeverityCount = outdatedItems.filter(
-      (i) => i.severity === "high",
-    ).length;
-    const mediumSeverityCount = outdatedItems.filter(
-      (i) => i.severity === "medium",
-    ).length;
+    const highSeverityCount = outdatedItems.filter((i) => i.severity === "high").length;
+    const mediumSeverityCount = outdatedItems.filter((i) => i.severity === "medium").length;
 
     if (highSeverityCount > 0) {
       status = "error";

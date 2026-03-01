@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+
 import "./index.css";
 import App from "./App.tsx";
 
@@ -17,8 +18,7 @@ const globals = globalThis as typeof globalThis & {
 const devtoolsState = globals.__awesomeAnkiDevtools__ ?? {};
 globals.__awesomeAnkiDevtools__ = devtoolsState;
 
-const isTrue = (value: string | undefined): boolean =>
-  value?.toLowerCase() === "true";
+const isTrue = (value: string | undefined): boolean => value?.toLowerCase() === "true";
 
 const getLocatorTarget = (): LocatorTarget =>
   import.meta.env.VITE_LOCATOR_TARGET === "vscode" ? "vscode" : "cursor";
@@ -93,10 +93,7 @@ const initLocator = async (): Promise<void> => {
 };
 
 const initReactScan = async (): Promise<void> => {
-  if (
-    devtoolsState.reactScan ||
-    isTrue(import.meta.env.VITE_DISABLE_REACT_SCAN)
-  ) {
+  if (devtoolsState.reactScan || isTrue(import.meta.env.VITE_DISABLE_REACT_SCAN)) {
     return;
   }
 
@@ -117,10 +114,7 @@ const initReactScan = async (): Promise<void> => {
 };
 
 const initReactGrab = async (): Promise<void> => {
-  if (
-    devtoolsState.reactGrab ||
-    isTrue(import.meta.env.VITE_DISABLE_REACT_GRAB)
-  ) {
+  if (devtoolsState.reactGrab || isTrue(import.meta.env.VITE_DISABLE_REACT_GRAB)) {
     return;
   }
 

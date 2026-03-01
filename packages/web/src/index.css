@@ -12,11 +12,11 @@
 
 :root {
   --font-family-sans:
-    "Pretendard Variable", "Pretendard", "Noto Sans KR", system-ui,
-    -apple-system, "Segoe UI", sans-serif;
+    "Pretendard Variable", "Pretendard", "Noto Sans KR", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
   --font-family-mono:
-    "JetBrains Mono", "SFMono-Regular", ui-monospace, "Cascadia Code", "Menlo",
-    "Monaco", "Consolas", monospace;
+    "JetBrains Mono", "SFMono-Regular", ui-monospace, "Cascadia Code", "Menlo", "Monaco",
+    "Consolas", monospace;
 
   /* Blue/Slate product palette */
   --background: oklch(0.985 0.004 252);

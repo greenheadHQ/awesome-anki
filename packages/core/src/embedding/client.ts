@@ -19,9 +19,7 @@ function getClient(): GoogleGenAI {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        "GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.",
-      );
+      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.");
     }
     genAI = new GoogleGenAI({ apiKey });
   }

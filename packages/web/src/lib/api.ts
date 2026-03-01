@@ -444,15 +444,11 @@ export interface AllValidationResult {
 export const api = {
   decks: {
     list: () => fetchJson<{ decks: string[] }>("/decks"),
-    stats: (name: string) =>
-      fetchJson<DeckStats>(`/decks/${encodeURIComponent(name)}/stats`),
+    stats: (name: string) => fetchJson<DeckStats>(`/decks/${encodeURIComponent(name)}/stats`),
   },
 
   cards: {
-    getByDeck: (
-      deck: string,
-      opts?: { page?: number; limit?: number; filter?: string },
-    ) => {
+    getByDeck: (deck: string, opts?: { page?: number; limit?: number; filter?: string }) => {
       const params = new URLSearchParams();
       if (opts?.page) params.set("page", String(opts.page));
       if (opts?.limit) params.set("limit", String(opts.limit));
@@ -478,9 +474,7 @@ export const api = {
         page: number;
         limit: number;
         totalPages: number;
-      }>(
-        `/cards/deck/${encodeURIComponent(deck)}/difficult${query ? `?${query}` : ""}`,
-      );
+      }>(`/cards/deck/${encodeURIComponent(deck)}/difficult${query ? `?${query}` : ""}`);
     },
   },
 
@@ -554,46 +548,34 @@ export const api = {
 
   validate: {
     factCheck: (noteId: number, thorough = false) =>
-      fetchJson<{ noteId: number; result: FactCheckResult }>(
-        "/validate/fact-check",
-        {
-          method: "POST",
-          body: JSON.stringify({ noteId, thorough }),
-        },
-      ),
+      fetchJson<{ noteId: number; result: FactCheckResult }>("/validate/fact-check", {
+        method: "POST",
+        body: JSON.stringify({ noteId, thorough }),
+      }),
     freshness: (noteId: number) =>
-      fetchJson<{ noteId: number; result: FreshnessResult }>(
-        "/validate/freshness",
-        {
-          method: "POST",
-          body: JSON.stringify({ noteId }),
-        },
-      ),
+      fetchJson<{ noteId: number; result: FreshnessResult }>("/validate/freshness", {
+        method: "POST",
+        body: JSON.stringify({ noteId }),
+      }),
     similarity: (
       noteId: number,
       deckName: string,
       opts?: { threshold?: number; useEmbedding?: boolean },
     ) =>
-      fetchJson<{ noteId: number; result: SimilarityResult }>(
-        "/validate/similarity",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            noteId,
-            deckName,
-            threshold: opts?.threshold,
-            useEmbedding: opts?.useEmbedding,
-          }),
-        },
-      ),
+      fetchJson<{ noteId: number; result: SimilarityResult }>("/validate/similarity", {
+        method: "POST",
+        body: JSON.stringify({
+          noteId,
+          deckName,
+          threshold: opts?.threshold,
+          useEmbedding: opts?.useEmbedding,
+        }),
+      }),
     context: (noteId: number, includeReverseLinks = true) =>
-      fetchJson<{ noteId: number; result: ContextResult }>(
-        "/validate/context",
-        {
-          method: "POST",
-          body: JSON.stringify({ noteId, includeReverseLinks }),
-        },
-      ),
+      fetchJson<{ noteId: number; result: ContextResult }>("/validate/context", {
+        method: "POST",
+        body: JSON.stringify({ noteId, includeReverseLinks }),
+      }),
     all: (noteId: number, deckName: string) =>
       fetchJson<AllValidationResult>("/validate/all", {
         method: "POST",
@@ -603,9 +585,7 @@ export const api = {
 
   embedding: {
     status: (deckName: string) =>
-      fetchJson<EmbeddingStatus>(
-        `/embedding/status/${encodeURIComponent(deckName)}`,
-      ),
+      fetchJson<EmbeddingStatus>(`/embedding/status/${encodeURIComponent(deckName)}`),
     generate: (deckName: string, forceRegenerate = false) =>
       fetchJson<EmbeddingGenerateResult>("/embedding/generate", {
         method: "POST",
@@ -624,8 +604,7 @@ export const api = {
         versions: PromptVersion[];
         activeVersionId: string | null;
       }>("/prompts/versions"),
-    version: (id: string) =>
-      fetchJson<PromptVersion>(`/prompts/versions/${id}`),
+    version: (id: string) => fetchJson<PromptVersion>(`/prompts/versions/${id}`),
     active: () =>
       fetchJson<{
         activeInfo: {
@@ -684,9 +663,7 @@ export const api = {
         { method: "POST" },
       ),
     experiments: () =>
-      fetchJson<{ experiments: Experiment[]; count: number }>(
-        "/prompts/experiments",
-      ),
+      fetchJson<{ experiments: Experiment[]; count: number }>("/prompts/experiments"),
     experiment: (id: string) =>
       fetchJson<{
         experiment: Experiment;
@@ -702,10 +679,7 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
-    completeExperiment: (
-      id: string,
-      data: { conclusion: string; winnerVersionId: string },
-    ) =>
+    completeExperiment: (id: string, data: { conclusion: string; winnerVersionId: string }) =>
       fetchJson<Experiment>(`/prompts/experiments/${id}/complete`, {
         method: "POST",
         body: JSON.stringify(data),
@@ -745,9 +719,7 @@ export const api = {
       }>(`/history${query ? `?${query}` : ""}`);
     },
     detail: (sessionId: string) =>
-      fetchJson<SplitHistoryDetail>(
-        `/history/${encodeURIComponent(sessionId)}`,
-      ),
+      fetchJson<SplitHistoryDetail>(`/history/${encodeURIComponent(sessionId)}`),
     syncHealth: () => fetchJson<SplitHistorySyncHealth>("/history/sync/health"),
   },
 };

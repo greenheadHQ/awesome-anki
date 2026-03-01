@@ -19,9 +19,7 @@ async function getClient(): Promise<import("openai").default> {
   if (!openaiClient) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        "OPENAI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.",
-      );
+      throw new Error("OPENAI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.");
     }
     const { default: OpenAI } = await import("openai");
     openaiClient = new OpenAI({ apiKey });
@@ -32,11 +30,7 @@ async function getClient(): Promise<import("openai").default> {
 /**
  * 응답 정규화: markdown code fence 제거 + refusal 체크
  */
-function normalizeResponseText(response: {
-  output_text: string;
-  // biome-ignore lint/suspicious/noExplicitAny: OpenAI response type
-  output: any[];
-}): string {
+function normalizeResponseText(response: { output_text: string; output: any[] }): string {
   // refusal 체크
   for (const item of response.output) {
     if (item.type === "message") {
@@ -126,13 +120,9 @@ export class OpenAIAdapter implements LLMProvider {
         text = retryResult.text;
         const retryUsage = extractUsage(retryResult.usage);
         tokenUsage = {
-          promptTokens:
-            (firstUsage.promptTokens ?? 0) + (retryUsage.promptTokens ?? 0),
-          completionTokens:
-            (firstUsage.completionTokens ?? 0) +
-            (retryUsage.completionTokens ?? 0),
-          totalTokens:
-            (firstUsage.totalTokens ?? 0) + (retryUsage.totalTokens ?? 0),
+          promptTokens: (firstUsage.promptTokens ?? 0) + (retryUsage.promptTokens ?? 0),
+          completionTokens: (firstUsage.completionTokens ?? 0) + (retryUsage.completionTokens ?? 0),
+          totalTokens: (firstUsage.totalTokens ?? 0) + (retryUsage.totalTokens ?? 0),
         };
         JSON.parse(text); // 재시도 후에도 실패하면 호출부로 전파
       }

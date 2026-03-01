@@ -4,17 +4,8 @@
 
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import { estimateCost, getModelPricing } from "../llm/pricing.js";
-import type {
-  ActualCost,
-  CostEstimate,
-  LLMModelId,
-  TokenUsage,
-} from "../llm/types.js";
-import {
-  buildSplitPrompt,
-  buildSplitPromptFromTemplate,
-  SYSTEM_PROMPT,
-} from "./prompts.js";
+import type { ActualCost, CostEstimate, LLMModelId, TokenUsage } from "../llm/types.js";
+import { buildSplitPrompt, buildSplitPromptFromTemplate, SYSTEM_PROMPT } from "./prompts.js";
 import { type SplitResponse, validateSplitResponse } from "./validator.js";
 
 export type { TokenUsage };
@@ -53,28 +44,17 @@ export async function estimateSplitCost(
   outputTokens: number;
 } | null> {
   const resolvedModelId = modelId ?? getDefaultModelId();
-  const pricing = getModelPricing(
-    resolvedModelId.provider,
-    resolvedModelId.model,
-  );
+  const pricing = getModelPricing(resolvedModelId.provider, resolvedModelId.model);
   if (!pricing) return null;
 
   const client = createLLMClient(resolvedModelId.provider);
   // 실제 프롬프트와 동일한 구조로 입력 토큰 추정
   const systemPromptText = prompts?.systemPrompt ?? SYSTEM_PROMPT;
   const userPrompt = prompts
-    ? buildSplitPromptFromTemplate(
-        prompts.splitPromptTemplate,
-        card.noteId,
-        card.text,
-        card.tags,
-      )
+    ? buildSplitPromptFromTemplate(prompts.splitPromptTemplate, card.noteId, card.text, card.tags)
     : buildSplitPrompt(card.noteId, card.text);
   const fullInput = `${systemPromptText}\n\n${userPrompt}`;
-  const inputTokens = await client.countTokens(
-    fullInput,
-    resolvedModelId.model,
-  );
+  const inputTokens = await client.countTokens(fullInput, resolvedModelId.model);
   // 출력 토큰은 입력의 70% 수준으로 추정 (일반적인 카드 분할 패턴)
   const ESTIMATED_OUTPUT_INPUT_RATIO = 0.7;
   const outputTokens = Math.min(
@@ -109,12 +89,7 @@ export async function requestCardSplit(
 
   const systemPrompt = prompts?.systemPrompt ?? SYSTEM_PROMPT;
   const userPrompt = prompts
-    ? buildSplitPromptFromTemplate(
-        prompts.splitPromptTemplate,
-        card.noteId,
-        card.text,
-        card.tags,
-      )
+    ? buildSplitPromptFromTemplate(prompts.splitPromptTemplate, card.noteId, card.text, card.tags)
     : buildSplitPrompt(card.noteId, card.text);
 
   const llmResult = await client.generateContent(userPrompt, {

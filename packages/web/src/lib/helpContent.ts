@@ -19,8 +19,7 @@ export const helpContent: Record<string, HelpItem> = {
   },
   splitCandidate: {
     title: "분할 후보",
-    description:
-      "분할이 가능한 카드의 총 개수입니다. Cloze가 4개 이상인 카드들이 선정됩니다.",
+    description: "분할이 가능한 카드의 총 개수입니다. Cloze가 4개 이상인 카드들이 선정됩니다.",
     learnMore: "/help#split-candidates",
   },
 
@@ -136,8 +135,7 @@ export const helpContent: Record<string, HelpItem> = {
   },
   validationWarning: {
     title: "검토 필요",
-    description:
-      "일부 검증 항목에서 주의가 필요한 사항이 발견되었습니다. 내용을 확인해 주세요.",
+    description: "일부 검증 항목에서 주의가 필요한 사항이 발견되었습니다. 내용을 확인해 주세요.",
     learnMore: "/help#validation",
   },
   validationFailed: {
@@ -147,8 +145,7 @@ export const helpContent: Record<string, HelpItem> = {
   },
   validationPending: {
     title: "미검증",
-    description:
-      "아직 검증이 수행되지 않았습니다. 카드를 선택하고 검증 버튼을 눌러주세요.",
+    description: "아직 검증이 수행되지 않았습니다. 카드를 선택하고 검증 버튼을 눌러주세요.",
     learnMore: "/help#validation",
   },
 };

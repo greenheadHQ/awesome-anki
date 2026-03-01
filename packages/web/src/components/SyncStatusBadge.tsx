@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, Clock3 } from "lucide-react";
+
 import type { SyncStatusState } from "../lib/sync-status";
 
 function formatTimestamp(value: string | null): string {
@@ -8,11 +9,7 @@ function formatTimestamp(value: string | null): string {
   return date.toLocaleString("ko-KR", { hour12: false });
 }
 
-export function SyncStatusBadge({
-  status,
-}: {
-  status: SyncStatusState | null;
-}) {
+export function SyncStatusBadge({ status }: { status: SyncStatusState | null }) {
   if (!status) {
     return (
       <div className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
@@ -27,8 +24,7 @@ export function SyncStatusBadge({
       <div className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-900">
         <AlertTriangle className="h-3.5 w-3.5" />
         미동기화 변경 있음
-        {status.lastSuccessAt &&
-          ` · 마지막 성공 ${formatTimestamp(status.lastSuccessAt)}`}
+        {status.lastSuccessAt && ` · 마지막 성공 ${formatTimestamp(status.lastSuccessAt)}`}
       </div>
     );
   }

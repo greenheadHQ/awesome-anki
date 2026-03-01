@@ -14,13 +14,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -69,9 +65,7 @@ function RollbackConfirmDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-muted-foreground">
-            다음 분할 작업을 롤백하시겠습니까?
-          </p>
+          <p className="text-muted-foreground">다음 분할 작업을 롤백하시겠습니까?</p>
 
           <div className="rounded-lg bg-muted p-4 space-y-2">
             <div className="flex items-center gap-2 text-sm">
@@ -102,11 +96,7 @@ function RollbackConfirmDialog({
             <Button variant="outline" onClick={onCancel} disabled={isLoading}>
               취소
             </Button>
-            <Button
-              variant="destructive"
-              onClick={onConfirm}
-              disabled={isLoading}
-            >
+            <Button variant="destructive" onClick={onConfirm} disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -162,10 +152,7 @@ function RollbackResultDialog({
         <DialogHeader>
           <DialogTitle
             id="rollback-result-title"
-            className={cn(
-              "flex items-center gap-2",
-              success ? "text-green-600" : "text-red-600",
-            )}
+            className={cn("flex items-center gap-2", success ? "text-green-600" : "text-red-600")}
           >
             {success ? (
               <>
@@ -183,13 +170,10 @@ function RollbackResultDialog({
         <div className="space-y-4">
           {success ? (
             <div className="space-y-2">
-              <p className="text-muted-foreground">
-                분할 작업이 성공적으로 롤백되었습니다.
-              </p>
+              <p className="text-muted-foreground">분할 작업이 성공적으로 롤백되었습니다.</p>
               <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
                 <div>
-                  <span className="text-muted-foreground">복원된 노트:</span>{" "}
-                  {restoredNoteId}
+                  <span className="text-muted-foreground">복원된 노트:</span> {restoredNoteId}
                 </div>
                 <div>
                   <span className="text-muted-foreground">삭제된 카드:</span>{" "}
@@ -206,9 +190,7 @@ function RollbackResultDialog({
               </div>
               {warning && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3">
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
-                    {warning}
-                  </p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">{warning}</p>
                 </div>
               )}
             </div>
@@ -254,9 +236,7 @@ function BackupCard({
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {relativeTime}
-              </span>
+              <span className="text-xs text-muted-foreground">{relativeTime}</span>
             </div>
 
             <div className="text-sm space-y-1">
@@ -316,9 +296,7 @@ export function BackupManager() {
   const { data, isLoading, error, refetch } = useBackups();
   const rollbackMutation = useRollback();
 
-  const [selectedBackup, setSelectedBackup] = useState<BackupEntry | null>(
-    null,
-  );
+  const [selectedBackup, setSelectedBackup] = useState<BackupEntry | null>(null);
   const [rollbackResult, setRollbackResult] = useState<{
     success: boolean;
     restoredNoteId?: number;
@@ -393,14 +371,8 @@ export function BackupManager() {
           ) : error ? (
             <div className="text-center py-12">
               <XCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
-              <p className="text-muted-foreground">
-                백업 목록을 불러오는데 실패했습니다.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => refetch()}
-                className="mt-4"
-              >
+              <p className="text-muted-foreground">백업 목록을 불러오는데 실패했습니다.</p>
+              <Button variant="outline" onClick={() => refetch()} className="mt-4">
                 다시 시도
               </Button>
             </div>
@@ -415,11 +387,7 @@ export function BackupManager() {
           ) : (
             <div className="space-y-4">
               {backups.map((backup) => (
-                <BackupCard
-                  key={backup.id}
-                  backup={backup}
-                  onRollback={setSelectedBackup}
-                />
+                <BackupCard key={backup.id} backup={backup} onRollback={setSelectedBackup} />
               ))}
             </div>
           )}
@@ -438,10 +406,7 @@ export function BackupManager() {
 
       {/* 롤백 결과 다이얼로그 */}
       {rollbackResult && (
-        <RollbackResultDialog
-          {...rollbackResult}
-          onClose={() => setRollbackResult(null)}
-        />
+        <RollbackResultDialog {...rollbackResult} onClose={() => setRollbackResult(null)} />
       )}
     </div>
   );

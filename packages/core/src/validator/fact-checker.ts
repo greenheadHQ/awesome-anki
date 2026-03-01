@@ -99,9 +99,7 @@ ${cleanContent}
     const overallAccuracy =
       parsed.overallAccuracy ??
       (claims.length > 0
-        ? Math.round(
-            (claims.filter((c) => c.isVerified).length / claims.length) * 100,
-          )
+        ? Math.round((claims.filter((c) => c.isVerified).length / claims.length) * 100)
         : 100);
 
     // 상태 결정

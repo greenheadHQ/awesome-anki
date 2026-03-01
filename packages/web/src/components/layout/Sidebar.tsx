@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useEffectEvent, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+
 import { cn } from "../../lib/utils";
 
 const navItems = [
@@ -64,9 +65,7 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
 
       {/* Footer */}
       <div className="border-t p-4">
-        <p className="typo-caption text-muted-foreground">
-          Anki Card Splitter v1.0
-        </p>
+        <p className="typo-caption text-muted-foreground">Anki Card Splitter v1.0</p>
       </div>
     </div>
   );
@@ -116,7 +115,7 @@ export function Sidebar({
   }, [open]);
 
   // 라우트 변경 시 Drawer 닫기 (이미 닫혀 있으면 무시)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: location.pathname을 트리거로 사용 (open/onClose는 의도적 생략)
+  // location.pathname을 트리거로 사용 (open/onClose는 의도적 생략)
   useEffect(() => {
     if (open) onClose();
   }, [location.pathname]);
@@ -152,9 +151,7 @@ export function Sidebar({
       <div
         className={cn(
           "fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 md:hidden",
-          open
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none",
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
         )}
         style={{ touchAction: "none" }}
         onClick={onClose}

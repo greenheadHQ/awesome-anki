@@ -12,12 +12,8 @@ export const queryKeys = {
   },
 
   split: {
-    preview: (
-      noteId: number,
-      versionId?: string,
-      provider?: string,
-      model?: string,
-    ) => ["split", "preview", noteId, versionId, provider, model] as const,
+    preview: (noteId: number, versionId?: string, provider?: string, model?: string) =>
+      ["split", "preview", noteId, versionId, provider, model] as const,
   },
 
   llm: {

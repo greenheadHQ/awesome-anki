@@ -48,8 +48,7 @@ app.get("/deck/:name", async (c) => {
   });
 
   // 필터 적용
-  const filtered =
-    filter === "splitable" ? analyzed.filter((n) => n.isSplitable) : analyzed;
+  const filtered = filter === "splitable" ? analyzed.filter((n) => n.isSplitable) : analyzed;
 
   // 페이지네이션
   const startIndex = (page - 1) * limit;

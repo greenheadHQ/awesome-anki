@@ -22,21 +22,19 @@ app.get("/models", (c) => {
   const budgetCapUsd = getServerBudgetCapUsd();
 
   // API 키가 설정된 provider의 모델만 반환
-  const models = MODEL_PRICING_TABLE.filter((m) =>
-    availableProviders.includes(m.provider),
-  ).map((m) => ({
-    provider: m.provider,
-    model: m.model,
-    displayName: m.displayName,
-    inputPricePerMillionTokens: m.inputPricePerMillionTokens,
-    outputPricePerMillionTokens: m.outputPricePerMillionTokens,
-  }));
+  const models = MODEL_PRICING_TABLE.filter((m) => availableProviders.includes(m.provider)).map(
+    (m) => ({
+      provider: m.provider,
+      model: m.model,
+      displayName: m.displayName,
+      inputPricePerMillionTokens: m.inputPricePerMillionTokens,
+      outputPricePerMillionTokens: m.outputPricePerMillionTokens,
+    }),
+  );
 
   // 기본 모델이 가격표에 등록된 모델 목록에 없으면 첫 번째 가용 모델로 대체
   const isDefaultInModels = models.some(
-    (m) =>
-      m.provider === configuredDefault.provider &&
-      m.model === configuredDefault.model,
+    (m) => m.provider === configuredDefault.provider && m.model === configuredDefault.model,
   );
   const defaultModelId =
     isDefaultInModels && models.length > 0

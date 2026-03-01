@@ -15,9 +15,7 @@ media.get("/:filename", async (c) => {
   const filename = decodeURIComponent(c.req.param("filename"));
 
   // AnkiConnect retrieveMediaFile API 호출
-  const result = (await ankiConnect("retrieveMediaFile", { filename })) as
-    | string
-    | null;
+  const result = (await ankiConnect("retrieveMediaFile", { filename })) as string | null;
 
   if (!result) {
     throw new NotFoundError(`미디어 파일을 찾을 수 없습니다: ${filename}`);

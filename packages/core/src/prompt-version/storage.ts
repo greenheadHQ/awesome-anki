@@ -5,6 +5,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { getConfig, setConfig } from "../anki/client.js";
 import { AnkiConnectError } from "../errors.js";
 import { atomicWriteFile, withFileMutex } from "../utils/atomic-write.js";
@@ -36,9 +37,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-export function parseRemoteSystemPromptPayload(
-  value: unknown,
-): RemoteSystemPromptPayload | null {
+export function parseRemoteSystemPromptPayload(value: unknown): RemoteSystemPromptPayload | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -58,44 +57,24 @@ export function parseRemoteSystemPromptPayload(
     throw new Error("원격 system prompt payload가 객체 형태가 아닙니다.");
   }
 
-  if (
-    typeof raw.revision !== "number" ||
-    !Number.isInteger(raw.revision) ||
-    raw.revision < 0
-  ) {
-    throw new Error(
-      "원격 system prompt payload.revision 값이 유효하지 않습니다.",
-    );
+  if (typeof raw.revision !== "number" || !Number.isInteger(raw.revision) || raw.revision < 0) {
+    throw new Error("원격 system prompt payload.revision 값이 유효하지 않습니다.");
   }
 
   if (typeof raw.systemPrompt !== "string" || raw.systemPrompt.length === 0) {
-    throw new Error(
-      "원격 system prompt payload.systemPrompt 값이 유효하지 않습니다.",
-    );
+    throw new Error("원격 system prompt payload.systemPrompt 값이 유효하지 않습니다.");
   }
 
-  if (
-    typeof raw.activeVersionId !== "string" ||
-    raw.activeVersionId.length === 0
-  ) {
-    throw new Error(
-      "원격 system prompt payload.activeVersionId 값이 유효하지 않습니다.",
-    );
+  if (typeof raw.activeVersionId !== "string" || raw.activeVersionId.length === 0) {
+    throw new Error("원격 system prompt payload.activeVersionId 값이 유효하지 않습니다.");
   }
 
   if (typeof raw.updatedAt !== "string" || raw.updatedAt.length === 0) {
-    throw new Error(
-      "원격 system prompt payload.updatedAt 값이 유효하지 않습니다.",
-    );
+    throw new Error("원격 system prompt payload.updatedAt 값이 유효하지 않습니다.");
   }
 
-  if (
-    raw.migratedFromFileAt !== undefined &&
-    typeof raw.migratedFromFileAt !== "string"
-  ) {
-    throw new Error(
-      "원격 system prompt payload.migratedFromFileAt 값이 유효하지 않습니다.",
-    );
+  if (raw.migratedFromFileAt !== undefined && typeof raw.migratedFromFileAt !== "string") {
+    throw new Error("원격 system prompt payload.migratedFromFileAt 값이 유효하지 않습니다.");
   }
 
   return {
@@ -137,17 +116,13 @@ export async function listVersions(): Promise<PromptVersion[]> {
   }
 
   // 최신순 정렬
-  return versions.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  return versions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 /**
  * 특정 버전 조회
  */
-export async function getVersion(
-  versionId: string,
-): Promise<PromptVersion | null> {
+export async function getVersion(versionId: string): Promise<PromptVersion | null> {
   const filePath = join(VERSIONS_PATH, `${versionId}.json`);
 
   if (!existsSync(filePath)) {
@@ -187,10 +162,7 @@ export async function deleteVersion(versionId: string): Promise<boolean> {
  * 새 버전 생성
  */
 export async function createVersion(
-  base: Omit<
-    PromptVersion,
-    "id" | "createdAt" | "updatedAt" | "metrics" | "modificationPatterns"
-  >,
+  base: Omit<PromptVersion, "id" | "createdAt" | "updatedAt" | "metrics" | "modificationPatterns">,
 ): Promise<PromptVersion> {
   const versions = await listVersions();
 
@@ -287,10 +259,7 @@ export async function setActiveVersion(
     activatedBy,
   };
 
-  await atomicWriteFile(
-    ACTIVE_VERSION_FILE,
-    JSON.stringify(activeInfo, null, 2),
-  );
+  await atomicWriteFile(ACTIVE_VERSION_FILE, JSON.stringify(activeInfo, null, 2));
 }
 
 /**
@@ -493,9 +462,7 @@ export async function addHistoryEntry(
 /**
  * 히스토리 본문 저장 없이 프롬프트 메트릭만 갱신
  */
-export async function recordPromptMetricsEvent(
-  event: PromptMetricsEvent,
-): Promise<void> {
+export async function recordPromptMetricsEvent(event: PromptMetricsEvent): Promise<void> {
   const timestamp = event.timestamp ?? new Date().toISOString();
 
   const entry: SplitHistoryEntry = {
@@ -524,10 +491,7 @@ export async function recordPromptMetricsEvent(
 /**
  * 히스토리 조회 (날짜 범위)
  */
-export async function getHistory(
-  startDate?: Date,
-  endDate?: Date,
-): Promise<SplitHistoryEntry[]> {
+export async function getHistory(startDate?: Date, endDate?: Date): Promise<SplitHistoryEntry[]> {
   await ensureDir(HISTORY_PATH);
 
   const files = await readdir(HISTORY_PATH);
@@ -558,9 +522,7 @@ export async function getHistory(
 /**
  * 버전별 히스토리 조회
  */
-export async function getHistoryByVersion(
-  versionId: string,
-): Promise<SplitHistoryEntry[]> {
+export async function getHistoryByVersion(versionId: string): Promise<SplitHistoryEntry[]> {
   const allHistory = await getHistory();
   return allHistory.filter((entry) => entry.promptVersionId === versionId);
 }
@@ -572,10 +534,7 @@ export async function getHistoryByVersion(
 /**
  * 버전 메트릭 업데이트
  */
-async function updateVersionMetrics(
-  versionId: string,
-  entry: SplitHistoryEntry,
-): Promise<void> {
+async function updateVersionMetrics(versionId: string, entry: SplitHistoryEntry): Promise<void> {
   const version = await getVersion(versionId);
   if (!version) return;
 
@@ -608,19 +567,15 @@ async function updateVersionMetrics(
   }
 
   // 승인률 계산
-  const totalDecisions =
-    metrics.approvedCount + metrics.modifiedCount + metrics.rejectedCount;
+  const totalDecisions = metrics.approvedCount + metrics.modifiedCount + metrics.rejectedCount;
   metrics.approvalRate =
-    totalDecisions > 0
-      ? Math.round((metrics.approvedCount / totalDecisions) * 100)
-      : 0;
+    totalDecisions > 0 ? Math.round((metrics.approvedCount / totalDecisions) * 100) : 0;
 
   // 평균 카드 수
   metrics.avgCardsPerSplit =
     metrics.totalSplits > 0
       ? Math.round(
-          ((metrics.avgCardsPerSplit * (metrics.totalSplits - 1) +
-            entry.splitCards.length) /
+          ((metrics.avgCardsPerSplit * (metrics.totalSplits - 1) + entry.splitCards.length) /
             metrics.totalSplits) *
             10,
         ) / 10
@@ -631,13 +586,11 @@ async function updateVersionMetrics(
     (sum, card) => sum + (card.charCount || card.content.length),
     0,
   );
-  const avgChars =
-    entry.splitCards.length > 0 ? totalChars / entry.splitCards.length : 0;
+  const avgChars = entry.splitCards.length > 0 ? totalChars / entry.splitCards.length : 0;
   metrics.avgCharCount =
     metrics.totalSplits > 0
       ? Math.round(
-          (metrics.avgCharCount * (metrics.totalSplits - 1) + avgChars) /
-            metrics.totalSplits,
+          (metrics.avgCharCount * (metrics.totalSplits - 1) + avgChars) / metrics.totalSplits,
         )
       : avgChars;
 
@@ -706,9 +659,7 @@ export async function listExperiments(): Promise<Experiment[]> {
 /**
  * 실험 조회
  */
-export async function getExperiment(
-  experimentId: string,
-): Promise<Experiment | null> {
+export async function getExperiment(experimentId: string): Promise<Experiment | null> {
   const filePath = join(EXPERIMENTS_PATH, `${experimentId}.json`);
 
   if (!existsSync(filePath)) {
@@ -732,9 +683,7 @@ export async function completeExperiment(
 
   // 결과 계산 (히스토리 기반)
   const controlHistory = await getHistoryByVersion(experiment.controlVersionId);
-  const treatmentHistory = await getHistoryByVersion(
-    experiment.treatmentVersionId,
-  );
+  const treatmentHistory = await getHistoryByVersion(experiment.treatmentVersionId);
 
   experiment.controlResults = {
     splitCount: controlHistory.length,
@@ -752,10 +701,7 @@ export async function completeExperiment(
             controlHistory.reduce(
               (sum, h) =>
                 sum +
-                h.splitCards.reduce(
-                  (s, c) => s + (c.charCount || c.content.length),
-                  0,
-                ) /
+                h.splitCards.reduce((s, c) => s + (c.charCount || c.content.length), 0) /
                   h.splitCards.length,
               0,
             ) / controlHistory.length,
@@ -768,8 +714,7 @@ export async function completeExperiment(
     approvalRate:
       treatmentHistory.length > 0
         ? Math.round(
-            (treatmentHistory.filter((h) => h.userAction === "approved")
-              .length /
+            (treatmentHistory.filter((h) => h.userAction === "approved").length /
               treatmentHistory.length) *
               100,
           )
@@ -780,10 +725,7 @@ export async function completeExperiment(
             treatmentHistory.reduce(
               (sum, h) =>
                 sum +
-                h.splitCards.reduce(
-                  (s, c) => s + (c.charCount || c.content.length),
-                  0,
-                ) /
+                h.splitCards.reduce((s, c) => s + (c.charCount || c.content.length), 0) /
                   h.splitCards.length,
               0,
             ) / treatmentHistory.length,

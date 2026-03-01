@@ -26,9 +26,7 @@ export interface FullCardInfo extends CardSchedulingInfo {
 /**
  * 카드 스케줄링 정보 조회
  */
-export async function getCardSchedulingInfo(
-  cardIds: number[],
-): Promise<CardSchedulingInfo[]> {
+export async function getCardSchedulingInfo(cardIds: number[]): Promise<CardSchedulingInfo[]> {
   const result = await ankiConnect<FullCardInfo[]>("cardsInfo", {
     cards: cardIds,
   });
@@ -48,9 +46,7 @@ export async function getCardSchedulingInfo(
 /**
  * 전체 카드 정보 조회 (백업용)
  */
-export async function getFullCardInfo(
-  cardIds: number[],
-): Promise<FullCardInfo[]> {
+export async function getFullCardInfo(cardIds: number[]): Promise<FullCardInfo[]> {
   return ankiConnect<FullCardInfo[]>("cardsInfo", { cards: cardIds });
 }
 
@@ -103,9 +99,7 @@ export async function copySchedulingToNewCards(
   const [sourceInfo] = await getCardSchedulingInfo([sourceCardId]);
 
   if (!sourceInfo) {
-    console.warn(
-      `원본 카드 ${sourceCardId}의 스케줄링 정보를 찾을 수 없습니다.`,
-    );
+    console.warn(`원본 카드 ${sourceCardId}의 스케줄링 정보를 찾을 수 없습니다.`);
     return;
   }
 
