@@ -13,12 +13,14 @@ description: |
 
 | 검증 | 파일 | API | 방식 |
 |------|------|-----|------|
-| 팩트 체크 | `fact-checker.ts` | POST /api/validate/fact-check | Gemini 기반 |
-| 최신성 | `freshness-checker.ts` | POST /api/validate/freshness | Gemini 기반 |
+| 팩트 체크 | `fact-checker.ts` | POST /api/validate/fact-check | LLM 기반 (Gemini/OpenAI) |
+| 최신성 | `freshness-checker.ts` | POST /api/validate/freshness | LLM 기반 (Gemini/OpenAI) |
 | 유사성 | `similarity-checker.ts` | POST /api/validate/similarity | Jaccard 또는 임베딩 |
-| 문맥 일관성 | `context-checker.ts` | POST /api/validate/context | Gemini 기반 (nid 링크 그룹) |
+| 문맥 일관성 | `context-checker.ts` | POST /api/validate/context | LLM 기반 (Gemini/OpenAI, nid 링크 그룹) |
 
 **전체 검증**: POST /api/validate/all — 4종 병렬 실행
+
+**모델 선택**: 각 검증 API에 `provider`/`model` 파라미터 지정 가능 (미지정 시 서버 기본값, `resolveModelId()` 참조)
 
 ## 유사성 검사: Jaccard vs 임베딩
 
@@ -35,7 +37,7 @@ description: |
 
 - nid 링크로 연결된 카드 그룹 분석
 - 역방향 링크 검색 (다른 카드가 이 카드를 참조하는 경우)
-- Gemini 기반 논리적 연결 확인
+- LLM 기반 논리적 연결 확인 (Gemini/OpenAI)
 
 ## 검증 캐싱
 

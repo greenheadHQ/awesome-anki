@@ -9,7 +9,7 @@ description: |
 
 # 프로젝트 이해
 
-Anki 카드를 원자적 단위로 분할하는 웹 앱. 정보 밀도 높은 카드를 Gemini AI로 학습 효율 좋은 작은 카드로 분리.
+Anki 카드를 원자적 단위로 분할하는 웹 앱. 정보 밀도 높은 카드를 AI(Gemini/OpenAI)로 학습 효율 좋은 작은 카드로 분리.
 
 ## 모노레포 구조
 
@@ -28,7 +28,7 @@ anki-claude-code/
 |------|------|
 | 런타임 | **Bun** (npm 아님) |
 | 언어 | TypeScript |
-| LLM | Gemini 3 Flash Preview (구조화된 출력, 1M 토큰) |
+| LLM | 멀티 프로바이더 (Gemini + OpenAI), factory 패턴 |
 | 백엔드 | Hono (REST API) |
 | 프론트엔드 | React 19 + Vite |
 | 스타일링 | Tailwind CSS v4 (`@tailwindcss/postcss` 플러그인) |
@@ -40,7 +40,8 @@ anki-claude-code/
 | 모듈 | 역할 |
 |------|------|
 | `anki/` | AnkiConnect API 래퍼 — `working-with-anki` 스킬 참조 |
-| `gemini/` | Gemini API 호출 (분할, cloze-enhancer) |
+| `llm/` | 멀티 LLM 추상화 (factory, adapter, pricing) |
+| `gemini/` | Gemini 전용 API (분할 프롬프트, cloze-enhancer, zod 응답 검증) |
 | `parser/` | 텍스트 파싱 (container, nid, cloze) — `splitting-cards` 스킬 참조 |
 | `splitter/` | Split 로직 — `splitting-cards` 스킬 참조 |
 | `validator/` | 카드 검증 4종 — `validating-cards` 스킬 참조 |

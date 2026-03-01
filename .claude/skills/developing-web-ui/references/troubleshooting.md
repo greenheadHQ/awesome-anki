@@ -58,33 +58,10 @@
 - **해결**: 콘텐츠 래퍼에 `animate-in fade-in-0 slide-in-from-right-2 duration-200` 적용
   - 관련 파일: `pages/SplitWorkspace.tsx`, `pages/PromptManager.tsx`
 
-## react-joyride import 에러
-
-- **문제**: `CallBackProps` 타입 import 시 런타임 에러
-- **원인**: 타입을 named export로 import하면 Vite/esbuild에서 런타임에 못 찾음
-- **해결**: `type` 키워드 사용
-  ```typescript
-  import Joyride, { STATUS, type Step, type CallBackProps } from 'react-joyride';
-  ```
-
 ## Tailwind CSS v4 설정
 
 - **문제**: v4에서 `tailwindcss init` 명령어 변경
 - **해결**: `@tailwindcss/postcss` 플러그인 사용 (`postcss.config.js`)
-
-## Biome에서 Tailwind 지시어 파싱 실패
-
-- **문제**: `@theme`, `@apply` 문법에서 Biome parse 에러
-- **해결**: `biome.json`에 css parser 옵션 활성화
-  ```json
-  {
-    "css": {
-      "parser": {
-        "tailwindDirectives": true
-      }
-    }
-  }
-  ```
 
 ## KaTeX CSS 로딩
 

@@ -5,34 +5,51 @@
 ```typescript
 // packages/web/src/lib/query-keys.ts
 export const queryKeys = {
-  decks: {
-    all: ['decks'],
-    stats: (name: string) => ['decks', name, 'stats'],
-  },
+  decks: ["decks"] as const,
+  deckStats: (name: string) => ["decks", name, "stats"] as const,
+
   cards: {
-    all: ['cards'],
-    list: (deck: string, opts: any) => ['cards', deck, opts],
-    detail: (noteId: number) => ['cards', noteId],
+    all: ["cards"] as const,
+    byDeck: (deck: string, opts?: { page?: number; filter?: string }) =>
+      ["cards", "deck", deck, opts] as const,
+    detail: (noteId: number) => ["cards", "detail", noteId] as const,
+    difficult: (deck: string, opts?: { page?: number; limit?: number }) =>
+      ["cards", "difficult", deck, opts] as const,
   },
+
   split: {
-    preview: (noteId: number, versionId?: string) =>
-      ['split', 'preview', noteId, versionId],
+    preview: (noteId: number, versionId?: string, provider?: string, model?: string) =>
+      ["split", "preview", noteId, versionId, provider, model] as const,
   },
+
+  llm: {
+    models: ["llm", "models"] as const,
+  },
+
   backups: {
-    all: ['backups'],
+    all: ["backups"] as const,
+    detail: (id: string) => ["backups", id] as const,
   },
+
   prompts: {
-    versions: ['prompts', 'versions'],
-    active: ['prompts', 'active'],
-    history: ['prompts', 'history'],
-    experiments: ['prompts', 'experiments'],
+    versions: ["prompts", "versions"] as const,
+    version: (id: string) => ["prompts", "versions", id] as const,
+    active: ["prompts", "active"] as const,
+    system: ["prompts", "system"] as const,
+    experiments: ["prompts", "experiments"] as const,
+    experiment: (id: string) => ["prompts", "experiments", id] as const,
   },
+
   history: {
-    list: (opts?: { page?: number; limit?: number; deckName?: string;
-      status?: string; startDate?: string; endDate?: string }) =>
-      ['history', 'list', opts],
-    detail: (sessionId: string) => ['history', 'detail', sessionId],
+    list: (opts?: {
+      page?: number; limit?: number; deckName?: string;
+      status?: string; startDate?: string; endDate?: string;
+    }) => ["history", "list", opts] as const,
+    detail: (sessionId: string) => ["history", "detail", sessionId] as const,
+    syncHealth: ["history", "sync-health"] as const,
   },
+
+  health: ["health"] as const,
 };
 ```
 
@@ -43,7 +60,7 @@ export const queryKeys = {
 ```typescript
 export function useCards(deckName: string, options: CardOptions) {
   return useQuery({
-    queryKey: queryKeys.cards.list(deckName, options),
+    queryKey: queryKeys.cards.byDeck(deckName, options),
     queryFn: () => api.cards.list(deckName, options),
     enabled: !!deckName,
   });
@@ -64,11 +81,15 @@ export function useCardDetail(noteId: number | null) {
 export function useSplitPreview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ noteId, versionId }: { noteId: number; versionId?: string }) =>
-      api.split.preview(noteId, versionId),
+    mutationFn: ({ noteId, versionId, deckName, provider, model, budgetUsdCap }: {
+      noteId: number; versionId?: string; deckName?: string;
+      provider?: string; model?: string; budgetUsdCap?: number;
+    }) => api.split.preview(noteId, { versionId, deckName, provider, model, budgetUsdCap }),
     onSuccess: (data, variables) => {
+      const resolvedProvider = data.provider ?? variables.provider;
+      const resolvedModel = data.aiModel ?? variables.model;
       queryClient.setQueryData(
-        queryKeys.split.preview(variables.noteId, variables.versionId),
+        queryKeys.split.preview(variables.noteId, variables.versionId, resolvedProvider, resolvedModel),
         data
       );
     },
@@ -82,10 +103,12 @@ export function useSplitPreview() {
 function getCachedSplitPreview(
   queryClient: QueryClient,
   noteId: number,
-  versionId?: string
+  versionId?: string,
+  provider?: string,
+  model?: string,
 ) {
   return queryClient.getQueryData(
-    queryKeys.split.preview(noteId, versionId)
+    queryKeys.split.preview(noteId, versionId, provider, model)
   );
 }
 ```

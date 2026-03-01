@@ -52,6 +52,12 @@ bun run cli split --note 1757399484677  # 특정 카드
 # 타입체크
 bun run --cwd packages/web tsc --noEmit
 bun run --cwd packages/server tsc --noEmit
+
+# 린트 + 포맷 (oxc)
+bun run lint             # 전체 패키지 린트 (oxlint + oxfmt --check)
+bunx oxlint src          # 개별 패키지에서 직접 실행
+bunx oxfmt --check src   # 포맷 검사
+bunx oxfmt src           # 포맷 적용
 ```
 
 ## 모노레포 설정

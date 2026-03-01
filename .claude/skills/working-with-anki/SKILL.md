@@ -18,7 +18,7 @@ description: |
 
 ## AnkiConnect 기본 정보
 
-- **주소**: `$ANKI_CONNECT_URL` (MiniPC headless Anki, Tailscale 전용)
+- **주소**: `$ANKI_CONNECT_URL` (미설정 시 `http://localhost:8765` 폴백, MiniPC headless Anki는 Tailscale 전용)
 - **애드온 코드**: 2055492159
 - **대상 모델**: `KaTeX and Markdown Cloze` (필드: Text, Back Extra)
 - **API 버전**: 6
@@ -31,6 +31,7 @@ description: |
 | `operations.ts` | 카드 CRUD, 분할 적용 |
 | `backup.ts` | 분할 전 백업, 롤백 |
 | `scheduling.ts` | ease factor 복제 |
+| `difficulty.ts` | 학습 통계 기반 어려운 카드 탐지 (Recursive Splitting) |
 
 ### 주요 API 호출 패턴
 

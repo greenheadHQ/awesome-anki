@@ -19,7 +19,8 @@
 
 ### 헤더 기능
 - 덱 선택 `Select`
-- **프롬프트 버전 선택 `Select`** (활성 버전 ✓ 표시)
+- **프롬프트 버전 선택 `Select`** (활성 버전 표시)
+- **LLM 모델 선택** (프로바이더별 그룹 + `ModelBadge` 표시)
 - 분할 후보 수 표시
 - 페이지 타이틀/본문은 `typo-h1`, `typo-body` 토큰 사용
 
@@ -67,7 +68,18 @@
 ### 모바일 UX
 - 탭(`버전/히스토리/실험/메트릭`) 전환 시 fade + slide 애니메이션 적용
 
-## 6. Help (/help)
+## 6. SplitHistory (/history)
+
+- 분할 히스토리 목록 (필터: 덱, 상태, 날짜 범위)
+- 상태 필터: generating, generated, applied, rejected, error, not_split
+- 세션 상세 보기: 원본 카드, AI 분할 결과, 비용 정보
+- `ModelBadge`로 사용된 LLM 프로바이더/모델 표시
+- `formatCostUsd`로 비용 표시
+- 쿼리 훅: `useHistoryList`, `useHistoryDetail`, `useHistorySyncHealth`
+- 쿼리 키: `queryKeys.history.list(opts)`, `queryKeys.history.detail(sessionId)`, `queryKeys.history.syncHealth`
+- 페이지 타이틀/본문은 `typo-h1`, `typo-body` 토큰 사용
+
+## 7. Help (/help)
 
 시작하기, 기능별 가이드, 검증 기능, 임베딩, 프롬프트 버전 관리, A/B 테스트, 메트릭 해석, 용어집, FAQ, 문제 해결.
 상단 헤더 타이포그래피는 다른 페이지와 동일한 `typo-h1` 사용.
