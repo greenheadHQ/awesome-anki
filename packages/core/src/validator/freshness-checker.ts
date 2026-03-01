@@ -2,23 +2,9 @@
  * 최신성 검사 - 기술 변화로 인한 outdated 내용 감지
  */
 
-import { GoogleGenAI } from "@google/genai";
+import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
+import type { LLMModelId } from "../llm/types.js";
 import type { FreshnessResult, OutdatedItem } from "./types.js";
-
-const MODEL_NAME = "gemini-2.0-flash";
-
-let genAI: GoogleGenAI | null = null;
-
-function getClient(): GoogleGenAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다.");
-    }
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
 
 const FRESHNESS_CHECK_PROMPT = `
 당신은 컴퓨터 과학(CS) 및 프로그래밍 분야의 기술 트렌드 전문가입니다.
@@ -55,6 +41,7 @@ const FRESHNESS_CHECK_PROMPT = `
 
 export interface FreshnessCheckOptions {
   checkDate?: string; // 기준 날짜 (기본: 현재)
+  modelId?: LLMModelId;
 }
 
 /**
@@ -64,7 +51,8 @@ export async function checkFreshness(
   cardContent: string,
   options: FreshnessCheckOptions = {},
 ): Promise<FreshnessResult> {
-  const client = getClient();
+  const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
+  const client = createLLMClient(resolvedModelId.provider);
 
   // Cloze 마크업 제거
   const cleanContent = cardContent
@@ -87,20 +75,13 @@ ${cleanContent}
 `;
 
   try {
-    const response = await client.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        maxOutputTokens: 2048,
-      },
+    const llmResult = await client.generateContent(prompt, {
+      responseMimeType: "application/json",
+      maxOutputTokens: 2048,
+      model: resolvedModelId.model,
     });
 
-    const text = response.text;
-    if (!text) {
-      throw new Error("Gemini 응답이 비어있습니다.");
-    }
-
+    const text = llmResult.text;
     const parsed = JSON.parse(text);
 
     // 결과 변환
@@ -154,6 +135,9 @@ ${cleanContent}
         recommendedAction,
       },
       timestamp: new Date().toISOString(),
+      modelId: llmResult.modelId,
+      tokenUsage: llmResult.tokenUsage,
+      actualCost: llmResult.actualCost,
     };
   } catch (error) {
     console.error("최신성 검사 실패:", error);

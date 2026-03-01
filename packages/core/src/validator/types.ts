@@ -2,6 +2,8 @@
  * 카드 검증 관련 타입 정의
  */
 
+import type { ActualCost, LLMModelId, TokenUsage } from "../llm/types.js";
+
 // 검증 결과 상태
 export type ValidationStatus = "valid" | "warning" | "error" | "unknown";
 
@@ -20,6 +22,9 @@ export interface ValidationResult {
   confidence: number; // 0-100
   details?: Record<string, unknown>;
   timestamp: string;
+  modelId?: LLMModelId;
+  tokenUsage?: TokenUsage;
+  actualCost?: ActualCost;
 }
 
 // 팩트 체크 결과

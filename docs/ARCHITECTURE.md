@@ -29,14 +29,14 @@ Awesome Anki는 Anki 노트를 학습 효율이 높은 원자 카드(Atomic Card
 
 ### 4.1 Split Preview/Apply
 1. 웹 또는 CLI가 noteId를 선택한다.
-2. Hard split 가능 시 규칙 기반 분할을 우선 수행한다.
-3. Soft split이 필요한 경우 Gemini 호출을 수행한다.
+2. 선택된 LLM 프로바이더(Gemini/OpenAI)로 AI 분할을 수행한다.
+3. 서버가 사전 비용 추정 → 예산 가드레일 확인 → AI 호출 순서로 처리한다.
 4. Apply 시 `preBackup`으로 원본 상태를 저장한다.
 5. 분할 카드 생성 후 `updateBackupWithCreatedNotes`로 생성 노트 ID를 반영한다.
 6. 실패 시 `rollback`으로 자동 복구한다.
 
 ### 4.2 Validation
-1. fact/freshness/context는 Gemini 기반 검증을 사용한다.
+1. fact/freshness/context는 LLM(Gemini/OpenAI) 기반 검증을 사용한다.
 2. similarity는 기본 Jaccard, 옵션으로 embedding 기반 비교를 사용한다.
 3. 결과는 `valid/warning/error/unknown` 상태로 통일된다.
 
@@ -59,7 +59,18 @@ Awesome Anki는 Anki 노트를 학습 효율이 높은 원자 카드(Atomic Card
 | 의존 | 용도 | 기본값 |
 |------|------|--------|
 | AnkiConnect | 노트 조회/수정/삭제 | `$ANKI_CONNECT_URL` (MiniPC headless Anki) |
-| Gemini API | soft split / validation / embedding | `GEMINI_API_KEY` 필요 |
+| Gemini API | split / validation / embedding | `GEMINI_API_KEY` 필요 |
+| OpenAI API | split / validation (선택) | `OPENAI_API_KEY` (미설정 시 비활성) |
+
+### 5.1 LLM 추상화 계층
+
+`packages/core/src/llm/`에 provider-agnostic 추상화가 위치한다.
+
+- `factory.ts` — `createLLMClient(provider)` 팩토리 함수
+- `gemini.ts` — `@google/genai` SDK 어댑터
+- `openai.ts` — OpenAI Responses API 어댑터
+- `pricing.ts` — 정적 가격표 + 비용 계산 + 예산 가드레일
+- `types.ts` — 공유 타입 (`TokenUsage`, `ActualCost`, `LLMModelId` 등)
 
 ## 6. 보안 경계
 

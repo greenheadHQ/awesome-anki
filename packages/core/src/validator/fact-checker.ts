@@ -2,23 +2,9 @@
  * 팩트 체크 - Gemini를 사용한 카드 내용 사실 검증
  */
 
-import { GoogleGenAI } from "@google/genai";
+import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
+import type { LLMModelId } from "../llm/types.js";
 import type { ClaimVerification, FactCheckResult } from "./types.js";
-
-const MODEL_NAME = "gemini-2.0-flash";
-
-let genAI: GoogleGenAI | null = null;
-
-function getClient(): GoogleGenAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다.");
-    }
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
 
 const FACT_CHECK_PROMPT = `
 당신은 컴퓨터 과학(CS) 및 프로그래밍 분야의 팩트 체커입니다.
@@ -55,6 +41,7 @@ const FACT_CHECK_PROMPT = `
 
 export interface FactCheckOptions {
   thorough?: boolean; // 심층 검증 (더 많은 토큰 사용)
+  modelId?: LLMModelId;
 }
 
 /**
@@ -64,7 +51,8 @@ export async function checkFacts(
   cardContent: string,
   options: FactCheckOptions = {},
 ): Promise<FactCheckResult> {
-  const client = getClient();
+  const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
+  const client = createLLMClient(resolvedModelId.provider);
 
   // Cloze 마크업 제거하여 순수 텍스트 추출
   const cleanContent = cardContent
@@ -82,20 +70,13 @@ ${cleanContent}
 `;
 
   try {
-    const response = await client.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        maxOutputTokens: options.thorough ? 4096 : 2048,
-      },
+    const llmResult = await client.generateContent(prompt, {
+      responseMimeType: "application/json",
+      maxOutputTokens: options.thorough ? 4096 : 2048,
+      model: resolvedModelId.model,
     });
 
-    const text = response.text;
-    if (!text) {
-      throw new Error("Gemini 응답이 비어있습니다.");
-    }
-
+    const text = llmResult.text;
     const parsed = JSON.parse(text);
 
     // 결과 변환
@@ -142,6 +123,9 @@ ${cleanContent}
         sources: claims.filter((c) => c.source).map((c) => c.source as string),
       },
       timestamp: new Date().toISOString(),
+      modelId: llmResult.modelId,
+      tokenUsage: llmResult.tokenUsage,
+      actualCost: llmResult.actualCost,
     };
   } catch (error) {
     console.error("팩트 체크 실패:", error);

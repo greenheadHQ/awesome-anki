@@ -16,6 +16,7 @@ import {
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
+import { resolveModelId } from "../lib/resolve-model.js";
 
 const validate = new Hono();
 
@@ -24,9 +25,11 @@ const validate = new Hono();
  * 카드 내용 팩트 체크
  */
 validate.post("/fact-check", async (c) => {
-  const { noteId, thorough } = await c.req.json<{
+  const { noteId, thorough, provider, model } = await c.req.json<{
     noteId: number;
     thorough?: boolean;
+    provider?: string;
+    model?: string;
   }>();
 
   if (!noteId) {
@@ -39,7 +42,8 @@ validate.post("/fact-check", async (c) => {
   }
 
   const text = extractTextField(note);
-  const result = await checkFacts(text, { thorough });
+  const modelId = resolveModelId(provider, model);
+  const result = await checkFacts(text, { thorough, modelId });
 
   return c.json({ noteId, result });
 });
@@ -49,9 +53,11 @@ validate.post("/fact-check", async (c) => {
  * 카드 내용 최신성 검사
  */
 validate.post("/freshness", async (c) => {
-  const { noteId, checkDate } = await c.req.json<{
+  const { noteId, checkDate, provider, model } = await c.req.json<{
     noteId: number;
     checkDate?: string;
+    provider?: string;
+    model?: string;
   }>();
 
   if (!noteId) {
@@ -64,7 +70,8 @@ validate.post("/freshness", async (c) => {
   }
 
   const text = extractTextField(note);
-  const result = await checkFreshness(text, { checkDate });
+  const modelId = resolveModelId(provider, model);
+  const result = await checkFreshness(text, { checkDate, modelId });
 
   return c.json({ noteId, result });
 });
@@ -114,13 +121,21 @@ validate.post("/similarity", async (c) => {
  * 문맥 일관성 검사
  */
 validate.post("/context", async (c) => {
-  const { noteId, includeReverseLinks, maxRelatedCards, thorough } =
-    await c.req.json<{
-      noteId: number;
-      includeReverseLinks?: boolean;
-      maxRelatedCards?: number;
-      thorough?: boolean;
-    }>();
+  const {
+    noteId,
+    includeReverseLinks,
+    maxRelatedCards,
+    thorough,
+    provider,
+    model,
+  } = await c.req.json<{
+    noteId: number;
+    includeReverseLinks?: boolean;
+    maxRelatedCards?: number;
+    thorough?: boolean;
+    provider?: string;
+    model?: string;
+  }>();
 
   if (!noteId) {
     throw new ValidationError("noteId가 필요합니다");
@@ -133,11 +148,13 @@ validate.post("/context", async (c) => {
 
   const text = extractTextField(note);
   const targetCard: CardForContext = { noteId, text, tags: note.tags };
+  const modelId = resolveModelId(provider, model);
 
   const result = await checkContext(targetCard, {
     includeReverseLinks,
     maxRelatedCards,
     thorough,
+    modelId,
   });
 
   return c.json({ noteId, result });
@@ -148,9 +165,11 @@ validate.post("/context", async (c) => {
  * 모든 검증 수행
  */
 validate.post("/all", async (c) => {
-  const { noteId, deckName } = await c.req.json<{
+  const { noteId, deckName, provider, model } = await c.req.json<{
     noteId: number;
     deckName: string;
+    provider?: string;
+    model?: string;
   }>();
 
   if (!noteId || !deckName) {
@@ -163,11 +182,12 @@ validate.post("/all", async (c) => {
   }
 
   const text = extractTextField(note);
+  const modelId = resolveModelId(provider, model);
 
   const [factCheckResult, freshnessResult, similarityResult, contextResult] =
     await Promise.all([
-      checkFacts(text),
-      checkFreshness(text),
+      checkFacts(text, { modelId }),
+      checkFreshness(text, { modelId }),
       (async () => {
         const allNotes = await getDeckNotes(deckName);
         const allCards: CardForComparison[] = allNotes.map((n) => ({
@@ -182,7 +202,7 @@ validate.post("/all", async (c) => {
           text,
           tags: note.tags,
         };
-        return checkContext(targetCard, { includeReverseLinks: true });
+        return checkContext(targetCard, { includeReverseLinks: true, modelId });
       })(),
     ]);
 

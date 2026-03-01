@@ -24,6 +24,7 @@ import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
 import {
   Popover,
   PopoverContent,
@@ -32,7 +33,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
@@ -43,6 +46,7 @@ import { useDifficultCards } from "../hooks/useDifficultCards";
 import { usePromptVersions } from "../hooks/usePrompts";
 import {
   getCachedSplitPreview,
+  useLLMModels,
   useSplitApply,
   useSplitPreview,
   useSplitReject,
@@ -252,14 +256,15 @@ export function SplitWorkspace() {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
     null,
   );
+  const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
   const [activePanel, setActivePanel] = useState<MobilePanel>("candidates");
 
-  // 분석 상태 추적
-  const [pendingAnalyses, setPendingAnalyses] = useState<Set<number>>(
+  // 분석 상태 추적 — noteId:provider/model 복합 키로 멀티모델 분리
+  const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(
     new Set(),
   );
-  const [errorAnalyses, setErrorAnalyses] = useState<Map<number, string>>(
+  const [errorAnalyses, setErrorAnalyses] = useState<Map<string, string>>(
     new Map(),
   );
 
@@ -283,6 +288,15 @@ export function SplitWorkspace() {
     promptVersionsData?.versions?.[0]?.id ??
     null;
 
+  // LLM 모델 관련
+  const { data: llmModelsData } = useLLMModels();
+  const defaultModelKey = llmModelsData
+    ? `${llmModelsData.defaultModelId.provider}/${llmModelsData.defaultModelId.model}`
+    : null;
+  const activeModelKey = selectedModelKey ?? defaultModelKey;
+  const activeProvider = activeModelKey?.split("/")[0];
+  const activeModel = activeModelKey?.split("/").slice(1).join("/");
+
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(
     selectedCard?.noteId ?? null,
@@ -298,31 +312,46 @@ export function SplitWorkspace() {
         queryClient,
         selectedCard.noteId,
         activeVersionId || undefined,
+        activeProvider,
+        activeModel,
       )
     : undefined;
 
   // 캐시 있으면 캐시 사용, 없으면 mutation 결과 사용
+  // DA Fix: mutation 결과가 현재 선택된 모델과 일치할 때만 사용 (stale preview 방지)
+  const mutationMatchesCurrent =
+    splitPreview.data &&
+    splitPreview.variables?.noteId === selectedCard?.noteId &&
+    splitPreview.variables?.provider === activeProvider &&
+    splitPreview.variables?.model === activeModel;
   const previewData: SplitPreviewResult | undefined =
-    cachedPreview || splitPreview.data;
+    cachedPreview || (mutationMatchesCurrent ? splitPreview.data : undefined);
 
-  // 현재 카드에 대한 로딩 중인지 확인 (다른 카드 분석 중에는 영향 없음)
+  // 현재 카드+모델에 대한 로딩 중인지 확인 (다른 카드/모델 분석 중에는 영향 없음)
   const isLoadingCurrentCard =
     splitPreview.isPending &&
-    splitPreview.variables?.noteId === selectedCard?.noteId;
+    splitPreview.variables?.noteId === selectedCard?.noteId &&
+    splitPreview.variables?.provider === activeProvider &&
+    splitPreview.variables?.model === activeModel;
 
-  // 현재 선택된 카드의 에러 메시지 확인
+  // 현재 선택된 카드+모델의 에러 메시지 확인
+  const analysisKey = (nid: number) =>
+    `${nid}:${activeProvider}/${activeModel}`;
   const currentCardError = selectedCard
-    ? errorAnalyses.get(selectedCard.noteId)
+    ? errorAnalyses.get(analysisKey(selectedCard.noteId))
     : undefined;
 
   // 카드 상태 헬퍼
   const getCardStatus = (noteId: number): CardAnalysisStatus => {
-    if (pendingAnalyses.has(noteId)) return "pending";
-    if (errorAnalyses.has(noteId)) return "error";
+    const key = analysisKey(noteId);
+    if (pendingAnalyses.has(key)) return "pending";
+    if (errorAnalyses.has(key)) return "error";
     const cached = getCachedSplitPreview(
       queryClient,
       noteId,
       activeVersionId || undefined,
+      activeProvider,
+      activeModel,
     );
     if (cached) return "cached";
     return "none";
@@ -349,20 +378,21 @@ export function SplitWorkspace() {
   // 분할 분석 요청 핸들러
   const handleRequestSplit = () => {
     if (!selectedCard) return;
+    const key = analysisKey(selectedCard.noteId);
     // 연타 방지
-    if (pendingAnalyses.has(selectedCard.noteId)) return;
+    if (pendingAnalyses.has(key)) return;
 
     const noteId = selectedCard.noteId;
 
     // 상태 전이: pending 추가, error 제거
     setPendingAnalyses((prev) => {
       const next = new Set(prev);
-      next.add(noteId);
+      next.add(key);
       return next;
     });
     setErrorAnalyses((prev) => {
       const next = new Map(prev);
-      next.delete(noteId);
+      next.delete(key);
       return next;
     });
 
@@ -371,12 +401,14 @@ export function SplitWorkspace() {
         noteId,
         versionId: activeVersionId || undefined,
         deckName: activeDeck || undefined,
+        provider: activeProvider,
+        model: activeModel,
       },
       {
         onSuccess: () => {
           setPendingAnalyses((prev) => {
             const next = new Set(prev);
-            next.delete(noteId);
+            next.delete(key);
             return next;
           });
           toast.success(`카드 ${noteId} 분석 완료`, {
@@ -391,12 +423,12 @@ export function SplitWorkspace() {
             error instanceof Error ? error.message : String(error);
           setPendingAnalyses((prev) => {
             const next = new Set(prev);
-            next.delete(noteId);
+            next.delete(key);
             return next;
           });
           setErrorAnalyses((prev) => {
             const next = new Map(prev);
-            next.set(noteId, message);
+            next.set(key, message);
             return next;
           });
           toast.error(`카드 ${noteId} 분석 실패: ${message}`);
@@ -486,6 +518,8 @@ export function SplitWorkspace() {
             queryKey: queryKeys.split.preview(
               selectedCard.noteId,
               activeVersionId || undefined,
+              activeProvider,
+              activeModel,
             ),
           });
           splitPreview.reset();
@@ -798,7 +832,9 @@ export function SplitWorkspace() {
             </Button>
           </div>
         ) : splitPreview.isError &&
-          splitPreview.variables?.noteId === selectedCard.noteId ? (
+          splitPreview.variables?.noteId === selectedCard.noteId &&
+          splitPreview.variables?.provider === activeProvider &&
+          splitPreview.variables?.model === activeModel ? (
           <div className="flex flex-col items-center justify-center h-full text-destructive">
             <AlertTriangle className="w-8 h-8 mb-3" />
             <span className="font-medium mb-2">분할 분석 실패</span>
@@ -829,21 +865,30 @@ export function SplitWorkspace() {
             )}
             {/* 분할 요약 */}
             <div className="p-3 bg-muted rounded-lg text-sm">
-              <p className="font-medium mb-1">
-                {previewData.splitCards.length}개 카드로 분할
-              </p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-medium">
+                  {previewData.splitCards.length}개 카드로 분할
+                </p>
+                {previewData.provider && (
+                  <ModelBadge
+                    provider={previewData.provider}
+                    model={previewData.aiModel}
+                  />
+                )}
+              </div>
               {previewData.splitReason && (
                 <p className="text-muted-foreground text-xs">
                   {previewData.splitReason}
                 </p>
               )}
-              {previewData.executionTimeMs != null && (
-                <p className="text-muted-foreground text-xs mt-1">
-                  {(previewData.executionTimeMs / 1000).toFixed(1)}s
-                  {previewData.tokenUsage?.totalTokens != null &&
-                    ` | ${previewData.tokenUsage.totalTokens} tokens`}
-                </p>
-              )}
+              <p className="text-muted-foreground text-xs mt-1">
+                {previewData.executionTimeMs != null &&
+                  `${(previewData.executionTimeMs / 1000).toFixed(1)}s`}
+                {previewData.tokenUsage?.totalTokens != null &&
+                  ` | ${previewData.tokenUsage.totalTokens} tokens`}
+                {previewData.actualCost != null &&
+                  ` | ${formatCostUsd(previewData.actualCost.totalCostUsd)}`}
+              </p>
             </div>
 
             {/* 분할 카드 미리보기 */}
@@ -869,7 +914,13 @@ export function SplitWorkspace() {
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <Sparkles className="w-12 h-12 mb-4 text-purple-400" />
             <p className="text-center mb-4">
-              Gemini AI로 카드를 분석합니다.
+              AI로 카드를 분석합니다.
+              <br />
+              {activeProvider && activeModel && (
+                <span className="inline-block mt-1">
+                  <ModelBadge provider={activeProvider} model={activeModel} />
+                </span>
+              )}
               <br />
               <span className="text-xs text-muted-foreground">
                 API 비용이 발생할 수 있습니다.
@@ -878,8 +929,9 @@ export function SplitWorkspace() {
             <Button
               onClick={handleRequestSplit}
               disabled={
+                !llmModelsData ||
                 splitPreview.isPending ||
-                pendingAnalyses.has(selectedCard?.noteId ?? -1)
+                pendingAnalyses.has(analysisKey(selectedCard?.noteId ?? -1))
               }
               variant="outline"
               className="bg-purple-50 hover:bg-purple-100 border-purple-200"
@@ -953,6 +1005,54 @@ export function SplitWorkspace() {
                     {version.id === promptVersionsData.activeVersionId &&
                       " \u2713"}
                   </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* LLM 모델 선택 */}
+          <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
+            <Select
+              value={activeModelKey ?? undefined}
+              onValueChange={(value) => setSelectedModelKey(value || null)}
+              disabled={!llmModelsData?.models?.length}
+            >
+              <SelectTrigger
+                size="sm"
+                className="min-w-0 text-base md:text-sm lg:min-w-[200px]"
+              >
+                <SelectValue placeholder="모델 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {llmModelsData?.availableProviders?.map((provider) => (
+                  <SelectGroup key={provider}>
+                    <SelectLabel>
+                      {{ gemini: "Gemini", openai: "OpenAI" }[provider] ??
+                        provider}
+                    </SelectLabel>
+                    {llmModelsData.models
+                      .filter((m) => m.provider === provider)
+                      .map((m) => {
+                        const key = `${m.provider}/${m.model}`;
+                        const isDefault =
+                          m.provider ===
+                            llmModelsData.defaultModelId.provider &&
+                          m.model === llmModelsData.defaultModelId.model;
+                        return (
+                          <SelectItem key={key} value={key}>
+                            <span className="flex items-center gap-2">
+                              <span>{m.displayName}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                ${m.inputPricePerMillionTokens}/
+                                {m.outputPricePerMillionTokens}
+                              </span>
+                              {isDefault && (
+                                <span className="text-[10px]">{"\u2713"}</span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>

@@ -5,20 +5,27 @@
 import { randomUUID } from "node:crypto";
 import {
   applySplitResult,
+  checkBudget,
   cloneSchedulingAfterSplit,
   detectCardType,
+  estimateCost,
+  estimateSplitCost,
   extractTags,
   extractTextField,
   findCardsByNote,
   getActiveVersion,
+  getDefaultModelId,
+  getModelPricing,
   getNoteById,
   getPromptVersion,
   getRemoteSystemPromptPayload,
+  type LLMModelId,
   NotFoundError,
   preBackup,
   recordPromptMetricsEvent,
   requestCardSplit,
   rollback,
+  SPLIT_MAX_OUTPUT_TOKENS,
   type SplitResult,
   sync,
   updateBackupWithCreatedNotes,
@@ -30,6 +37,7 @@ import {
   HistorySessionNotFoundError,
 } from "../history/store.js";
 import type { SplitCardPayload } from "../history/types.js";
+import { resolveModelId } from "../lib/resolve-model.js";
 
 const app = new Hono();
 
@@ -72,11 +80,30 @@ app.post("/preview", async (c) => {
     noteId,
     versionId,
     deckName = "",
+    provider,
+    model,
+    budgetUsdCap,
   } = await c.req.json<{
     noteId: number;
     versionId?: string;
     deckName?: string;
+    provider?: string;
+    model?: string;
+    budgetUsdCap?: number;
   }>();
+
+  // provider+model 유효성 검증
+  let modelId: LLMModelId | undefined;
+  try {
+    modelId = resolveModelId(provider, model);
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      // API 키 미설정은 503, 나머지 검증 실패는 400
+      const status = e.message.includes("API 키") ? 503 : 400;
+      return c.json({ error: e.message }, status);
+    }
+    throw e;
+  }
 
   const note = await getNoteById(noteId);
   if (!note) {
@@ -116,6 +143,8 @@ app.post("/preview", async (c) => {
     sessionId = randomUUID();
   }
 
+  const resolvedModelId = modelId ?? getDefaultModelId();
+
   try {
     const resolvedVersion = await getPromptVersion(promptVersionId);
     if (!resolvedVersion) {
@@ -125,6 +154,8 @@ app.post("/preview", async (c) => {
           const historyStore = await getSplitHistoryStore();
           historyStore.markError(sessionId, {
             errorMessage: versionNotFoundMessage,
+            provider: modelId?.provider,
+            aiModel: modelId?.model,
           });
         } catch (historyError) {
           const message =
@@ -156,6 +187,8 @@ app.post("/preview", async (c) => {
           const historyStore = await getSplitHistoryStore();
           historyStore.markError(sessionId, {
             errorMessage: remotePromptMissingMessage,
+            provider: modelId?.provider,
+            aiModel: modelId?.model,
           });
         } catch (historyError) {
           const message =
@@ -182,18 +215,138 @@ app.post("/preview", async (c) => {
       splitPromptTemplate: resolvedVersion.splitPromptTemplate,
     };
 
+    // 비용 가드레일: AI 호출 전 예상 비용 계산 (best-effort)
+    let estimatedCost:
+      | {
+          estimatedInputCostUsd: number;
+          estimatedOutputCostUsd: number;
+          estimatedTotalCostUsd: number;
+        }
+      | undefined;
+
+    // 기본 모델 경로도 pricing table 검증 적용 — 미등록 시 예산 가드레일 우회 방지
+    if (
+      !getModelPricing(resolvedModelId.provider, resolvedModelId.model) &&
+      budgetUsdCap !== undefined
+    ) {
+      return c.json(
+        {
+          error: `모델 ${resolvedModelId.provider}/${resolvedModelId.model}의 비용 정보가 등록되지 않아 예산 검사가 불가능합니다.`,
+        },
+        400,
+      );
+    }
+
+    try {
+      const costEstimation = await estimateSplitCost(
+        { noteId, text, tags },
+        prompts,
+        resolvedModelId,
+      );
+      if (costEstimation) {
+        estimatedCost = costEstimation.estimatedCost;
+        // worst-case 비용(maxOutputTokens 기준)으로 예산 검사 — 상한 보장
+        const budgetCheck = checkBudget(
+          costEstimation.worstCaseCostUsd,
+          budgetUsdCap,
+        );
+        if (!budgetCheck.allowed) {
+          // 세션을 generating 상태로 남기지 않도록 markNotSplit 호출
+          if (sessionId) {
+            try {
+              const historyStore = await getSplitHistoryStore();
+              historyStore.markNotSplit(sessionId, {
+                splitReason: "예산 초과로 분할이 중단되었습니다.",
+                provider: resolvedModelId.provider,
+                aiModel: resolvedModelId.model,
+                estimatedCostUsd: budgetCheck.estimatedCostUsd,
+              });
+            } catch {
+              // history 에러가 402 응답을 차단하면 안 됨
+            }
+          }
+          return c.json(
+            {
+              error: "BUDGET_EXCEEDED",
+              estimatedCostUsd: budgetCheck.estimatedCostUsd,
+              budgetCapUsd: budgetCheck.budgetCapUsd,
+              provider: resolvedModelId.provider,
+              model: resolvedModelId.model,
+            },
+            402,
+          );
+        }
+      }
+    } catch (costError) {
+      // 비용 추정 실패 시 보수적 폴백: 텍스트 기반 휴리스틱으로 예산 검사
+      console.warn("비용 추정 실패, 보수적 폴백 사용:", costError);
+      const fallbackPricing = getModelPricing(
+        resolvedModelId.provider,
+        resolvedModelId.model,
+      );
+      if (fallbackPricing) {
+        // 시스템 프롬프트 + split 템플릿 + 태그 + 카드 텍스트를 포함한 보수적 추정
+        const fullTextLen =
+          text.length +
+          prompts.systemPrompt.length +
+          prompts.splitPromptTemplate.length +
+          tags.join(" ").length;
+        // 1 char ≈ 0.5 token (한국어 보정) + 15% 안전 마진
+        const SAFETY_MARGIN_RATIO = 1.15;
+        const fallbackInputTokens = Math.ceil(
+          (fullTextLen / 2) * SAFETY_MARGIN_RATIO,
+        );
+        const fallbackOutputTokens = SPLIT_MAX_OUTPUT_TOKENS;
+        estimatedCost = estimateCost(
+          fallbackInputTokens,
+          fallbackOutputTokens,
+          fallbackPricing,
+        );
+        const budgetCheck = checkBudget(
+          estimatedCost.estimatedTotalCostUsd,
+          budgetUsdCap,
+        );
+        if (!budgetCheck.allowed) {
+          if (sessionId) {
+            try {
+              const historyStore = await getSplitHistoryStore();
+              historyStore.markNotSplit(sessionId, {
+                splitReason: "예산 초과로 분할이 중단되었습니다 (보수적 추정).",
+                provider: resolvedModelId.provider,
+                aiModel: resolvedModelId.model,
+                estimatedCostUsd: estimatedCost.estimatedTotalCostUsd,
+              });
+            } catch {
+              // history 에러가 402 응답을 차단하면 안 됨
+            }
+          }
+          return c.json(
+            {
+              error: "BUDGET_EXCEEDED",
+              estimatedCostUsd: budgetCheck.estimatedCostUsd,
+              budgetCapUsd: budgetCheck.budgetCapUsd,
+              provider: resolvedModelId.provider,
+              model: resolvedModelId.model,
+            },
+            402,
+          );
+        }
+      }
+    }
+
     const startTime = Date.now();
-    const geminiResult = await requestCardSplit(
+    const aiResult = await requestCardSplit(
       { noteId, text, tags },
       prompts,
+      resolvedModelId,
     );
     const executionTimeMs = Date.now() - startTime;
 
-    if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
-      const splitCards = geminiResult.splitCards.map((card, idx) => ({
+    if (aiResult.shouldSplit && aiResult.splitCards.length > 1) {
+      const splitCards = aiResult.splitCards.map((card, idx) => ({
         title: card.title,
         content: card.content,
-        isMainCard: idx === geminiResult.mainCardIndex,
+        isMainCard: idx === aiResult.mainCardIndex,
         cardType: card.cardType ?? detectCardType(card.content),
         charCount: card.charCount,
       }));
@@ -203,11 +356,14 @@ app.post("/preview", async (c) => {
           const historyStore = await getSplitHistoryStore();
           historyStore.markGenerated(sessionId, {
             splitCards: mapPreviewCards(splitCards),
-            aiResponse: geminiResult as unknown as Record<string, unknown>,
-            splitReason: geminiResult.splitReason,
+            aiResponse: aiResult as unknown as Record<string, unknown>,
+            splitReason: aiResult.splitReason,
             executionTimeMs,
-            aiModel: geminiResult.modelName,
-            tokenUsage: geminiResult.tokenUsage,
+            aiModel: aiResult.modelName,
+            provider: aiResult.provider,
+            tokenUsage: aiResult.tokenUsage,
+            estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+            actualCostUsd: aiResult.actualCost?.totalCostUsd,
           });
         } catch (error) {
           const message =
@@ -223,11 +379,14 @@ app.post("/preview", async (c) => {
         noteId,
         originalText: text,
         splitCards,
-        mainCardIndex: geminiResult.mainCardIndex,
-        splitReason: geminiResult.splitReason,
+        mainCardIndex: aiResult.mainCardIndex,
+        splitReason: aiResult.splitReason,
         executionTimeMs,
-        tokenUsage: geminiResult.tokenUsage,
-        aiModel: geminiResult.modelName,
+        tokenUsage: aiResult.tokenUsage,
+        aiModel: aiResult.modelName,
+        provider: aiResult.provider ?? "gemini",
+        estimatedCost,
+        actualCost: aiResult.actualCost,
         ...(historyWarning && { historyWarning }),
       });
     }
@@ -237,11 +396,14 @@ app.post("/preview", async (c) => {
         const historyStore = await getSplitHistoryStore();
         historyStore.markNotSplit(sessionId, {
           splitReason:
-            geminiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+            aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
           executionTimeMs,
-          aiModel: geminiResult.modelName,
-          tokenUsage: geminiResult.tokenUsage,
-          aiResponse: geminiResult as unknown as Record<string, unknown>,
+          aiModel: aiResult.modelName,
+          provider: aiResult.provider,
+          tokenUsage: aiResult.tokenUsage,
+          aiResponse: aiResult as unknown as Record<string, unknown>,
+          estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+          actualCostUsd: aiResult.actualCost?.totalCostUsd,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -254,11 +416,13 @@ app.post("/preview", async (c) => {
     return c.json({
       sessionId,
       noteId,
-      reason:
-        geminiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+      reason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
       executionTimeMs,
-      tokenUsage: geminiResult.tokenUsage,
-      aiModel: geminiResult.modelName,
+      tokenUsage: aiResult.tokenUsage,
+      aiModel: aiResult.modelName,
+      provider: aiResult.provider ?? "gemini",
+      estimatedCost,
+      actualCost: aiResult.actualCost,
       ...(historyWarning && { historyWarning }),
     });
   } catch (error) {
@@ -266,7 +430,11 @@ app.post("/preview", async (c) => {
       try {
         const historyStore = await getSplitHistoryStore();
         const message = error instanceof Error ? error.message : String(error);
-        historyStore.markError(sessionId, { errorMessage: message });
+        historyStore.markError(sessionId, {
+          errorMessage: message,
+          provider: resolvedModelId.provider,
+          aiModel: resolvedModelId.model,
+        });
       } catch {
         // Split 실패 에러를 덮어쓰지 않음
       }

@@ -1,10 +1,19 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
+  type LLMModelsResponse,
   type SplitApplyResult,
   type SplitPreviewResult,
 } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
+
+export function useLLMModels() {
+  return useQuery<LLMModelsResponse>({
+    queryKey: queryKeys.llm.models,
+    queryFn: () => api.llm.models(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 export function useSplitPreview() {
   const queryClient = useQueryClient();
@@ -14,14 +23,34 @@ export function useSplitPreview() {
       noteId,
       versionId,
       deckName,
+      provider,
+      model,
+      budgetUsdCap,
     }: {
       noteId: number;
       versionId?: string;
       deckName?: string;
-    }) => api.split.preview(noteId, versionId, deckName),
+      provider?: string;
+      model?: string;
+      budgetUsdCap?: number;
+    }) =>
+      api.split.preview(noteId, {
+        versionId,
+        deckName,
+        provider,
+        model,
+        budgetUsdCap,
+      }),
     onSuccess: (data, variables) => {
+      const resolvedProvider = data.provider ?? variables.provider;
+      const resolvedModel = data.aiModel ?? variables.model;
       queryClient.setQueryData(
-        queryKeys.split.preview(variables.noteId, variables.versionId),
+        queryKeys.split.preview(
+          variables.noteId,
+          variables.versionId,
+          resolvedProvider,
+          resolvedModel,
+        ),
         data,
       );
     },
@@ -36,8 +65,12 @@ export function getCachedSplitPreview(
   queryClient: ReturnType<typeof useQueryClient>,
   noteId: number,
   versionId?: string,
+  provider?: string,
+  model?: string,
 ): SplitPreviewResult | undefined {
-  return queryClient.getQueryData(queryKeys.split.preview(noteId, versionId));
+  return queryClient.getQueryData(
+    queryKeys.split.preview(noteId, versionId, provider, model),
+  );
 }
 
 export function useSplitApply() {

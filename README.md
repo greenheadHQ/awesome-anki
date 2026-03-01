@@ -25,7 +25,7 @@ Awesome Anki는 **Anki 노트를 학습 효율이 높은 원자 카드(Atomic Ca
 기존 Anki 카드에 정보가 과도하게 밀집되면 복습 효율이 떨어질 수 있습니다. Awesome Anki는 다음 흐름으로 이 문제를 해결합니다.
 
 1. 카드 구조를 분석해 분할 가능 여부를 판단합니다.
-2. 규칙 기반(Hard Split) 또는 Gemini 기반(Soft Split)으로 카드를 분리합니다.
+2. AI(Gemini/OpenAI)로 카드를 의미 단위로 분리합니다.
 3. 분할 전 백업을 생성하고, 적용 실패 시 자동 롤백합니다.
 4. 팩트/최신성/유사성/문맥 검증으로 결과 품질을 점검합니다.
 
@@ -33,8 +33,10 @@ Awesome Anki는 **Anki 노트를 학습 효율이 높은 원자 카드(Atomic Ca
 
 ### 2.1 카드 분할
 
-- **Hard Split**: `####`, `---` 같은 구조적 구분자를 기준으로 빠르고 예측 가능하게 분할
-- **Soft Split**: Gemini를 사용해 비정형 텍스트를 의미 단위로 분할
+- **AI Split**: Gemini 또는 OpenAI를 사용해 비정형 텍스트를 의미 단위로 분할
+- **멀티 프로바이더**: 웹 UI에서 프로바이더/모델 선택, 모델별 결과 비교 가능
+- **비용 가시화**: 분석 전 비용 추정, 분석 후 실측 비용 + 토큰 사용량 표시
+- **예산 가드레일**: 서버 사이드 예산 상한으로 과도한 비용 방지
 - **Preview / Apply 분리**: 적용 전 미리보기로 결과 확인 가능
 - **학습 데이터 복제**: 분할 후 카드에 스케줄링 정보 복제 시도
 
@@ -78,7 +80,7 @@ Awesome Anki는 **Anki 노트를 학습 효율이 높은 원자 카드(Atomic Ca
 | 상태 관리 | [TanStack Query](https://tanstack.com/query) |
 | 스타일링 | Tailwind CSS v4 |
 | 렌더링 | markdown-it + KaTeX |
-| LLM | [Google Gemini](https://ai.google.dev/) |
+| LLM | [Google Gemini](https://ai.google.dev/) + [OpenAI](https://platform.openai.com/) |
 | 연동 | [AnkiConnect](https://ankiweb.net/shared/info/2055492159) |
 
 ## 4. 모노레포 구조
@@ -163,13 +165,17 @@ bun run cli rollback <backupId>
 
 | 변수 | 설명 |
 |------|------|
-| `GEMINI_API_KEY` | Gemini API 키 |
+| `GEMINI_API_KEY` | Gemini API 키 (필수) |
+| `OPENAI_API_KEY` | OpenAI API 키 (선택 — 미설정 시 OpenAI 비활성) |
 | `ANKI_SPLITTER_API_KEY` | 서버 API 인증 키 |
 | `ANKI_CONNECT_URL` | AnkiConnect URL |
 | `ANKI_CONNECT_VERSION` | AnkiConnect 버전(기본 6) |
 | `TARGET_DECK` | 기본 대상 덱 |
 | `SPLIT_HISTORY_DB_PATH` | 분할 이력 SQLite 파일 경로 (기본 `data/split-history.db`) |
 | `HISTORY_SYNC_MODE` | 히스토리 동기화 모드 (`local` / `remote`) |
+| `ANKI_SPLITTER_DEFAULT_LLM_PROVIDER` | 기본 LLM 프로바이더 (`gemini` / `openai`, 기본 `gemini`) |
+| `ANKI_SPLITTER_DEFAULT_LLM_MODEL` | 기본 LLM 모델 (기본 `gemini-3-flash-preview`) |
+| `ANKI_SPLITTER_BUDGET_CAP_USD` | 서버 사이드 예산 상한 USD (기본 `1.0`) |
 
 ### 7.2 웹/개발 변수
 
@@ -305,7 +311,8 @@ bun run cli rollback <backupId>
 
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
-| POST | `/api/split/preview` | 분할 미리보기 |
+| GET | `/api/llm/models` | 사용 가능 LLM 모델/가격 조회 |
+| POST | `/api/split/preview` | 분할 미리보기 (provider/model/budgetUsdCap 선택 가능, 예산 초과 시 HTTP 402) |
 | POST | `/api/split/apply` | 분할 적용 |
 | POST | `/api/split/reject` | 분할 반려 처리 |
 | GET | `/api/history` | 분할 이력 목록 조회 |
@@ -410,6 +417,7 @@ CI에서는 `.github/workflows/ci.yml`의 `quality-gate`가 `bun run check`를 �
 - Tailwind CSS: <https://tailwindcss.com/>
 - TanStack Query: <https://tanstack.com/query>
 - Google Gemini API: <https://ai.google.dev/>
+- OpenAI API: <https://platform.openai.com/>
 - Anki: <https://apps.ankiweb.net/>
 - AnkiConnect: <https://ankiweb.net/shared/info/2055492159>
 - LocatorJS: <https://github.com/infi-pc/locatorjs>

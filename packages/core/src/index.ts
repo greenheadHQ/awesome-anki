@@ -74,8 +74,11 @@ export {
 export {
   analyzeCardForSplit,
   type CardForSplit,
+  estimateSplitCost,
   requestBatchCardSplit,
   requestCardSplit,
+  SPLIT_MAX_OUTPUT_TOKENS,
+  type SplitRequestMetadata,
 } from "./gemini/client.js";
 export {
   addHintToCloze,
@@ -107,6 +110,8 @@ export {
   validateSplitResponse,
   validateStylePreservation,
 } from "./gemini/validator.js";
+// LLM abstraction layer
+export * from "./llm/index.js";
 // Parser exports
 export * from "./parser/index.js";
 export {

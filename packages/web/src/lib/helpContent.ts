@@ -14,7 +14,7 @@ export const helpContent: Record<string, HelpItem> = {
   split: {
     title: "Split (분할)",
     description:
-      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다. Cloze가 4개 이상인 카드가 대상입니다.",
+      "AI가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다. Cloze가 4개 이상인 카드가 대상입니다.",
     learnMore: "/help#split",
   },
   splitCandidate: {
@@ -160,7 +160,7 @@ export const glossaryItems = [
   {
     term: "Split (분할)",
     definition:
-      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안하는 방식입니다. Cloze가 4개 이상인 복잡한 카드에 적용됩니다.",
+      "AI가 카드 내용을 분석하여 원자적 단위로 분할을 제안하는 방식입니다. Cloze가 4개 이상인 복잡한 카드에 적용됩니다.",
   },
   {
     term: "Cloze",
@@ -170,7 +170,7 @@ export const glossaryItems = [
   {
     term: "임베딩 (Embedding)",
     definition:
-      "텍스트를 768차원의 숫자 벡터로 변환하는 것입니다. Gemini 임베딩 모델을 사용하며, 의미 기반 유사도 비교에 활용됩니다.",
+      "텍스트를 숫자 벡터로 변환하는 것입니다. 임베딩 모델을 사용하며, 의미 기반 유사도 비교에 활용됩니다.",
   },
   {
     term: "nid (Note ID)",
@@ -216,12 +216,12 @@ export const faqItems = [
   {
     question: "API 비용은 얼마나 드나요?",
     answer:
-      "분할과 검증 기능은 Gemini API를 사용합니다. Gemini 3 Flash Preview는 무료 티어가 넉넉하며, 일반적인 사용량에서는 비용이 거의 발생하지 않습니다.",
+      "분할과 검증 기능은 LLM API를 사용합니다. 모델 선택에 따라 비용이 달라지며, 분할 작업 페이지에서 모델별 예상 비용을 확인할 수 있습니다.",
   },
   {
     question: "어떤 카드가 분할 대상이 되나요?",
     answer:
-      "Cloze가 4개 이상인 카드가 분할 후보로 선정됩니다. AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다.",
+      "Cloze가 4개 이상인 카드가 분할 후보로 선정됩니다. AI가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다.",
   },
   {
     question: "검증은 꼭 해야 하나요?",
