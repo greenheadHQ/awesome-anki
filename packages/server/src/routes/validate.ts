@@ -10,7 +10,9 @@ import {
   checkFreshness,
   checkSimilarity,
   extractTextField,
+  getAvailableProviders,
   getDeckNotes,
+  getDefaultModelForProvider,
   getNoteById,
   type LLMModelId,
   type LLMProviderName,
@@ -18,6 +20,26 @@ import {
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
+
+const VALID_PROVIDERS = new Set<string>(["gemini", "openai"]);
+
+function resolveModelId(
+  provider?: string,
+  model?: string,
+): LLMModelId | undefined {
+  if (!provider) return undefined;
+  if (!VALID_PROVIDERS.has(provider)) {
+    throw new ValidationError(`지원하지 않는 provider입니다: ${provider}`);
+  }
+  const available = getAvailableProviders();
+  if (!available.includes(provider as LLMProviderName)) {
+    throw new ValidationError(`${provider} API 키가 설정되지 않았습니다`);
+  }
+  return {
+    provider: provider as LLMProviderName,
+    model: model ?? getDefaultModelForProvider(provider as LLMProviderName),
+  };
+}
 
 const validate = new Hono();
 
@@ -43,12 +65,7 @@ validate.post("/fact-check", async (c) => {
   }
 
   const text = extractTextField(note);
-  const modelId: LLMModelId | undefined = provider
-    ? {
-        provider: provider as LLMProviderName,
-        model: model ?? "gemini-2.0-flash",
-      }
-    : undefined;
+  const modelId = resolveModelId(provider, model);
   const result = await checkFacts(text, { thorough, modelId });
 
   return c.json({ noteId, result });
@@ -76,12 +93,7 @@ validate.post("/freshness", async (c) => {
   }
 
   const text = extractTextField(note);
-  const modelId: LLMModelId | undefined = provider
-    ? {
-        provider: provider as LLMProviderName,
-        model: model ?? "gemini-2.0-flash",
-      }
-    : undefined;
+  const modelId = resolveModelId(provider, model);
   const result = await checkFreshness(text, { checkDate, modelId });
 
   return c.json({ noteId, result });
@@ -159,12 +171,7 @@ validate.post("/context", async (c) => {
 
   const text = extractTextField(note);
   const targetCard: CardForContext = { noteId, text, tags: note.tags };
-  const modelId: LLMModelId | undefined = provider
-    ? {
-        provider: provider as LLMProviderName,
-        model: model ?? "gemini-2.0-flash",
-      }
-    : undefined;
+  const modelId = resolveModelId(provider, model);
 
   const result = await checkContext(targetCard, {
     includeReverseLinks,

@@ -28,6 +28,18 @@ export function getDefaultModelId(): LLMModelId {
 }
 
 /**
+ * provider에 맞는 기본 모델 반환
+ */
+export function getDefaultModelForProvider(provider: LLMProviderName): string {
+  switch (provider) {
+    case "gemini":
+      return "gemini-3-flash-preview";
+    case "openai":
+      return "gpt-5-mini";
+  }
+}
+
+/**
  * API 키가 설정된 provider만 반환
  */
 export function getAvailableProviders(): LLMProviderName[] {

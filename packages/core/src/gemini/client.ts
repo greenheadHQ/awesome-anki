@@ -52,8 +52,10 @@ export async function estimateSplitCost(
   if (!pricing) return null;
 
   const client = createLLMClient(resolvedModelId.provider);
+  // DA Fix: 시스템 프롬프트 + 카드 본문을 합산하여 입력 토큰 추정
+  const fullInput = `${SYSTEM_PROMPT}\n\n${inputText}`;
   const inputTokens = await client.countTokens(
-    inputText,
+    fullInput,
     resolvedModelId.model,
   );
   const outputTokens = Math.ceil(inputTokens * 0.7);

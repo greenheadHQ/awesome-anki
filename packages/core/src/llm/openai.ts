@@ -98,30 +98,33 @@ export class OpenAIAdapter implements LLMProvider {
       };
     };
 
-    try {
-      const result = await makeRequest();
-      text = result.text;
-      tokenUsage = {
-        promptTokens: result.usage?.input_tokens,
-        completionTokens: result.usage?.output_tokens,
-        totalTokens:
-          (result.usage?.input_tokens ?? 0) +
-          (result.usage?.output_tokens ?? 0),
-      };
-    } catch (error) {
-      // JSON 파싱 실패 시 1회 재시도 (temperature 낮춰서)
-      if (isJsonMode && error instanceof SyntaxError) {
+    const extractUsage = (
+      usage:
+        | {
+            input_tokens?: number;
+            output_tokens?: number;
+          }
+        | null
+        | undefined,
+    ): TokenUsage => ({
+      promptTokens: usage?.input_tokens,
+      completionTokens: usage?.output_tokens,
+      totalTokens: (usage?.input_tokens ?? 0) + (usage?.output_tokens ?? 0),
+    });
+
+    const result = await makeRequest();
+    text = result.text;
+    tokenUsage = extractUsage(result.usage);
+
+    // DA Fix: JSON 모드에서 파싱 검증 + 실패 시 1회 재시도
+    if (isJsonMode) {
+      try {
+        JSON.parse(text);
+      } catch {
         const retryResult = await makeRequest(0.1);
         text = retryResult.text;
-        tokenUsage = {
-          promptTokens: retryResult.usage?.input_tokens,
-          completionTokens: retryResult.usage?.output_tokens,
-          totalTokens:
-            (retryResult.usage?.input_tokens ?? 0) +
-            (retryResult.usage?.output_tokens ?? 0),
-        };
-      } else {
-        throw error;
+        tokenUsage = extractUsage(retryResult.usage);
+        JSON.parse(text); // 재시도 후에도 실패하면 호출부로 전파
       }
     }
 

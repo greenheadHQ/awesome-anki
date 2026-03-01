@@ -13,6 +13,7 @@ import {
   extractTextField,
   findCardsByNote,
   getActiveVersion,
+  getAvailableProviders,
   getModelPricing,
   getNoteById,
   getPromptVersion,
@@ -93,6 +94,19 @@ app.post("/preview", async (c) => {
   let modelId: LLMModelId | undefined;
   if (provider || model) {
     const resolvedProvider = (provider ?? "gemini") as LLMProviderName;
+    if (!["gemini", "openai"].includes(resolvedProvider)) {
+      return c.json(
+        { error: `지원하지 않는 provider입니다: ${resolvedProvider}` },
+        400,
+      );
+    }
+    const available = getAvailableProviders();
+    if (!available.includes(resolvedProvider)) {
+      return c.json(
+        { error: `${resolvedProvider} API 키가 설정되지 않았습니다` },
+        503,
+      );
+    }
     const resolvedModel =
       model ??
       (resolvedProvider === "gemini" ? "gemini-3-flash-preview" : "gpt-5-mini");

@@ -318,8 +318,14 @@ export function SplitWorkspace() {
     : undefined;
 
   // 캐시 있으면 캐시 사용, 없으면 mutation 결과 사용
+  // DA Fix: mutation 결과가 현재 선택된 모델과 일치할 때만 사용 (stale preview 방지)
+  const mutationMatchesCurrent =
+    splitPreview.data &&
+    splitPreview.variables?.noteId === selectedCard?.noteId &&
+    splitPreview.variables?.provider === activeProvider &&
+    splitPreview.variables?.model === activeModel;
   const previewData: SplitPreviewResult | undefined =
-    cachedPreview || splitPreview.data;
+    cachedPreview || (mutationMatchesCurrent ? splitPreview.data : undefined);
 
   // 현재 카드에 대한 로딩 중인지 확인 (다른 카드 분석 중에는 영향 없음)
   const isLoadingCurrentCard =
