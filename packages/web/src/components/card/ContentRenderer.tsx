@@ -73,7 +73,7 @@ export function ContentRenderer({
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none content-rendered"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized HTML rendering from markdown-it
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: Anki card HTML from user's own local database via AnkiConnect; html:true passthrough is intentional for KaTeX/MathML fidelity
             dangerouslySetInnerHTML={{ __html: processedContent }}
           />
         )}
@@ -98,7 +98,7 @@ export function ContentPreview({
         "prose prose-sm dark:prose-invert max-w-none content-rendered",
         className,
       )}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized HTML rendering from markdown-it
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: Anki card HTML from user's own local database via AnkiConnect; html:true passthrough is intentional for KaTeX/MathML fidelity
       dangerouslySetInnerHTML={{ __html: processedContent }}
     />
   );
