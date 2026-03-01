@@ -1,0 +1,8 @@
+[test]
+# packages/web의 테스트 러너 구성:
+#   bun test     → src/ 내 bun:test 네이티브 테스트만 실행
+#   bun run test → vitest (tests/components/**)
+#   bun run test:e2e → playwright (tests/e2e/**)
+# tests/ 디렉토리의 vitest/playwright 테스트가 bun 네이티브 러너에 감지되지 않도록
+# root를 src/로 제한한다.
+root = "src"
