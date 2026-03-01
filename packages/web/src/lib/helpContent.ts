@@ -14,13 +14,13 @@ export const helpContent: Record<string, HelpItem> = {
   split: {
     title: "Split (분할)",
     description:
-      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다. Cloze가 3개 이상인 카드가 대상입니다.",
+      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다. Cloze가 4개 이상인 카드가 대상입니다.",
     learnMore: "/help#split",
   },
   splitCandidate: {
     title: "분할 후보",
     description:
-      "분할이 가능한 카드의 총 개수입니다. Cloze가 3개 이상인 정보 밀도가 높은 카드들이 선정됩니다.",
+      "분할이 가능한 카드의 총 개수입니다. Cloze가 4개 이상인 카드들이 선정됩니다.",
     learnMore: "/help#split-candidates",
   },
 
@@ -160,7 +160,7 @@ export const glossaryItems = [
   {
     term: "Split (분할)",
     definition:
-      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안하는 방식입니다. Cloze가 3개 이상인 복잡한 카드에 적용됩니다.",
+      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안하는 방식입니다. Cloze가 4개 이상인 복잡한 카드에 적용됩니다.",
   },
   {
     term: "Cloze",
@@ -221,7 +221,7 @@ export const faqItems = [
   {
     question: "어떤 카드가 분할 대상이 되나요?",
     answer:
-      "Cloze가 3개 이상인 카드가 분할 후보로 선정됩니다. AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다.",
+      "Cloze가 4개 이상인 카드가 분할 후보로 선정됩니다. AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다.",
   },
   {
     question: "검증은 꼭 해야 하나요?",
