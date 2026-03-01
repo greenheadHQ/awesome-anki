@@ -8,7 +8,9 @@
   "rules": {
     "import/no-unassigned-import": "off",
     "react/react-in-jsx-scope": "off",
-    "react-hooks/exhaustive-deps": "warn"
+    "react-hooks/exhaustive-deps": "warn",
+    "react/no-danger": "warn",
+    "typescript/no-explicit-any": "warn"
   },
   "ignorePatterns": ["dist", "output", "node_modules"]
 }
