@@ -19,6 +19,12 @@ import { type SplitResponse, validateSplitResponse } from "./validator.js";
 
 export type { TokenUsage };
 
+/**
+ * Split 출력 토큰 상한 — 추정 및 생성에 동일 적용
+ * 일반적인 카드 분할은 200~500 토큰이므로 8192는 충분한 여유
+ */
+export const SPLIT_MAX_OUTPUT_TOKENS = 8192;
+
 export interface SplitRequestMetadata {
   tokenUsage?: TokenUsage;
   modelName: string;
@@ -68,7 +74,10 @@ export async function estimateSplitCost(
     fullInput,
     resolvedModelId.model,
   );
-  const outputTokens = Math.ceil(inputTokens * 0.7);
+  const outputTokens = Math.min(
+    Math.ceil(inputTokens * 0.7),
+    SPLIT_MAX_OUTPUT_TOKENS,
+  );
 
   return {
     estimatedCost: estimateCost(inputTokens, outputTokens, pricing),
@@ -105,6 +114,7 @@ export async function requestCardSplit(
     systemPrompt,
     responseMimeType: "application/json",
     model: resolvedModelId.model,
+    maxOutputTokens: SPLIT_MAX_OUTPUT_TOKENS,
   });
 
   // JSON 파싱 및 검증

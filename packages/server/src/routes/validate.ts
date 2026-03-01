@@ -13,6 +13,7 @@ import {
   getAvailableProviders,
   getDeckNotes,
   getDefaultModelForProvider,
+  getModelPricing,
   getNoteById,
   type LLMModelId,
   type LLMProviderName,
@@ -40,9 +41,17 @@ function resolveModelId(
   if (!available.includes(provider as LLMProviderName)) {
     throw new ValidationError(`${provider} API 키가 설정되지 않았습니다`);
   }
+  const resolvedModel =
+    model ?? getDefaultModelForProvider(provider as LLMProviderName);
+  const pricing = getModelPricing(provider as LLMProviderName, resolvedModel);
+  if (!pricing) {
+    throw new ValidationError(
+      `지원하지 않는 provider/model 조합입니다: ${provider}/${resolvedModel}`,
+    );
+  }
   return {
     provider: provider as LLMProviderName,
-    model: model ?? getDefaultModelForProvider(provider as LLMProviderName),
+    model: resolvedModel,
   };
 }
 

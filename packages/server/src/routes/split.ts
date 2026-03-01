@@ -8,6 +8,7 @@ import {
   checkBudget,
   cloneSchedulingAfterSplit,
   detectCardType,
+  estimateCost,
   estimateSplitCost,
   extractTags,
   extractTextField,
@@ -27,6 +28,7 @@ import {
   recordPromptMetricsEvent,
   requestCardSplit,
   rollback,
+  SPLIT_MAX_OUTPUT_TOKENS,
   type SplitResult,
   sync,
   updateBackupWithCreatedNotes,
@@ -254,6 +256,9 @@ app.post("/preview", async (c) => {
               const historyStore = await getSplitHistoryStore();
               historyStore.markNotSplit(sessionId, {
                 splitReason: "예산 초과로 분할이 중단되었습니다.",
+                provider: resolvedModelId.provider,
+                aiModel: resolvedModelId.model,
+                estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
               });
             } catch {
               // history 에러가 402 응답을 차단하면 안 됨
@@ -272,8 +277,50 @@ app.post("/preview", async (c) => {
         }
       }
     } catch (costError) {
-      // 비용 추정 실패는 본 호출을 차단하지 않음 (best-effort)
-      console.warn("비용 추정 실패:", costError);
+      // 비용 추정 실패 시 보수적 폴백: 텍스트 기반 휴리스틱으로 예산 검사
+      console.warn("비용 추정 실패, 보수적 폴백 사용:", costError);
+      const fallbackPricing = getModelPricing(
+        resolvedModelId.provider,
+        resolvedModelId.model,
+      );
+      if (fallbackPricing) {
+        const fallbackInputTokens = Math.ceil(text.length / 2); // 한국어 보정
+        const fallbackOutputTokens = SPLIT_MAX_OUTPUT_TOKENS;
+        estimatedCost = estimateCost(
+          fallbackInputTokens,
+          fallbackOutputTokens,
+          fallbackPricing,
+        );
+        const budgetCheck = checkBudget(
+          estimatedCost.estimatedTotalCostUsd,
+          budgetUsdCap,
+        );
+        if (!budgetCheck.allowed) {
+          if (sessionId) {
+            try {
+              const historyStore = await getSplitHistoryStore();
+              historyStore.markNotSplit(sessionId, {
+                splitReason: "예산 초과로 분할이 중단되었습니다 (보수적 추정).",
+                provider: resolvedModelId.provider,
+                aiModel: resolvedModelId.model,
+                estimatedCostUsd: estimatedCost.estimatedTotalCostUsd,
+              });
+            } catch {
+              // history 에러가 402 응답을 차단하면 안 됨
+            }
+          }
+          return c.json(
+            {
+              error: "BUDGET_EXCEEDED",
+              estimatedCostUsd: budgetCheck.estimatedCostUsd,
+              budgetCapUsd: budgetCheck.budgetCapUsd,
+              provider: resolvedModelId.provider,
+              model: resolvedModelId.model,
+            },
+            402,
+          );
+        }
+      }
     }
 
     const startTime = Date.now();

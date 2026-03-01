@@ -180,12 +180,12 @@ export class SplitHistoryStore {
     return rows.length > 0;
   }
 
-  private hasProviderColumn(): boolean {
+  private hasColumn(column: string): boolean {
     const rows = this.db
-      .query<{ name: string }, []>(
-        "SELECT name FROM pragma_table_info('split_sessions') WHERE name = 'provider'",
+      .query<{ name: string }, [string]>(
+        "SELECT name FROM pragma_table_info('split_sessions') WHERE name = ?",
       )
-      .all();
+      .all(column);
     return rows.length > 0;
   }
 
@@ -327,28 +327,37 @@ export class SplitHistoryStore {
   }
 
   private migrateAddProviderAndCost(): void {
-    // Short-circuit: provider 컬럼이 이미 있으면 마이그레이션 불필요
-    if (this.hasProviderColumn()) {
-      if (!this.hasMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST)) {
-        this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
-      }
-      return;
-    }
-
     if (this.hasMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST)) {
       return;
     }
 
+    // 3개 컬럼을 개별 확인하여 누락분만 추가
+    const hasProvider = this.hasColumn("provider");
+    const hasEstimatedCost = this.hasColumn("estimated_cost_usd");
+    const hasActualCost = this.hasColumn("actual_cost_usd");
+
+    if (hasProvider && hasEstimatedCost && hasActualCost) {
+      // 모든 컬럼이 이미 존재 — 마이그레이션 기록만 추가
+      this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
+      return;
+    }
+
     this.db.transaction(() => {
-      this.db.exec(
-        "ALTER TABLE split_sessions ADD COLUMN provider TEXT DEFAULT 'gemini';",
-      );
-      this.db.exec(
-        "ALTER TABLE split_sessions ADD COLUMN estimated_cost_usd REAL;",
-      );
-      this.db.exec(
-        "ALTER TABLE split_sessions ADD COLUMN actual_cost_usd REAL;",
-      );
+      if (!hasProvider) {
+        this.db.exec(
+          "ALTER TABLE split_sessions ADD COLUMN provider TEXT DEFAULT 'gemini';",
+        );
+      }
+      if (!hasEstimatedCost) {
+        this.db.exec(
+          "ALTER TABLE split_sessions ADD COLUMN estimated_cost_usd REAL;",
+        );
+      }
+      if (!hasActualCost) {
+        this.db.exec(
+          "ALTER TABLE split_sessions ADD COLUMN actual_cost_usd REAL;",
+        );
+      }
       this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
     })();
   }

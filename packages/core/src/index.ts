@@ -77,6 +77,7 @@ export {
   estimateSplitCost,
   requestBatchCardSplit,
   requestCardSplit,
+  SPLIT_MAX_OUTPUT_TOKENS,
   type SplitRequestMetadata,
 } from "./gemini/client.js";
 export {
