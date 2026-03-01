@@ -18,7 +18,7 @@ const app = new Hono();
  */
 app.get("/models", (c) => {
   const availableProviders = getAvailableProviders();
-  const defaultModelId = getDefaultModelId();
+  const configuredDefault = getDefaultModelId();
   const budgetCapUsd = getServerBudgetCapUsd();
 
   // API 키가 설정된 provider의 모델만 반환
@@ -31,6 +31,19 @@ app.get("/models", (c) => {
     inputPricePerMillionTokens: m.inputPricePerMillionTokens,
     outputPricePerMillionTokens: m.outputPricePerMillionTokens,
   }));
+
+  // 기본 모델이 가격표에 등록된 모델 목록에 없으면 첫 번째 가용 모델로 대체
+  const isDefaultInModels = models.some(
+    (m) =>
+      m.provider === configuredDefault.provider &&
+      m.model === configuredDefault.model,
+  );
+  const defaultModelId =
+    isDefaultInModels && models.length > 0
+      ? configuredDefault
+      : models.length > 0
+        ? { provider: models[0].provider, model: models[0].model }
+        : configuredDefault;
 
   return c.json({
     models,
