@@ -88,13 +88,9 @@ export function printSplitPreview(
 
   splitCards.forEach((card, index) => {
     const icon = card.isMainCard ? "⭐" : "  ";
-    const mainLabel = card.isMainCard
-      ? chalk.magenta(" [MAIN - 기존 nid 유지]")
-      : "";
+    const mainLabel = card.isMainCard ? chalk.magenta(" [MAIN - 기존 nid 유지]") : "";
 
-    console.log(
-      chalk.bold(`${icon} 카드 ${index + 1}: ${card.title}${mainLabel}`),
-    );
+    console.log(chalk.bold(`${icon} 카드 ${index + 1}: ${card.title}${mainLabel}`));
     console.log(chalk.gray("─".repeat(50)));
     console.log(truncateHtml(card.content, 150));
     console.log();
@@ -125,9 +121,7 @@ export function printBatchAnalysis(
   if (needsSplit.length > 0) {
     console.log(chalk.yellow("분할 권장 카드:"));
     needsSplit.forEach((r) => {
-      console.log(
-        `  ${chalk.bold(r.noteId.toString())} → ${r.suggestedCount}개로 분할`,
-      );
+      console.log(`  ${chalk.bold(r.noteId.toString())} → ${r.suggestedCount}개로 분할`);
       console.log(chalk.gray(`    사유: ${r.reason.slice(0, 80)}...`));
     });
   }
@@ -149,15 +143,9 @@ function truncateHtml(html: string, maxLength: number): string {
 /**
  * 진행률 표시
  */
-export function printProgress(
-  current: number,
-  total: number,
-  message: string,
-): void {
+export function printProgress(current: number, total: number, message: string): void {
   const percentage = Math.round((current / total) * 100);
-  const bar =
-    "█".repeat(Math.floor(percentage / 5)) +
-    "░".repeat(20 - Math.floor(percentage / 5));
+  const bar = "█".repeat(Math.floor(percentage / 5)) + "░".repeat(20 - Math.floor(percentage / 5));
   process.stdout.write(`\r${chalk.cyan(bar)} ${percentage}% ${message}`);
 
   if (current === total) {

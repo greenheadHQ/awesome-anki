@@ -6,13 +6,7 @@
  * - Toggle: ::: toggle [type] [title]
  */
 
-export type ContainerType =
-  | "tip"
-  | "warning"
-  | "error"
-  | "note"
-  | "link"
-  | "toggle";
+export type ContainerType = "tip" | "warning" | "error" | "note" | "link" | "toggle";
 
 export interface ContainerBlock {
   type: ContainerType;
@@ -31,8 +25,7 @@ interface ParserState {
 }
 
 // ::: 시작 패턴
-const CONTAINER_START_REGEX =
-  /^:::\s*(tip|warning|error|note|link|toggle)(?:\s+(.*))?$/;
+const CONTAINER_START_REGEX = /^:::\s*(tip|warning|error|note|link|toggle)(?:\s+(.*))?$/;
 // ::: 종료 패턴
 const CONTAINER_END_REGEX = /^:::$/;
 

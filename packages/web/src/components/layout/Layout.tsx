@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Outlet } from "react-router-dom";
+
 import { Sidebar } from "./Sidebar";
 
 export function Layout() {

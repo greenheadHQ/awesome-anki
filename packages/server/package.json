@@ -7,15 +7,15 @@
     "dev": "bun run --watch src/index.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "lint": "bunx @biomejs/biome check src",
+    "lint": "bunx oxlint src && bunx oxfmt --check src",
     "test": "bun test --pass-with-no-tests",
     "start": "bun run src/index.ts",
     "history:sync": "bun run src/history-sync.ts"
   },
   "dependencies": {
     "@anki-splitter/core": "workspace:*",
-    "hono": "^4.0.0",
-    "dotenv": "^16.4.0"
+    "dotenv": "^16.4.0",
+    "hono": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

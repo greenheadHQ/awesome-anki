@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+
 import { ankiConnect, getConfig, setConfig } from "../anki/client.js";
 import { AnkiConnectError, TimeoutError } from "../errors.js";
 
@@ -29,17 +30,17 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
 
-    await expect(
-      ankiConnect("version", undefined, { timeout: 100 }),
-    ).rejects.toBeInstanceOf(TimeoutError);
+    await expect(ankiConnect("version", undefined, { timeout: 100 })).rejects.toBeInstanceOf(
+      TimeoutError,
+    );
   });
 
   it("연결 거부 시 AnkiConnectError를 던진다", async () => {
     process.env.ANKI_CONNECT_URL = "http://localhost:19999";
 
-    await expect(
-      ankiConnect("version", undefined, { timeout: 1000 }),
-    ).rejects.toBeInstanceOf(AnkiConnectError);
+    await expect(ankiConnect("version", undefined, { timeout: 1000 })).rejects.toBeInstanceOf(
+      AnkiConnectError,
+    );
   });
 
   it("AnkiConnect API 에러 시 AnkiConnectError를 던진다", async () => {
@@ -57,9 +58,7 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
 
-    await expect(ankiConnect("version")).rejects.toBeInstanceOf(
-      AnkiConnectError,
-    );
+    await expect(ankiConnect("version")).rejects.toBeInstanceOf(AnkiConnectError);
   });
 
   it("HTTP 에러 시 AnkiConnectError를 던진다", async () => {
@@ -72,9 +71,7 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
 
-    await expect(ankiConnect("version")).rejects.toBeInstanceOf(
-      AnkiConnectError,
-    );
+    await expect(ankiConnect("version")).rejects.toBeInstanceOf(AnkiConnectError);
   });
 
   it("정상 응답을 반환한다", async () => {
@@ -128,9 +125,7 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
 
-    await expect(getConfig("awesomeAnki.prompts.system")).resolves.toEqual(
-      payload,
-    );
+    await expect(getConfig("awesomeAnki.prompts.system")).resolves.toEqual(payload);
   });
 
   it("getConfig extension 내부 에러를 미지원 에러로 오진하지 않는다", async () => {
@@ -148,9 +143,7 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
 
-    await expect(getConfig("awesomeAnki.prompts.system")).rejects.toThrow(
-      "unknown key",
-    );
+    await expect(getConfig("awesomeAnki.prompts.system")).rejects.toThrow("unknown key");
   });
 
   it("getConfig TimeoutError를 그대로 재전파한다", async () => {
@@ -160,9 +153,7 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
       throw timeoutLike;
     }) as typeof fetch;
 
-    await expect(
-      getConfig("awesomeAnki.prompts.system"),
-    ).rejects.toBeInstanceOf(TimeoutError);
+    await expect(getConfig("awesomeAnki.prompts.system")).rejects.toBeInstanceOf(TimeoutError);
   });
 
   it("setConfig 커스텀 액션 미지원 시 명확한 에러를 던진다", async () => {
@@ -180,9 +171,9 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
 
-    await expect(
-      setConfig("awesomeAnki.prompts.system", { revision: 0 }),
-    ).rejects.toThrow('커스텀 액션 "setConfig"');
+    await expect(setConfig("awesomeAnki.prompts.system", { revision: 0 })).rejects.toThrow(
+      '커스텀 액션 "setConfig"',
+    );
   });
 
   it("setConfig 성공 시 null을 반환한다", async () => {
@@ -195,9 +186,7 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
 
     process.env.ANKI_CONNECT_URL = `http://localhost:${server.port}`;
 
-    await expect(
-      setConfig("awesomeAnki.prompts.system", { revision: 0 }),
-    ).resolves.toBeNull();
+    await expect(setConfig("awesomeAnki.prompts.system", { revision: 0 })).resolves.toBeNull();
   });
 
   it("setConfig TimeoutError를 그대로 재전파한다", async () => {
@@ -207,8 +196,8 @@ describe("ankiConnect 타임아웃 및 에러 처리", () => {
       throw timeoutLike;
     }) as typeof fetch;
 
-    await expect(
-      setConfig("awesomeAnki.prompts.system", { revision: 0 }),
-    ).rejects.toBeInstanceOf(TimeoutError);
+    await expect(setConfig("awesomeAnki.prompts.system", { revision: 0 })).rejects.toBeInstanceOf(
+      TimeoutError,
+    );
   });
 });

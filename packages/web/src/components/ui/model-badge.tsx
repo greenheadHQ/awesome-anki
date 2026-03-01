@@ -1,9 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const PROVIDER_STYLES: Record<
-  string,
-  { label: string; bg: string; text: string; ring: string }
-> = {
+const PROVIDER_STYLES: Record<string, { label: string; bg: string; text: string; ring: string }> = {
   gemini: {
     label: "G",
     bg: "bg-blue-50",
@@ -47,9 +44,7 @@ export function ModelBadge({
       )}
     >
       <span className="font-semibold">[{style.label}]</span>
-      {model && (
-        <span className="font-mono truncate max-w-[180px]">{model}</span>
-      )}
+      {model && <span className="font-mono truncate max-w-[180px]">{model}</span>}
     </span>
   );
 }

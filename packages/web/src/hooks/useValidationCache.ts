@@ -5,11 +5,8 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useSyncExternalStore } from "react";
-import {
-  type AllValidationResult,
-  api,
-  type ValidationStatus,
-} from "../lib/api";
+
+import { type AllValidationResult, api, type ValidationStatus } from "../lib/api";
 
 const CACHE_KEY = "anki-validation-cache";
 const CACHE_VERSION = 1;
@@ -72,9 +69,7 @@ function getSnapshot() {
   return globalCache;
 }
 
-function updateGlobalCache(
-  updater: (prev: ValidationCache) => ValidationCache,
-) {
+function updateGlobalCache(updater: (prev: ValidationCache) => ValidationCache) {
   globalCache = updater(globalCache);
   saveCacheToStorage(globalCache);
   for (const listener of listeners) {
@@ -94,23 +89,20 @@ export function useValidationCache() {
   );
 
   // 검증 결과 저장
-  const setValidation = useCallback(
-    (noteId: number, result: AllValidationResult) => {
-      updateGlobalCache((prev) => ({
-        ...prev,
-        entries: {
-          ...prev.entries,
-          [noteId]: {
-            noteId,
-            status: result.overallStatus,
-            validatedAt: result.validatedAt,
-            results: result.results,
-          },
+  const setValidation = useCallback((noteId: number, result: AllValidationResult) => {
+    updateGlobalCache((prev) => ({
+      ...prev,
+      entries: {
+        ...prev.entries,
+        [noteId]: {
+          noteId,
+          status: result.overallStatus,
+          validatedAt: result.validatedAt,
+          results: result.results,
         },
-      }));
-    },
-    [],
-  );
+      },
+    }));
+  }, []);
 
   // 검증 결과 삭제
   const clearValidation = useCallback((noteId: number) => {

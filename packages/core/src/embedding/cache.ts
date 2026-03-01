@@ -10,6 +10,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { atomicWriteFileSync } from "../utils/atomic-write.js";
 
 const CACHE_DIR = "output/embeddings";
@@ -103,10 +104,7 @@ export function saveCache(cache: EmbeddingCache): void {
 /**
  * 새 캐시 생성
  */
-export function createCache(
-  deckName: string,
-  dimension: number,
-): EmbeddingCache {
+export function createCache(deckName: string, dimension: number): EmbeddingCache {
   return {
     deckName,
     dimension,
@@ -158,10 +156,7 @@ export function setCachedEmbedding(
 /**
  * 캐시에서 삭제된 노트 제거 (정리)
  */
-export function cleanupCache(
-  cache: EmbeddingCache,
-  validNoteIds: Set<number>,
-): number {
+export function cleanupCache(cache: EmbeddingCache, validNoteIds: Set<number>): number {
   const keysToDelete: string[] = [];
 
   for (const key of Object.keys(cache.embeddings)) {

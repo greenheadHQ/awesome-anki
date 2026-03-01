@@ -20,7 +20,9 @@
         packages = [
           pkgs.bun
           pkgs.nodejs # npx for .mcp.json (chrome-devtools-mcp)
-          pkgs.biome
+          pkgs.oxlint
+          pkgs.oxfmt
+          pkgs.jq  # PostToolUse hook 스크립트 의존성
           pkgs.gh
           pkgs.lefthook
           pkgs.gitleaks

@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  api,
-  PromptConflictError,
-  type PromptSystemSaveResult,
-} from "@/lib/api";
+
+import { api, PromptConflictError, type PromptSystemSaveResult } from "@/lib/api";
 
 describe("api.prompts.saveSystemPrompt", () => {
   afterEach(() => {
@@ -64,9 +61,7 @@ describe("api.prompts.saveSystemPrompt", () => {
         systemPrompt: "local prompt",
         reason: "conflict parse failure",
       }),
-    ).rejects.toThrow(
-      "리비전 충돌이 발생했지만 서버 응답을 파싱할 수 없습니다.",
-    );
+    ).rejects.toThrow("리비전 충돌이 발생했지만 서버 응답을 파싱할 수 없습니다.");
   });
 
   it("성공 응답을 파싱한다", async () => {

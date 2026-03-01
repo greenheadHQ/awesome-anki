@@ -27,8 +27,4 @@ export {
   preprocessTextForEmbedding,
 } from "./client.js";
 // 코사인 유사도
-export {
-  cosineSimilarity,
-  fastCosineSimilarity,
-  normalizeVector,
-} from "./cosine.js";
+export { cosineSimilarity, fastCosineSimilarity, normalizeVector } from "./cosine.js";

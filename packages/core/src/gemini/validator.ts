@@ -58,9 +58,7 @@ export function validateSplitResponse(data: unknown): SplitResponse {
   const result = SplitResponseSchema.safeParse(data);
 
   if (!result.success) {
-    const errors = result.error.errors
-      .map((e) => `${e.path.join(".")}: ${e.message}`)
-      .join(", ");
+    const errors = result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ");
     throw new Error(`분할 응답 검증 실패: ${errors}`);
   }
 
@@ -70,10 +68,7 @@ export function validateSplitResponse(data: unknown): SplitResponse {
   }
 
   // 추가 검증: mainCardIndex가 범위 내인지
-  if (
-    result.data.shouldSplit &&
-    result.data.mainCardIndex >= result.data.splitCards.length
-  ) {
+  if (result.data.shouldSplit && result.data.mainCardIndex >= result.data.splitCards.length) {
     throw new Error(
       `mainCardIndex(${result.data.mainCardIndex})가 splitCards 범위를 벗어났습니다.`,
     );
@@ -89,9 +84,7 @@ export function validateAnalysisResponse(data: unknown): AnalysisResponse {
   const result = AnalysisResponseSchema.safeParse(data);
 
   if (!result.success) {
-    const errors = result.error.errors
-      .map((e) => `${e.path.join(".")}: ${e.message}`)
-      .join(", ");
+    const errors = result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ");
     throw new Error(`분석 응답 검증 실패: ${errors}`);
   }
 

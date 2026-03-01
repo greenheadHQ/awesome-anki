@@ -67,21 +67,14 @@ export function createNidLink(title: string, nid: string): string {
 /**
  * 역링크 생성 (분할 카드에서 원본 카드로의 링크)
  */
-export function createBackLink(
-  originalTitle: string,
-  originalNid: string,
-): string {
+export function createBackLink(originalTitle: string, originalNid: string): string {
   return createNidLink(`원문: ${originalTitle}`, originalNid);
 }
 
 /**
  * nid를 새 nid로 교체
  */
-export function replaceNid(
-  content: string,
-  oldNid: string,
-  newNid: string,
-): string {
+export function replaceNid(content: string, oldNid: string, newNid: string): string {
   const pattern = new RegExp(`\\|nid${oldNid}\\]`, "g");
   return content.replace(pattern, `|nid${newNid}]`);
 }

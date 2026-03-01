@@ -2,12 +2,7 @@
  * Decks API Routes
  */
 
-import {
-  analyzeForSplit,
-  extractTextField,
-  getDeckNames,
-  getDeckNotes,
-} from "@anki-splitter/core";
+import { analyzeForSplit, extractTextField, getDeckNames, getDeckNotes } from "@anki-splitter/core";
 import { Hono } from "hono";
 
 const app = new Hono();

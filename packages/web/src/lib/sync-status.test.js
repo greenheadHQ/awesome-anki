@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import {
-  readSyncStatus,
-  recordSyncAttempt,
-  SYNC_STATUS_STORAGE_KEY,
-} from "./sync-status";
+
+import { readSyncStatus, recordSyncAttempt, SYNC_STATUS_STORAGE_KEY } from "./sync-status";
 
 class MemoryStorage {
   constructor() {

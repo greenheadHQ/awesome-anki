@@ -9,14 +9,10 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
 import {
   Select,
@@ -34,11 +30,7 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { useDecks } from "../hooks/useDecks";
-import {
-  useHistoryDetail,
-  useHistoryList,
-  useHistorySyncHealth,
-} from "../hooks/useHistory";
+import { useHistoryDetail, useHistoryList, useHistorySyncHealth } from "../hooks/useHistory";
 import type { SplitHistoryStatus } from "../lib/api";
 import { cn } from "../lib/utils";
 
@@ -77,9 +69,7 @@ function buildAiResponsePreview(value: unknown, depth = 0): unknown {
       .map((item) => buildAiResponsePreview(item, depth + 1));
 
     if (value.length > AI_PREVIEW_MAX_ARRAY_ITEMS) {
-      previewItems.push(
-        `... (${value.length - AI_PREVIEW_MAX_ARRAY_ITEMS} more items)`,
-      );
+      previewItems.push(`... (${value.length - AI_PREVIEW_MAX_ARRAY_ITEMS} more items)`);
     }
     return previewItems;
   }
@@ -144,12 +134,7 @@ function defaultDateRange(): { start: string; end: string } {
 
 function StatusBadge({ status }: { status: SplitHistoryStatus }) {
   return (
-    <span
-      className={cn(
-        "px-2 py-0.5 rounded text-xs font-medium",
-        statusStyle(status),
-      )}
-    >
+    <span className={cn("px-2 py-0.5 rounded text-xs font-medium", statusStyle(status))}>
       {status}
     </span>
   );
@@ -162,9 +147,7 @@ export function SplitHistory() {
   const [status, setStatus] = useState<string>("all");
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null,
-  );
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [showFullAiResponse, setShowFullAiResponse] = useState(false);
 
   const { data: decksData } = useDecks();
@@ -183,11 +166,7 @@ export function SplitHistory() {
 
   const aiResponsePreviewText = useMemo(() => {
     if (!detail.data?.aiResponse) return null;
-    return JSON.stringify(
-      buildAiResponsePreview(detail.data.aiResponse),
-      null,
-      2,
-    );
+    return JSON.stringify(buildAiResponsePreview(detail.data.aiResponse), null, 2);
   }, [detail.data?.aiResponse]);
 
   const aiResponseFullText = useMemo(() => {
@@ -279,11 +258,7 @@ export function SplitHistory() {
                 onClick={() => historyList.refetch()}
                 disabled={historyList.isFetching}
               >
-                {historyList.isFetching ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "새로고침"
-                )}
+                {historyList.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : "새로고침"}
               </Button>
             </div>
           </CardHeader>
@@ -313,9 +288,7 @@ export function SplitHistory() {
                     <TableHead>Note</TableHead>
                     <TableHead>상태</TableHead>
                     <TableHead className="hidden md:table-cell">모델</TableHead>
-                    <TableHead className="hidden md:table-cell">
-                      카드수
-                    </TableHead>
+                    <TableHead className="hidden md:table-cell">카드수</TableHead>
                     <TableHead className="hidden lg:table-cell">비용</TableHead>
                     <TableHead className="hidden md:table-cell">시간</TableHead>
                   </TableRow>
@@ -346,18 +319,14 @@ export function SplitHistory() {
                         {item.provider ? (
                           <ModelBadge provider={item.provider} />
                         ) : (
-                          <span className="text-xs text-muted-foreground">
-                            --
-                          </span>
+                          <span className="text-xs text-muted-foreground">--</span>
                         )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-xs">
                         {item.cardCount}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-xs font-mono text-muted-foreground">
-                        {item.actualCostUsd != null
-                          ? formatCostUsd(item.actualCostUsd)
-                          : "--"}
+                        {item.actualCostUsd != null ? formatCostUsd(item.actualCostUsd) : "--"}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                         {new Date(item.createdAt).toLocaleString()}
@@ -370,9 +339,7 @@ export function SplitHistory() {
           </CardContent>
 
           <div className="border-t px-4 py-3 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              total {historyList.data?.totalCount || 0}
-            </span>
+            <span className="text-muted-foreground">total {historyList.data?.totalCount || 0}</span>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -469,9 +436,7 @@ export function SplitHistory() {
                             #{index + 1} {card.title}
                           </span>
                           {card.charCount != null && (
-                            <span className="text-muted-foreground">
-                              {card.charCount}자
-                            </span>
+                            <span className="text-muted-foreground">{card.charCount}자</span>
                           )}
                         </div>
                         <div className="p-3">
@@ -487,9 +452,7 @@ export function SplitHistory() {
                 </section>
 
                 <section>
-                  <h3 className="text-sm font-semibold mb-2">
-                    이벤트 타임라인
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-2">이벤트 타임라인</h3>
                   <div className="space-y-2">
                     {detail.data.events.map((event) => (
                       <div key={event.eventId} className="border rounded p-3">
@@ -498,12 +461,8 @@ export function SplitHistory() {
                             {event.status === "applied" && (
                               <Check className="w-4 h-4 text-green-600" />
                             )}
-                            {event.status === "error" && (
-                              <X className="w-4 h-4 text-red-600" />
-                            )}
-                            <span className="text-sm font-medium">
-                              {event.eventType}
-                            </span>
+                            {event.status === "error" && <X className="w-4 h-4 text-red-600" />}
+                            <span className="text-sm font-medium">{event.eventType}</span>
                             <StatusBadge status={event.status} />
                           </div>
                           <span className="text-xs text-muted-foreground">
@@ -522,9 +481,7 @@ export function SplitHistory() {
                     </summary>
                     <div className="mt-2 space-y-2">
                       <pre className="text-xs overflow-x-auto bg-muted p-2 rounded">
-                        {showFullAiResponse
-                          ? aiResponseFullText
-                          : aiResponsePreviewText}
+                        {showFullAiResponse ? aiResponseFullText : aiResponsePreviewText}
                       </pre>
                       {!showFullAiResponse && (
                         <Button

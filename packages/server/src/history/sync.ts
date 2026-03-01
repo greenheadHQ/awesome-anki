@@ -59,8 +59,7 @@ export async function runHistorySyncNow(): Promise<HistorySyncResult> {
     return {
       mode: "local",
       success: true,
-      message:
-        "Local mode does not require remote synchronization. Nothing to do.",
+      message: "Local mode does not require remote synchronization. Nothing to do.",
       syncedAt: new Date().toISOString(),
     };
   }

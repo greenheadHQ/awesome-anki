@@ -61,12 +61,9 @@ export function getMarkdownRenderer(): MarkdownIt {
 
   calloutTypes.forEach((type) => {
     md.use(markdownItContainer, type, {
-      validate: (params: string) =>
-        params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`)),
+      validate: (params: string) => params.trim().match(new RegExp(`^${type}(\\s+(.*))?$`)),
       render: (tokens: { info: string; nesting: number }[], idx: number) => {
-        const m = tokens[idx].info
-          .trim()
-          .match(new RegExp(`^${type}(\\s+(.*))?$`));
+        const m = tokens[idx].info.trim().match(new RegExp(`^${type}(\\s+(.*))?$`));
         if (tokens[idx].nesting === 1) {
           const title = m?.[2]
             ? `<strong>${getCalloutEmoji(type)} ${md.utils.escapeHtml(m[2])}</strong>`
@@ -125,23 +122,17 @@ export function getMarkdownRenderer(): MarkdownIt {
  * [제목|nid1234567890123] -> 클릭 가능한 링크
  */
 export function processNidLinks(html: string): string {
-  return html.replace(
-    /\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g,
-    (_match, title, nid) => {
-      const cleanTitle = title.replace(/\\\[/g, "[");
-      return `<a href="#" class="nid-link" data-nid="${nid}" title="Note ID: ${nid}">${cleanTitle}</a>`;
-    },
-  );
+  return html.replace(/\[((?:[^[]|\\\[)*)\|nid(\d{13})\]/g, (_match, title, nid) => {
+    const cleanTitle = title.replace(/\\\[/g, "[");
+    return `<a href="#" class="nid-link" data-nid="${nid}" title="Note ID: ${nid}">${cleanTitle}</a>`;
+  });
 }
 
 /**
  * Cloze 처리 (표시용)
  * {{c1::내용::힌트}} -> <span class="cloze">내용</span>
  */
-export function processCloze(
-  html: string,
-  showContent: boolean = true,
-): string {
+export function processCloze(html: string, showContent: boolean = true): string {
   // {{c숫자::내용::힌트?}} 패턴
   const clozePattern = /\{\{c(\d+)::([^}]*?)(?:::([^}]*?))?\}\}/g;
 
@@ -160,11 +151,7 @@ export function processCloze(
  */
 export function processImages(html: string): string {
   return html.replace(/<img\s+src="([^"]+)"/gi, (match, src) => {
-    if (
-      src.startsWith("http://") ||
-      src.startsWith("https://") ||
-      src.startsWith("/api/")
-    ) {
+    if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("/api/")) {
       return match;
     }
     return `<img src="/api/media/${encodeURIComponent(src)}"`;
@@ -201,18 +188,15 @@ export function postprocessHtml(html: string): string {
 
   // 텍스트로 남은 <br> 문자열을 실제 <br> 태그로 변환
   // (이스케이프된 &lt;br&gt;는 건드리지 않음)
-  processed = processed.replace(
-    /(?<!&lt;)br(?!&gt;)/g,
-    (match, offset, str) => {
-      // 앞뒤로 < > 가 있는지 확인
-      const before = str.charAt(offset - 1);
-      const after = str.charAt(offset + 2);
-      if (before === "<" && after === ">") {
-        return "br"; // 이미 태그 형태이면 그대로
-      }
-      return match;
-    },
-  );
+  processed = processed.replace(/(?<!&lt;)br(?!&gt;)/g, (match, offset, str) => {
+    // 앞뒤로 < > 가 있는지 확인
+    const before = str.charAt(offset - 1);
+    const after = str.charAt(offset + 2);
+    if (before === "<" && after === ">") {
+      return "br"; // 이미 태그 형태이면 그대로
+    }
+    return match;
+  });
 
   return processed;
 }

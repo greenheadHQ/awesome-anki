@@ -1,5 +1,6 @@
 import { ValidationError } from "@anki-splitter/core";
 import { Hono } from "hono";
+
 import { getSplitHistoryStore } from "../history/store.js";
 import { getHistorySyncHealth } from "../history/sync.js";
 import { HISTORY_STATUSES, type HistoryStatus } from "../history/types.js";
@@ -90,10 +91,7 @@ history.get("/:sessionId", async (c) => {
   const detail = store.getSessionDetail(sessionId);
 
   if (!detail) {
-    return c.json(
-      { error: `히스토리 세션 ${sessionId}를 찾을 수 없습니다.` },
-      404,
-    );
+    return c.json({ error: `히스토리 세션 ${sessionId}를 찾을 수 없습니다.` }, 404);
   }
 
   return c.json(detail);

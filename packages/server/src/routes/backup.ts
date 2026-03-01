@@ -2,12 +2,7 @@
  * Backup API Routes
  */
 
-import {
-  getLatestBackupId,
-  listBackups,
-  rollback,
-  ValidationError,
-} from "@anki-splitter/core";
+import { getLatestBackupId, listBackups, rollback, ValidationError } from "@anki-splitter/core";
 import { Hono } from "hono";
 
 const app = new Hono();

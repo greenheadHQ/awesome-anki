@@ -17,14 +17,14 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
-    "lint": "bunx @biomejs/biome check src",
+    "lint": "bunx oxlint src && bunx oxfmt --check src",
     "test": "bun test src/__tests__"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
-    "openai": "^6.0.0",
     "diff": "^5.2.0",
     "dotenv": "^16.4.0",
+    "openai": "^6.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

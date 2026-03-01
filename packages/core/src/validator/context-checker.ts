@@ -66,9 +66,7 @@ export interface ContextCheckOptions {
 async function getLinkedNotes(noteIds: string[]): Promise<NoteInfo[]> {
   if (noteIds.length === 0) return [];
 
-  const numericIds = noteIds
-    .map((id) => parseInt(id, 10))
-    .filter((id) => !Number.isNaN(id));
+  const numericIds = noteIds.map((id) => parseInt(id, 10)).filter((id) => !Number.isNaN(id));
   if (numericIds.length === 0) return [];
 
   try {
@@ -114,14 +112,8 @@ export async function checkContext(
   }
 
   // 3. 관련 카드가 없으면 일관성 검사 불필요
-  const allRelatedNids = [
-    ...linkedNids,
-    ...reverseNids.map((id) => id.toString()),
-  ];
-  const uniqueRelatedNids = [...new Set(allRelatedNids)].slice(
-    0,
-    maxRelatedCards,
-  );
+  const allRelatedNids = [...linkedNids, ...reverseNids.map((id) => id.toString())];
+  const uniqueRelatedNids = [...new Set(allRelatedNids)].slice(0, maxRelatedCards);
 
   if (uniqueRelatedNids.length === 0) {
     return {
@@ -178,10 +170,7 @@ export async function checkContext(
   ];
 
   const cardsText = cardContents
-    .map(
-      (c) =>
-        `[NOTE ID: ${c.noteId}${c.isTarget ? " (대상 카드)" : ""}]\n${c.text}`,
-    )
+    .map((c) => `[NOTE ID: ${c.noteId}${c.isTarget ? " (대상 카드)" : ""}]\n${c.text}`)
     .join("\n\n---\n\n");
 
   const prompt = `
@@ -208,21 +197,15 @@ ${cardsText}
 
     // 결과 변환
     const inconsistencies: Inconsistency[] = (parsed.inconsistencies || []).map(
-      (inc: {
-        description?: string;
-        conflictingNoteId?: number;
-        severity?: string;
-      }) => ({
+      (inc: { description?: string; conflictingNoteId?: number; severity?: string }) => ({
         description: inc.description || "",
         conflictingNoteId: inc.conflictingNoteId,
         severity: inc.severity || "medium",
       }),
     );
 
-    const hasInconsistency =
-      parsed.hasInconsistency ?? inconsistencies.length > 0;
-    const coherenceScore =
-      parsed.coherenceScore ?? (hasInconsistency ? 70 : 100);
+    const hasInconsistency = parsed.hasInconsistency ?? inconsistencies.length > 0;
+    const coherenceScore = parsed.coherenceScore ?? (hasInconsistency ? 70 : 100);
 
     // 상태 결정
     let status: ContextResult["status"] = "valid";
@@ -235,8 +218,7 @@ ${cardsText}
     return {
       status,
       type: "context",
-      message:
-        parsed.summary || getStatusMessage(status, inconsistencies.length),
+      message: parsed.summary || getStatusMessage(status, inconsistencies.length),
       confidence: coherenceScore,
       details: {
         inconsistencies,
@@ -302,8 +284,7 @@ export async function analyzeCardGroup(
   groupStructure: Map<number, number[]>; // noteId -> linked noteIds
 }> {
   const groupStructure = new Map<number, number[]>();
-  const allInconsistencies: Array<Inconsistency & { sourceNoteId: number }> =
-    [];
+  const allInconsistencies: Array<Inconsistency & { sourceNoteId: number }> = [];
 
   // 각 카드의 링크 구조 분석
   for (const card of cards) {

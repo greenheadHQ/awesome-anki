@@ -11,14 +11,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
   Select,
   SelectContent,
@@ -36,20 +32,12 @@ import {
 } from "../components/ui/table";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
-import {
-  useValidateCard,
-  useValidationCache,
-} from "../hooks/useValidationCache";
+import { useValidateCard, useValidationCache } from "../hooks/useValidationCache";
 import type { ValidationStatus } from "../lib/api";
 import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
 import { cn } from "../lib/utils";
 
-const CARD_FILTER_VALUES = [
-  "all",
-  "splitable",
-  "unvalidated",
-  "needs-review",
-] as const;
+const CARD_FILTER_VALUES = ["all", "splitable", "unvalidated", "needs-review"] as const;
 type CardFilter = (typeof CARD_FILTER_VALUES)[number];
 
 function isCardFilter(value: string): value is CardFilter {
@@ -68,16 +56,8 @@ function ValidationIcon({
 
   if (status === null) {
     return (
-      <span
-        className="inline-flex"
-        role="img"
-        aria-label="미검증"
-        title="미검증"
-      >
-        <HelpCircle
-          className={cn(sizeClass, "text-gray-300")}
-          aria-hidden="true"
-        />
+      <span className="inline-flex" role="img" aria-label="미검증" title="미검증">
+        <HelpCircle className={cn(sizeClass, "text-gray-300")} aria-hidden="true" />
       </span>
     );
   }
@@ -85,58 +65,26 @@ function ValidationIcon({
   switch (status) {
     case "valid":
       return (
-        <span
-          className="inline-flex"
-          role="img"
-          aria-label="검증 통과"
-          title="검증 통과"
-        >
-          <CheckCircle
-            className={cn(sizeClass, "text-green-500")}
-            aria-hidden="true"
-          />
+        <span className="inline-flex" role="img" aria-label="검증 통과" title="검증 통과">
+          <CheckCircle className={cn(sizeClass, "text-green-500")} aria-hidden="true" />
         </span>
       );
     case "warning":
       return (
-        <span
-          className="inline-flex"
-          role="img"
-          aria-label="검토 필요"
-          title="검토 필요"
-        >
-          <AlertTriangle
-            className={cn(sizeClass, "text-yellow-500")}
-            aria-hidden="true"
-          />
+        <span className="inline-flex" role="img" aria-label="검토 필요" title="검토 필요">
+          <AlertTriangle className={cn(sizeClass, "text-yellow-500")} aria-hidden="true" />
         </span>
       );
     case "error":
       return (
-        <span
-          className="inline-flex"
-          role="img"
-          aria-label="문제 발견"
-          title="문제 발견"
-        >
-          <XCircle
-            className={cn(sizeClass, "text-red-500")}
-            aria-hidden="true"
-          />
+        <span className="inline-flex" role="img" aria-label="문제 발견" title="문제 발견">
+          <XCircle className={cn(sizeClass, "text-red-500")} aria-hidden="true" />
         </span>
       );
     default:
       return (
-        <span
-          className="inline-flex"
-          role="img"
-          aria-label="상태 불명"
-          title="상태 불명"
-        >
-          <HelpCircle
-            className={cn(sizeClass, "text-gray-400")}
-            aria-hidden="true"
-          />
+        <span className="inline-flex" role="img" aria-label="상태 불명" title="상태 불명">
+          <HelpCircle className={cn(sizeClass, "text-gray-400")} aria-hidden="true" />
         </span>
       );
   }
@@ -144,8 +92,7 @@ function ValidationIcon({
 
 export function CardBrowser() {
   const location = useLocation();
-  const initialDeck =
-    (location.state as { deckName?: string })?.deckName || null;
+  const initialDeck = (location.state as { deckName?: string })?.deckName || null;
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(initialDeck);
   const [page, setPage] = useState(1);
@@ -170,8 +117,7 @@ export function CardBrowser() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [selectedNoteId]);
 
-  const { getValidation, getValidationStatuses, cacheSize } =
-    useValidationCache();
+  const { getValidation, getValidationStatuses, cacheSize } = useValidationCache();
   const validateMutation = useValidateCard(selectedDeck);
   const cards = useMemo(() => cardsData?.cards ?? [], [cardsData]);
 
@@ -197,15 +143,11 @@ export function CardBrowser() {
   }, [cards, filter, validationStatuses]);
 
   // 현재 선택된 카드의 검증 결과
-  const selectedCardValidation = selectedNoteId
-    ? getValidation(selectedNoteId)
-    : null;
+  const selectedCardValidation = selectedNoteId ? getValidation(selectedNoteId) : null;
 
   // 모바일 전체화면 오버레이에서만 inert 적용 (데스크톱은 사이드 패널이므로 목록 선택 가능해야 함)
   const [isMobile, setIsMobile] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      !window.matchMedia("(min-width: 768px)").matches,
+    () => typeof window !== "undefined" && !window.matchMedia("(min-width: 768px)").matches,
   );
 
   useEffect(() => {
@@ -224,9 +166,7 @@ export function CardBrowser() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="typo-h1">카드 브라우저</h1>
-            <p className="typo-body text-muted-foreground">
-              덱의 카드를 탐색하고 분석하세요
-            </p>
+            <p className="typo-body text-muted-foreground">덱의 카드를 탐색하고 분석하세요</p>
           </div>
           <div className="text-sm text-muted-foreground">
             <Shield className="inline-block w-4 h-4 mr-1" />
@@ -280,25 +220,17 @@ export function CardBrowser() {
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="p-4 text-center text-muted-foreground">
-                로딩 중...
-              </div>
+              <div className="p-4 text-center text-muted-foreground">로딩 중...</div>
             ) : !filteredCards.length ? (
-              <div className="p-4 text-center text-muted-foreground">
-                카드가 없습니다
-              </div>
+              <div className="p-4 text-center text-muted-foreground">카드가 없습니다</div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="p-3 w-10">검증</TableHead>
                     <TableHead className="p-3">Note ID</TableHead>
-                    <TableHead className="hidden md:table-cell p-3">
-                      미리보기
-                    </TableHead>
-                    <TableHead className="hidden md:table-cell p-3">
-                      Cloze
-                    </TableHead>
+                    <TableHead className="hidden md:table-cell p-3">미리보기</TableHead>
+                    <TableHead className="hidden md:table-cell p-3">Cloze</TableHead>
                     <TableHead className="p-3">분할</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -313,13 +245,9 @@ export function CardBrowser() {
                       onClick={() => setSelectedNoteId(card.noteId)}
                     >
                       <TableCell className="p-3">
-                        <ValidationIcon
-                          status={validationStatuses.get(card.noteId) || null}
-                        />
+                        <ValidationIcon status={validationStatuses.get(card.noteId) || null} />
                       </TableCell>
-                      <TableCell className="p-3 font-mono text-sm">
-                        {card.noteId}
-                      </TableCell>
+                      <TableCell className="p-3 font-mono text-sm">{card.noteId}</TableCell>
                       <TableCell className="hidden md:table-cell max-w-md truncate p-3 text-sm">
                         {card.text.replace(/<[^>]*>/g, "").slice(0, 100)}...
                       </TableCell>
@@ -345,8 +273,7 @@ export function CardBrowser() {
         {cardsData && cardsData.totalPages > 1 && (
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">
-              {cardsData.total}개 중 {(page - 1) * 20 + 1}-
-              {Math.min(page * 20, cardsData.total)}
+              {cardsData.total}개 중 {(page - 1) * 20 + 1}-{Math.min(page * 20, cardsData.total)}
             </span>
             <div className="flex gap-2">
               <Button
@@ -397,9 +324,7 @@ export function CardBrowser() {
             <CardContent className="space-y-4">
               <div>
                 <h4 className="text-sm font-medium">Note ID</h4>
-                <p className="font-mono text-sm text-muted-foreground">
-                  {cardDetail.noteId}
-                </p>
+                <p className="font-mono text-sm text-muted-foreground">{cardDetail.noteId}</p>
               </div>
 
               {/* 검증 상태 섹션 */}
@@ -424,60 +349,43 @@ export function CardBrowser() {
                 {selectedCardValidation ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <ValidationIcon
-                        status={selectedCardValidation.status}
-                        size="md"
-                      />
+                      <ValidationIcon status={selectedCardValidation.status} size="md" />
                       <span className="text-sm">
-                        {selectedCardValidation.status === "valid" &&
-                          "검증 통과"}
-                        {selectedCardValidation.status === "warning" &&
-                          "검토 필요"}
-                        {selectedCardValidation.status === "error" &&
-                          "문제 발견"}
-                        {selectedCardValidation.status === "unknown" &&
-                          "검증 불가"}
+                        {selectedCardValidation.status === "valid" && "검증 통과"}
+                        {selectedCardValidation.status === "warning" && "검토 필요"}
+                        {selectedCardValidation.status === "error" && "문제 발견"}
+                        {selectedCardValidation.status === "unknown" && "검증 불가"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       검증 시간:{" "}
-                      {new Date(
-                        selectedCardValidation.validatedAt,
-                      ).toLocaleString("ko-KR")}
+                      {new Date(selectedCardValidation.validatedAt).toLocaleString("ko-KR")}
                     </p>
                     {selectedCardValidation.results && (
                       <div className="text-xs space-y-1 mt-2 p-2 bg-muted rounded">
                         <div className="flex items-center justify-between">
                           <span>팩트 체크:</span>
                           <ValidationIcon
-                            status={
-                              selectedCardValidation.results.factCheck.status
-                            }
+                            status={selectedCardValidation.results.factCheck.status}
                           />
                         </div>
                         <div className="flex items-center justify-between">
                           <span>최신성:</span>
                           <ValidationIcon
-                            status={
-                              selectedCardValidation.results.freshness.status
-                            }
+                            status={selectedCardValidation.results.freshness.status}
                           />
                         </div>
                         <div className="flex items-center justify-between">
                           <span>유사성:</span>
                           <ValidationIcon
-                            status={
-                              selectedCardValidation.results.similarity.status
-                            }
+                            status={selectedCardValidation.results.similarity.status}
                           />
                         </div>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    아직 검증되지 않았습니다
-                  </p>
+                  <p className="text-sm text-muted-foreground">아직 검증되지 않았습니다</p>
                 )}
               </div>
 
@@ -486,10 +394,7 @@ export function CardBrowser() {
                 <div className="flex flex-wrap gap-1">
                   {cardDetail.tags.length > 0 ? (
                     cardDetail.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded bg-muted px-2 py-0.5 text-xs"
-                      >
+                      <span key={tag} className="rounded bg-muted px-2 py-0.5 text-xs">
                         {tag}
                       </span>
                     ))
@@ -503,9 +408,7 @@ export function CardBrowser() {
                 <h4 className="text-sm font-medium">분석</h4>
                 <ul className="text-sm text-muted-foreground">
                   <li>Cloze 개수: {cardDetail.clozeStats.totalClozes}</li>
-                  <li>
-                    분할 가능: {cardDetail.analysis.canSplit ? "예" : "아니오"}
-                  </li>
+                  <li>분할 가능: {cardDetail.analysis.canSplit ? "예" : "아니오"}</li>
                   <li>nid 링크: {cardDetail.nidLinks.length}개</li>
                 </ul>
               </div>

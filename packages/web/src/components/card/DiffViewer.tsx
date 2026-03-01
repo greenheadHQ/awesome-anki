@@ -4,6 +4,7 @@
 
 import { ArrowRight, Code, Equal, Eye, Minus, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+
 import { cn } from "../../lib/utils";
 import { ContentRenderer } from "./ContentRenderer";
 
@@ -58,15 +59,9 @@ function computeLineDiff(original: string, modified: string): DiffLine[] {
   return result;
 }
 
-export function DiffViewer({
-  original,
-  splitCards,
-  className,
-}: DiffViewerProps) {
+export function DiffViewer({ original, splitCards, className }: DiffViewerProps) {
   const mainCard = splitCards.find((c) => c.isMainCard) || splitCards[0];
-  const subCards = splitCards.filter(
-    (c) => !c.isMainCard && c !== splitCards[0],
-  );
+  const subCards = splitCards.filter((c) => !c.isMainCard && c !== splitCards[0]);
 
   const diffLines = useMemo(() => {
     if (!mainCard) return [];
@@ -141,22 +136,15 @@ export function DiffViewer({
 
       {/* 서브 카드들 */}
       {subCards.map((card, idx) => (
-        <div
-          key={`sub-${card.title}-${idx}`}
-          className="border rounded-lg overflow-hidden"
-        >
+        <div key={`sub-${card.title}-${idx}`} className="border rounded-lg overflow-hidden">
           <div className="bg-muted px-3 py-2 border-b flex items-center justify-between">
             <span className="font-medium text-sm">
               새 카드 {idx + 1}: {card.title}
             </span>
-            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
-              새로 생성
-            </span>
+            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">새로 생성</span>
           </div>
           <div className="p-3 bg-card text-sm font-mono overflow-x-auto max-h-60 overflow-y-auto">
-            <pre className="whitespace-pre-wrap break-words">
-              {card.content}
-            </pre>
+            <pre className="whitespace-pre-wrap break-words">{card.content}</pre>
           </div>
         </div>
       ))}
@@ -177,11 +165,7 @@ interface SplitPreviewCardProps {
   className?: string;
 }
 
-export function SplitPreviewCard({
-  card,
-  index,
-  className,
-}: SplitPreviewCardProps) {
+export function SplitPreviewCard({ card, index, className }: SplitPreviewCardProps) {
   const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
 
   return (
@@ -196,9 +180,7 @@ export function SplitPreviewCard({
               onClick={() => setViewMode("rendered")}
               className={cn(
                 "p-1 transition-colors",
-                viewMode === "rendered"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted",
+                viewMode === "rendered" ? "bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
               title="렌더링"
             >
@@ -209,9 +191,7 @@ export function SplitPreviewCard({
               onClick={() => setViewMode("raw")}
               className={cn(
                 "p-1 transition-colors",
-                viewMode === "raw"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted",
+                viewMode === "raw" ? "bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
               title="Raw"
             >
@@ -219,9 +199,7 @@ export function SplitPreviewCard({
             </button>
           </div>
           {card.isMainCard ? (
-            <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
-              메인
-            </span>
+            <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">메인</span>
           ) : (
             <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
               #{index + 1}
@@ -231,11 +209,7 @@ export function SplitPreviewCard({
       </div>
       <div className="p-3 text-sm max-h-60 overflow-y-auto">
         {viewMode === "rendered" ? (
-          <ContentRenderer
-            content={card.content}
-            showToggle={false}
-            defaultView="rendered"
-          />
+          <ContentRenderer content={card.content} showToggle={false} defaultView="rendered" />
         ) : (
           <pre className="whitespace-pre-wrap break-words font-mono text-xs bg-muted p-2 rounded">
             {card.content}

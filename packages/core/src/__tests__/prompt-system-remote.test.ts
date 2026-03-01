@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { parseRemoteSystemPromptPayload } from "../prompt-version/storage.js";
 
 describe("parseRemoteSystemPromptPayload", () => {
@@ -40,9 +41,7 @@ describe("parseRemoteSystemPromptPayload", () => {
   });
 
   test("잘못된 JSON 문자열이면 명확한 에러를 던진다", () => {
-    expect(() => parseRemoteSystemPromptPayload("{invalid-json")).toThrow(
-      "JSON 파싱 실패",
-    );
+    expect(() => parseRemoteSystemPromptPayload("{invalid-json")).toThrow("JSON 파싱 실패");
   });
 
   test("systemPrompt가 비어있거나 누락되면 예외를 던진다", () => {

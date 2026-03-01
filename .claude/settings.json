@@ -1,5 +1,16 @@
 {
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true
+  "enabledPlugins": {},
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/oxlint-check.sh"
+          }
+        ]
+      }
+    ]
   }
 }

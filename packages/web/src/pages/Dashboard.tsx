@@ -1,22 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  FileStack,
-  FolderOpen,
-  Loader2,
-  Scissors,
-  Sparkles,
-} from "lucide-react";
+import { FileStack, FolderOpen, Loader2, Scissors, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { SyncStatusBadge } from "../components/SyncStatusBadge";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
   Select,
   SelectContent,
@@ -27,11 +17,7 @@ import {
 import { useDeckStats, useDecks } from "../hooks/useDecks";
 import { api } from "../lib/api";
 import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
-import {
-  readSyncStatus,
-  SYNC_STATUS_EVENT,
-  type SyncStatusState,
-} from "../lib/sync-status";
+import { readSyncStatus, SYNC_STATUS_EVENT, type SyncStatusState } from "../lib/sync-status";
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -76,9 +62,7 @@ export function Dashboard() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="typo-h1">Dashboard</h1>
-          <p className="typo-body text-muted-foreground">
-            Anki 카드를 원자적 단위로 분할하세요
-          </p>
+          <p className="typo-body text-muted-foreground">Anki 카드를 원자적 단위로 분할하세요</p>
         </div>
       </div>
 
@@ -94,18 +78,14 @@ export function Dashboard() {
             <Select
               value={selectedDeck ?? DECK_SELECT_PLACEHOLDER}
               onValueChange={(value) =>
-                setSelectedDeck(
-                  value === DECK_SELECT_PLACEHOLDER ? null : value,
-                )
+                setSelectedDeck(value === DECK_SELECT_PLACEHOLDER ? null : value)
               }
             >
               <SelectTrigger className="w-full text-base md:text-sm">
                 <SelectValue placeholder="덱을 선택하세요" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={DECK_SELECT_PLACEHOLDER}>
-                  덱을 선택하세요
-                </SelectItem>
+                <SelectItem value={DECK_SELECT_PLACEHOLDER}>덱을 선택하세요</SelectItem>
                 {decksData?.decks.map((deck) => (
                   <SelectItem key={deck} value={deck}>
                     {deck}
@@ -119,9 +99,7 @@ export function Dashboard() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
-            Anki 동기화 상태
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">Anki 동기화 상태</CardTitle>
         </CardHeader>
         <CardContent>
           <SyncStatusBadge status={syncStatus} />
@@ -169,17 +147,14 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               {isLoadingEmbedding ? (
-                <div className="text-2xl font-bold text-muted-foreground">
-                  ...
-                </div>
+                <div className="text-2xl font-bold text-muted-foreground">...</div>
               ) : embeddingStatus?.exists ? (
                 <div>
                   <div className="text-2xl font-bold text-violet-600">
                     {embeddingStatus.coverage}%
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {embeddingStatus.totalEmbeddings} /{" "}
-                    {embeddingStatus.totalNotes}
+                    {embeddingStatus.totalEmbeddings} / {embeddingStatus.totalNotes}
                   </p>
                 </div>
               ) : (
@@ -197,19 +172,13 @@ export function Dashboard() {
             <CardTitle className="text-lg">빠른 작업</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
-            <Button
-              onClick={() =>
-                navigate("/split", { state: { deckName: selectedDeck } })
-              }
-            >
+            <Button onClick={() => navigate("/split", { state: { deckName: selectedDeck } })}>
               <Scissors className="mr-2 h-4 w-4" />
               분할 시작
             </Button>
             <Button
               variant="secondary"
-              onClick={() =>
-                navigate("/browse", { state: { deckName: selectedDeck } })
-              }
+              onClick={() => navigate("/browse", { state: { deckName: selectedDeck } })}
             >
               <FolderOpen className="mr-2 h-4 w-4" />
               카드 브라우저
@@ -228,12 +197,9 @@ export function Dashboard() {
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
                   임베딩 생성
-                  {embeddingStatus?.exists &&
-                    embeddingStatus.coverage < 100 && (
-                      <span className="ml-1 text-xs opacity-70">
-                        ({embeddingStatus.coverage}%)
-                      </span>
-                    )}
+                  {embeddingStatus?.exists && embeddingStatus.coverage < 100 && (
+                    <span className="ml-1 text-xs opacity-70">({embeddingStatus.coverage}%)</span>
+                  )}
                 </>
               )}
             </Button>

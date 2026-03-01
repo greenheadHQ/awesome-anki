@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  cosineSimilarity,
-  fastCosineSimilarity,
-  normalizeVector,
-} from "../embedding/cosine.js";
+
+import { cosineSimilarity, fastCosineSimilarity, normalizeVector } from "../embedding/cosine.js";
 
 describe("cosineSimilarity", () => {
   test("동일한 벡터는 100% 유사도", () => {

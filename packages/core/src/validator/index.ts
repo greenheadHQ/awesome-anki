@@ -14,10 +14,7 @@ export {
 export { checkFacts, type FactCheckOptions } from "./fact-checker.js";
 
 // 최신성 검사
-export {
-  checkFreshness,
-  type FreshnessCheckOptions,
-} from "./freshness-checker.js";
+export { checkFreshness, type FreshnessCheckOptions } from "./freshness-checker.js";
 
 // 유사성 검사
 export {

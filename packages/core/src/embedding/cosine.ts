@@ -13,9 +13,7 @@
  */
 export function cosineSimilarity(vec1: number[], vec2: number[]): number {
   if (vec1.length !== vec2.length) {
-    throw new Error(
-      `벡터 차원이 일치하지 않습니다: ${vec1.length} vs ${vec2.length}`,
-    );
+    throw new Error(`벡터 차원이 일치하지 않습니다: ${vec1.length} vs ${vec2.length}`);
   }
 
   if (vec1.length === 0) {
@@ -67,10 +65,7 @@ export function normalizeVector(vec: number[]): number[] {
  * 정규화된 벡터 간의 빠른 코사인 유사도 계산
  * (L2 정규화된 벡터에서는 dot product만으로 계산 가능)
  */
-export function fastCosineSimilarity(
-  normalizedVec1: number[],
-  normalizedVec2: number[],
-): number {
+export function fastCosineSimilarity(normalizedVec1: number[], normalizedVec2: number[]): number {
   if (normalizedVec1.length !== normalizedVec2.length) {
     throw new Error("벡터 차원이 일치하지 않습니다");
   }

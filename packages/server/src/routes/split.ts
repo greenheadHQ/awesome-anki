@@ -3,6 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+
 import {
   applySplitResult,
   checkBudget,
@@ -32,10 +33,8 @@ import {
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
-import {
-  getSplitHistoryStore,
-  HistorySessionNotFoundError,
-} from "../history/store.js";
+
+import { getSplitHistoryStore, HistorySessionNotFoundError } from "../history/store.js";
 import type { SplitCardPayload } from "../history/types.js";
 import { resolveModelId } from "../lib/resolve-model.js";
 
@@ -159,9 +158,7 @@ app.post("/preview", async (c) => {
           });
         } catch (historyError) {
           const message =
-            historyError instanceof Error
-              ? historyError.message
-              : String(historyError);
+            historyError instanceof Error ? historyError.message : String(historyError);
           historyWarning = historyWarning
             ? `${historyWarning}; ${message}`
             : `히스토리 기록 실패: ${message}`;
@@ -192,9 +189,7 @@ app.post("/preview", async (c) => {
           });
         } catch (historyError) {
           const message =
-            historyError instanceof Error
-              ? historyError.message
-              : String(historyError);
+            historyError instanceof Error ? historyError.message : String(historyError);
           historyWarning = historyWarning
             ? `${historyWarning}; ${message}`
             : `히스토리 기록 실패: ${message}`;
@@ -246,10 +241,7 @@ app.post("/preview", async (c) => {
       if (costEstimation) {
         estimatedCost = costEstimation.estimatedCost;
         // worst-case 비용(maxOutputTokens 기준)으로 예산 검사 — 상한 보장
-        const budgetCheck = checkBudget(
-          costEstimation.worstCaseCostUsd,
-          budgetUsdCap,
-        );
+        const budgetCheck = checkBudget(costEstimation.worstCaseCostUsd, budgetUsdCap);
         if (!budgetCheck.allowed) {
           // 세션을 generating 상태로 남기지 않도록 markNotSplit 호출
           if (sessionId) {
@@ -280,10 +272,7 @@ app.post("/preview", async (c) => {
     } catch (costError) {
       // 비용 추정 실패 시 보수적 폴백: 텍스트 기반 휴리스틱으로 예산 검사
       console.warn("비용 추정 실패, 보수적 폴백 사용:", costError);
-      const fallbackPricing = getModelPricing(
-        resolvedModelId.provider,
-        resolvedModelId.model,
-      );
+      const fallbackPricing = getModelPricing(resolvedModelId.provider, resolvedModelId.model);
       if (fallbackPricing) {
         // 시스템 프롬프트 + split 템플릿 + 태그 + 카드 텍스트를 포함한 보수적 추정
         const fullTextLen =
@@ -293,19 +282,10 @@ app.post("/preview", async (c) => {
           tags.join(" ").length;
         // 1 char ≈ 0.5 token (한국어 보정) + 15% 안전 마진
         const SAFETY_MARGIN_RATIO = 1.15;
-        const fallbackInputTokens = Math.ceil(
-          (fullTextLen / 2) * SAFETY_MARGIN_RATIO,
-        );
+        const fallbackInputTokens = Math.ceil((fullTextLen / 2) * SAFETY_MARGIN_RATIO);
         const fallbackOutputTokens = SPLIT_MAX_OUTPUT_TOKENS;
-        estimatedCost = estimateCost(
-          fallbackInputTokens,
-          fallbackOutputTokens,
-          fallbackPricing,
-        );
-        const budgetCheck = checkBudget(
-          estimatedCost.estimatedTotalCostUsd,
-          budgetUsdCap,
-        );
+        estimatedCost = estimateCost(fallbackInputTokens, fallbackOutputTokens, fallbackPricing);
+        const budgetCheck = checkBudget(estimatedCost.estimatedTotalCostUsd, budgetUsdCap);
         if (!budgetCheck.allowed) {
           if (sessionId) {
             try {
@@ -335,11 +315,7 @@ app.post("/preview", async (c) => {
     }
 
     const startTime = Date.now();
-    const aiResult = await requestCardSplit(
-      { noteId, text, tags },
-      prompts,
-      resolvedModelId,
-    );
+    const aiResult = await requestCardSplit({ noteId, text, tags }, prompts, resolvedModelId);
     const executionTimeMs = Date.now() - startTime;
 
     if (aiResult.shouldSplit && aiResult.splitCards.length > 1) {
@@ -366,8 +342,7 @@ app.post("/preview", async (c) => {
             actualCostUsd: aiResult.actualCost?.totalCostUsd,
           });
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error);
           historyWarning = historyWarning
             ? `${historyWarning}; ${message}`
             : `히스토리 기록 실패: ${message}`;
@@ -395,8 +370,7 @@ app.post("/preview", async (c) => {
       try {
         const historyStore = await getSplitHistoryStore();
         historyStore.markNotSplit(sessionId, {
-          splitReason:
-            aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+          splitReason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
           executionTimeMs,
           aiModel: aiResult.modelName,
           provider: aiResult.provider,
@@ -448,21 +422,20 @@ app.post("/preview", async (c) => {
  * 분할 적용 (자동 롤백 포함)
  */
 app.post("/apply", async (c) => {
-  const { sessionId, noteId, deckName, splitCards, mainCardIndex } =
-    await c.req.json<{
-      sessionId: string;
-      noteId: number;
-      deckName: string;
-      splitCards: Array<{
-        title: string;
-        content: string;
-        inheritImages?: string[];
-        inheritTags?: string[];
-        preservedLinks?: string[];
-        backLinks?: string[];
-      }>;
-      mainCardIndex: number;
-    }>();
+  const { sessionId, noteId, deckName, splitCards, mainCardIndex } = await c.req.json<{
+    sessionId: string;
+    noteId: number;
+    deckName: string;
+    splitCards: Array<{
+      title: string;
+      content: string;
+      inheritImages?: string[];
+      inheritTags?: string[];
+      preservedLinks?: string[];
+      backLinks?: string[];
+    }>;
+    mainCardIndex: number;
+  }>();
 
   if (!sessionId) {
     throw new ValidationError("sessionId가 필요합니다.");
@@ -506,8 +479,7 @@ app.post("/apply", async (c) => {
       await sync();
       syncResult = { success: true, syncedAt: new Date().toISOString() };
     } catch (syncError) {
-      const message =
-        syncError instanceof Error ? syncError.message : String(syncError);
+      const message = syncError instanceof Error ? syncError.message : String(syncError);
       syncResult = { success: false, error: message };
       console.warn("Anki sync failed after split apply:", message);
     }
@@ -545,10 +517,7 @@ app.post("/apply", async (c) => {
         });
       }
     } catch (historyError) {
-      const message =
-        historyError instanceof Error
-          ? historyError.message
-          : String(historyError);
+      const message = historyError instanceof Error ? historyError.message : String(historyError);
       historyWarning = `히스토리 업데이트 실패: ${message}`;
       console.warn(historyWarning);
     }
@@ -603,10 +572,7 @@ app.post("/reject", async (c) => {
     historyStore = await getSplitHistoryStore();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return c.json(
-      { error: `히스토리 저장소를 사용할 수 없습니다: ${message}` },
-      503,
-    );
+    return c.json({ error: `히스토리 저장소를 사용할 수 없습니다: ${message}` }, 503);
   }
   try {
     historyStore.markRejected(sessionId, {
@@ -614,10 +580,7 @@ app.post("/reject", async (c) => {
     });
   } catch (error) {
     if (error instanceof HistorySessionNotFoundError) {
-      return c.json(
-        { error: `히스토리 세션 ${sessionId}를 찾을 수 없습니다.` },
-        404,
-      );
+      return c.json({ error: `히스토리 세션 ${sessionId}를 찾을 수 없습니다.` }, 404);
     }
     throw error;
   }

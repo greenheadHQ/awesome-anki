@@ -102,9 +102,7 @@ function mapUnsupportedConfigActionError(
   }
 
   const message = error.message.toLowerCase();
-  const bareActionError = new RegExp(
-    `^ankiconnect error:\\s*${action.toLowerCase()}\\s*$`,
-  );
+  const bareActionError = new RegExp(`^ankiconnect error:\\s*${action.toLowerCase()}\\s*$`);
   const looksUnsupported =
     message.includes("unsupported action") ||
     message.includes("unknown action") ||
@@ -173,10 +171,7 @@ export async function getNotesInfo(notes: number[]): Promise<NoteInfo[]> {
 /**
  * 노트 필드 업데이트 (기존 nid 유지)
  */
-export async function updateNoteFields(
-  noteId: number,
-  fields: NoteFields,
-): Promise<null> {
+export async function updateNoteFields(noteId: number, fields: NoteFields): Promise<null> {
   return ankiConnect<null>("updateNoteFields", {
     note: { id: noteId, fields },
   });
@@ -275,10 +270,7 @@ export async function getConfig<T = unknown>(key: string): Promise<T | null> {
  * 참고: 공식 AnkiConnect에는 getConfig/setConfig 액션이 없고,
  * 이 프로젝트는 miniPC의 커스텀 AnkiConnect 확장을 전제로 사용한다.
  */
-export async function setConfig<T = unknown>(
-  key: string,
-  value: T,
-): Promise<null> {
+export async function setConfig<T = unknown>(key: string, value: T): Promise<null> {
   try {
     return await ankiConnect<null>("setConfig", { key, val: value });
   } catch (error) {
