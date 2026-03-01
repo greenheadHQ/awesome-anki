@@ -26,7 +26,7 @@ interface ModelPricing {
 
 ### 내부 공통 함수
 
-```
+```text
 calculateCost(inputTokens, outputTokens, pricing):
   inputCostUsd  = (inputTokens / 1,000,000) * pricing.inputPricePerMillionTokens
   outputCostUsd = (outputTokens / 1,000,000) * pricing.outputPricePerMillionTokens
@@ -54,7 +54,7 @@ calculateCost(inputTokens, outputTokens, pricing):
 
 ### 서버 사이드 예산 캡
 
-```
+```text
 getServerBudgetCapUsd():
   1. ANKI_SPLITTER_BUDGET_CAP_USD 환경변수 파싱
   2. 유효하지 않으면 (NaN, <= 0) 기본값 $1.0
@@ -62,7 +62,7 @@ getServerBudgetCapUsd():
 
 ### 이중 가드 (checkBudget)
 
-```
+```text
 checkBudget(estimatedCostUsd, clientBudgetCapUsd?):
   serverCap = getServerBudgetCapUsd()
   effectiveCap = clientBudgetCapUsd가 유효하면 min(clientCap, serverCap), 아니면 serverCap

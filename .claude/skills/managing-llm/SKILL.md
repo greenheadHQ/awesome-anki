@@ -105,8 +105,16 @@ interface LLMProvider {
 응답:
 ```json
 {
-  "models": [{ "provider", "model", "displayName", "inputPricePerMillionTokens", "outputPricePerMillionTokens" }],
-  "defaultModelId": { "provider", "model" },
+  "models": [
+    {
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "displayName": "Gemini 3 Flash Preview",
+      "inputPricePerMillionTokens": 0.15,
+      "outputPricePerMillionTokens": 0.6
+    }
+  ],
+  "defaultModelId": { "provider": "gemini", "model": "gemini-3-flash-preview" },
   "budgetCapUsd": 1.0,
   "availableProviders": ["gemini", "openai"]
 }
@@ -119,7 +127,7 @@ interface LLMProvider {
 
 ### ModelBadge (`packages/web/src/components/ui/model-badge.tsx`)
 
-- provider별 스타일: gemini(파란색, "G"), openai(에메랴드, "O"), fallback("?")
+- provider별 스타일: gemini(파란색, "G"), openai(에메랄드, "O"), fallback("?")
 - props: `provider`, `model?`, `className?`
 - 사용처: `SplitWorkspace.tsx`, `SplitHistory.tsx`
 

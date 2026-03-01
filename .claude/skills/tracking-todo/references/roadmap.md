@@ -6,7 +6,7 @@
 - **Hard Split 제거** — Split 단일화 (PR #45)
 - **Privacy 모듈 제거** — YAGNI 기반 전면 제거 (PR #47)
 - **Biome → oxc 마이그레이션** — oxlint + oxfmt (PR #50)
-- **SplitHistory 페이지** — 분할 이력 조회, 모델/비용 표시
+- **SplitHistory 페이지** — 분할 이력 조회, 모델/비용 표시 (PR #49)
 
 ## 다음 단계
 

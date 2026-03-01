@@ -70,7 +70,7 @@ const newNoteIds = await ankiConnect('addNotes', {
 
 ```bash
 # 직접 테스트
-curl -s $ANKI_CONNECT_URL -X POST -d '{"action":"deckNames","version":6}' | python3 -m json.tool
+curl -s "${ANKI_CONNECT_URL:-http://localhost:8765}" -X POST -d '{"action":"deckNames","version":6}' | python3 -m json.tool
 ```
 
 ## 자주 발생하는 문제

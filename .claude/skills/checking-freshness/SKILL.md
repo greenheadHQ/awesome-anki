@@ -19,7 +19,7 @@ description: |
 | `packages/core/src/validator/` | `validating-cards` |
 | `packages/core/src/embedding/` | `managing-embeddings` |
 | `packages/core/src/prompt-version/` | `managing-prompts` |
-| `packages/core/src/llm/` | `splitting-cards`, `validating-cards` |
+| `packages/core/src/llm/` | `managing-llm`, `splitting-cards`, `validating-cards` |
 | `packages/core/src/gemini/client.ts` | `understanding-project` |
 | `packages/core/src/gemini/prompts.ts` | `managing-prompts` |
 | `packages/core/src/gemini/cloze-enhancer.ts` | `managing-prompts` |
