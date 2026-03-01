@@ -70,6 +70,7 @@ export function ContentRenderer({
             {content}
           </pre>
         ) : (
+          // SAFETY: 사용자 로컬 Anki DB에서 AnkiConnect로 가져온 HTML. KaTeX/MathML 충실도를 위해 html:true passthrough 의도적 사용.
           <div
             className="prose prose-sm dark:prose-invert max-w-none content-rendered"
             dangerouslySetInnerHTML={{ __html: processedContent }}
@@ -87,6 +88,7 @@ export function ContentPreview({ content, className }: { content: string; classN
   return (
     <div
       className={cn("prose prose-sm dark:prose-invert max-w-none content-rendered", className)}
+      // SAFETY: 사용자 로컬 Anki DB에서 AnkiConnect로 가져온 HTML
       dangerouslySetInnerHTML={{ __html: processedContent }}
     />
   );
