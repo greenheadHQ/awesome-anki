@@ -116,14 +116,24 @@ export class OpenAIAdapter implements LLMProvider {
     text = result.text;
     tokenUsage = extractUsage(result.usage);
 
-    // DA Fix: JSON 모드에서 파싱 검증 + 실패 시 1회 재시도
+    // DA Fix: JSON 모드에서 파싱 검증 + 실패 시 1회 재시도 (토큰 누적 합산)
     if (isJsonMode) {
       try {
         JSON.parse(text);
       } catch {
+        const firstUsage = tokenUsage;
         const retryResult = await makeRequest(0.1);
         text = retryResult.text;
-        tokenUsage = extractUsage(retryResult.usage);
+        const retryUsage = extractUsage(retryResult.usage);
+        tokenUsage = {
+          promptTokens:
+            (firstUsage.promptTokens ?? 0) + (retryUsage.promptTokens ?? 0),
+          completionTokens:
+            (firstUsage.completionTokens ?? 0) +
+            (retryUsage.completionTokens ?? 0),
+          totalTokens:
+            (firstUsage.totalTokens ?? 0) + (retryUsage.totalTokens ?? 0),
+        };
         JSON.parse(text); // 재시도 후에도 실패하면 호출부로 전파
       }
     }

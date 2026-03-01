@@ -2,7 +2,7 @@
  * 팩트 체크 - Gemini를 사용한 카드 내용 사실 검증
  */
 
-import { createLLMClient } from "../llm/factory.js";
+import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { ClaimVerification, FactCheckResult } from "./types.js";
 
@@ -51,10 +51,7 @@ export async function checkFacts(
   cardContent: string,
   options: FactCheckOptions = {},
 ): Promise<FactCheckResult> {
-  const resolvedModelId: LLMModelId = options.modelId ?? {
-    provider: "gemini" as const,
-    model: "gemini-2.0-flash",
-  };
+  const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
   const client = createLLMClient(resolvedModelId.provider);
 
   // Cloze 마크업 제거하여 순수 텍스트 추출

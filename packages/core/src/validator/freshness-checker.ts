@@ -2,7 +2,7 @@
  * 최신성 검사 - 기술 변화로 인한 outdated 내용 감지
  */
 
-import { createLLMClient } from "../llm/factory.js";
+import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { FreshnessResult, OutdatedItem } from "./types.js";
 
@@ -51,10 +51,7 @@ export async function checkFreshness(
   cardContent: string,
   options: FreshnessCheckOptions = {},
 ): Promise<FreshnessResult> {
-  const resolvedModelId: LLMModelId = options.modelId ?? {
-    provider: "gemini" as const,
-    model: "gemini-2.0-flash",
-  };
+  const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
   const client = createLLMClient(resolvedModelId.provider);
 
   // Cloze 마크업 제거

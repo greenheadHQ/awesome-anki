@@ -8,7 +8,7 @@
  */
 
 import { findNotes, getNotesInfo, type NoteInfo } from "../anki/client.js";
-import { createLLMClient } from "../llm/factory.js";
+import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import { extractUniqueNids } from "../parser/nid-parser.js";
 import type { ContextResult, Inconsistency } from "./types.js";
@@ -160,10 +160,7 @@ export async function checkContext(
   }
 
   // 5. LLM에게 일관성 검사 요청
-  const resolvedModelId: LLMModelId = options.modelId ?? {
-    provider: "gemini" as const,
-    model: "gemini-2.0-flash",
-  };
+  const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
   const client = createLLMClient(resolvedModelId.provider);
 
   // 카드 내용 정리

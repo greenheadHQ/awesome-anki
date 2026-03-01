@@ -14,6 +14,7 @@ import {
   findCardsByNote,
   getActiveVersion,
   getAvailableProviders,
+  getDefaultModelForProvider,
   getModelPricing,
   getNoteById,
   getPromptVersion,
@@ -107,9 +108,7 @@ app.post("/preview", async (c) => {
         503,
       );
     }
-    const resolvedModel =
-      model ??
-      (resolvedProvider === "gemini" ? "gemini-3-flash-preview" : "gpt-5-mini");
+    const resolvedModel = model ?? getDefaultModelForProvider(resolvedProvider);
     const pricing = getModelPricing(resolvedProvider, resolvedModel);
     if (!pricing) {
       return c.json(
@@ -226,7 +225,7 @@ app.post("/preview", async (c) => {
       splitPromptTemplate: resolvedVersion.splitPromptTemplate,
     };
 
-    // 비용 가드레일: AI 호출 전 예상 비용 계산
+    // 비용 가드레일: AI 호출 전 예상 비용 계산 (best-effort)
     let estimatedCost:
       | {
           estimatedInputCostUsd: number;
@@ -234,25 +233,45 @@ app.post("/preview", async (c) => {
           estimatedTotalCostUsd: number;
         }
       | undefined;
-    const costEstimation = await estimateSplitCost(text, modelId);
-    if (costEstimation) {
-      estimatedCost = costEstimation.estimatedCost;
-      const budgetCheck = checkBudget(
-        costEstimation.estimatedCost.estimatedTotalCostUsd,
-        budgetUsdCap,
+    try {
+      const costEstimation = await estimateSplitCost(
+        text,
+        modelId,
+        prompts.systemPrompt,
       );
-      if (!budgetCheck.allowed) {
-        return c.json(
-          {
-            error: "BUDGET_EXCEEDED",
-            estimatedCostUsd: budgetCheck.estimatedCostUsd,
-            budgetCapUsd: budgetCheck.budgetCapUsd,
-            provider: modelId?.provider ?? "gemini",
-            model: modelId?.model ?? "gemini-3-flash-preview",
-          },
-          402,
+      if (costEstimation) {
+        estimatedCost = costEstimation.estimatedCost;
+        const budgetCheck = checkBudget(
+          costEstimation.estimatedCost.estimatedTotalCostUsd,
+          budgetUsdCap,
         );
+        if (!budgetCheck.allowed) {
+          // 세션을 generating 상태로 남기지 않도록 markNotSplit 호출
+          if (sessionId) {
+            try {
+              const historyStore = await getSplitHistoryStore();
+              historyStore.markNotSplit(sessionId, {
+                splitReason: "예산 초과로 분할이 중단되었습니다.",
+              });
+            } catch {
+              // history 에러가 402 응답을 차단하면 안 됨
+            }
+          }
+          return c.json(
+            {
+              error: "BUDGET_EXCEEDED",
+              estimatedCostUsd: budgetCheck.estimatedCostUsd,
+              budgetCapUsd: budgetCheck.budgetCapUsd,
+              provider: modelId?.provider ?? "gemini",
+              model: modelId?.model ?? "gemini-3-flash-preview",
+            },
+            402,
+          );
+        }
       }
+    } catch (costError) {
+      // 비용 추정 실패는 본 호출을 차단하지 않음 (best-effort)
+      console.warn("비용 추정 실패:", costError);
     }
 
     const startTime = Date.now();

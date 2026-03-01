@@ -22,7 +22,8 @@ export function getDefaultModelId(): LLMModelId {
     (process.env.ANKI_SPLITTER_DEFAULT_LLM_PROVIDER as LLMProviderName) ??
     "gemini";
   const model =
-    process.env.ANKI_SPLITTER_DEFAULT_LLM_MODEL ?? "gemini-3-flash-preview";
+    process.env.ANKI_SPLITTER_DEFAULT_LLM_MODEL ??
+    getDefaultModelForProvider(provider);
 
   return { provider, model };
 }

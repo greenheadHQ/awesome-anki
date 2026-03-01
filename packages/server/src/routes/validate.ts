@@ -188,9 +188,11 @@ validate.post("/context", async (c) => {
  * 모든 검증 수행
  */
 validate.post("/all", async (c) => {
-  const { noteId, deckName } = await c.req.json<{
+  const { noteId, deckName, provider, model } = await c.req.json<{
     noteId: number;
     deckName: string;
+    provider?: string;
+    model?: string;
   }>();
 
   if (!noteId || !deckName) {
@@ -203,11 +205,12 @@ validate.post("/all", async (c) => {
   }
 
   const text = extractTextField(note);
+  const modelId = resolveModelId(provider, model);
 
   const [factCheckResult, freshnessResult, similarityResult, contextResult] =
     await Promise.all([
-      checkFacts(text),
-      checkFreshness(text),
+      checkFacts(text, { modelId }),
+      checkFreshness(text, { modelId }),
       (async () => {
         const allNotes = await getDeckNotes(deckName);
         const allCards: CardForComparison[] = allNotes.map((n) => ({
@@ -222,7 +225,7 @@ validate.post("/all", async (c) => {
           text,
           tags: note.tags,
         };
-        return checkContext(targetCard, { includeReverseLinks: true });
+        return checkContext(targetCard, { includeReverseLinks: true, modelId });
       })(),
     ]);
 
