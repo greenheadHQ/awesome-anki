@@ -132,18 +132,19 @@ function validateLLMProviders(): void {
 
   const defaultModel = getDefaultModelId();
   if (!available.includes(defaultModel.provider)) {
-    console.error(
-      `❌ 기본 provider '${defaultModel.provider}'의 API 키가 설정되지 않았습니다.`,
+    console.warn(
+      `⚠️ 기본 provider '${defaultModel.provider}'의 API 키가 설정되지 않았습니다. 가용 provider '${available[0]}'로 대체합니다.`,
     );
-    process.exit(1);
-  }
-
-  const pricing = getModelPricing(defaultModel.provider, defaultModel.model);
-  if (!pricing) {
-    console.error(
-      `❌ 기본 모델 '${defaultModel.provider}/${defaultModel.model}'이 pricing table에 등록되지 않았습니다.`,
+    console.warn(
+      "   기본 provider를 변경하려면 ANKI_SPLITTER_DEFAULT_LLM_PROVIDER 환경변수를 설정하세요.",
     );
-    process.exit(1);
+  } else {
+    const pricing = getModelPricing(defaultModel.provider, defaultModel.model);
+    if (!pricing) {
+      console.warn(
+        `⚠️ 기본 모델 '${defaultModel.provider}/${defaultModel.model}'이 pricing table에 등록되지 않았습니다. 비용 추정이 불가능할 수 있습니다.`,
+      );
+    }
   }
 }
 

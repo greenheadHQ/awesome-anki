@@ -251,8 +251,9 @@ app.post("/preview", async (c) => {
       );
       if (costEstimation) {
         estimatedCost = costEstimation.estimatedCost;
+        // worst-case 비용(maxOutputTokens 기준)으로 예산 검사 — 상한 보장
         const budgetCheck = checkBudget(
-          costEstimation.estimatedCost.estimatedTotalCostUsd,
+          costEstimation.worstCaseCostUsd,
           budgetUsdCap,
         );
         if (!budgetCheck.allowed) {

@@ -48,6 +48,7 @@ export async function estimateSplitCost(
   modelId?: LLMModelId,
 ): Promise<{
   estimatedCost: CostEstimate;
+  worstCaseCostUsd: number;
   inputTokens: number;
   outputTokens: number;
 } | null> {
@@ -79,8 +80,12 @@ export async function estimateSplitCost(
     SPLIT_MAX_OUTPUT_TOKENS,
   );
 
+  // worst-case: 출력이 maxOutputTokens까지 나오는 경우의 비용 (예산 검사용)
+  const worstCase = estimateCost(inputTokens, SPLIT_MAX_OUTPUT_TOKENS, pricing);
+
   return {
     estimatedCost: estimateCost(inputTokens, outputTokens, pricing),
+    worstCaseCostUsd: worstCase.estimatedTotalCostUsd,
     inputTokens,
     outputTokens,
   };
