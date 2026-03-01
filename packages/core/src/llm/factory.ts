@@ -26,8 +26,16 @@ export function getDefaultModelId(): LLMModelId {
       `유효하지 않은 LLM provider: ${rawProvider} (지원: gemini, openai)`,
     );
   }
-  const provider: LLMProviderName =
-    (rawProvider as LLMProviderName) ?? "gemini";
+  let provider: LLMProviderName = (rawProvider as LLMProviderName) ?? "gemini";
+
+  // 설정된 provider가 미가용이면 가용 provider로 graceful fallback
+  const available = getAvailableProviders();
+  if (available.length > 0 && !available.includes(provider)) {
+    provider = available[0];
+    // provider가 바뀌면 env 기본 모델은 무효 → 해당 provider 기본 모델 사용
+    return { provider, model: getDefaultModelForProvider(provider) };
+  }
+
   const model =
     process.env.ANKI_SPLITTER_DEFAULT_LLM_MODEL ??
     getDefaultModelForProvider(provider);

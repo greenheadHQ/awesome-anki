@@ -291,7 +291,9 @@ app.post("/preview", async (c) => {
         resolvedModelId.model,
       );
       if (fallbackPricing) {
-        const fallbackInputTokens = Math.ceil(text.length / 2); // 한국어 보정
+        // 시스템 프롬프트 + 카드 텍스트 전체 길이 포함, 1 char ≈ 0.5 token (한국어 보정)
+        const fullTextLen = text.length + (prompts?.systemPrompt?.length ?? 0);
+        const fallbackInputTokens = Math.ceil(fullTextLen / 2);
         const fallbackOutputTokens = SPLIT_MAX_OUTPUT_TOKENS;
         estimatedCost = estimateCost(
           fallbackInputTokens,
