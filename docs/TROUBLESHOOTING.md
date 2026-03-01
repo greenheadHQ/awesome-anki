@@ -7,7 +7,7 @@
 1. `bun run check:quick`
 2. `bun run check`
 3. 서버/웹/AnkiConnect 실행 상태 확인
-4. `.env`의 API 키/인증 키 확인
+4. `.env`/`.envrc`의 API 키/인증 키 주입 상태 확인 (agenix 사용 시 복호화 포함)
 
 ---
 
