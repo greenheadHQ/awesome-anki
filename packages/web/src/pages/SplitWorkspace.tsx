@@ -327,10 +327,12 @@ export function SplitWorkspace() {
   const previewData: SplitPreviewResult | undefined =
     cachedPreview || (mutationMatchesCurrent ? splitPreview.data : undefined);
 
-  // 현재 카드에 대한 로딩 중인지 확인 (다른 카드 분석 중에는 영향 없음)
+  // 현재 카드+모델에 대한 로딩 중인지 확인 (다른 카드/모델 분석 중에는 영향 없음)
   const isLoadingCurrentCard =
     splitPreview.isPending &&
-    splitPreview.variables?.noteId === selectedCard?.noteId;
+    splitPreview.variables?.noteId === selectedCard?.noteId &&
+    splitPreview.variables?.provider === activeProvider &&
+    splitPreview.variables?.model === activeModel;
 
   // 현재 선택된 카드+모델의 에러 메시지 확인
   const analysisKey = (nid: number) =>
@@ -830,7 +832,9 @@ export function SplitWorkspace() {
             </Button>
           </div>
         ) : splitPreview.isError &&
-          splitPreview.variables?.noteId === selectedCard.noteId ? (
+          splitPreview.variables?.noteId === selectedCard.noteId &&
+          splitPreview.variables?.provider === activeProvider &&
+          splitPreview.variables?.model === activeModel ? (
           <div className="flex flex-col items-center justify-center h-full text-destructive">
             <AlertTriangle className="w-8 h-8 mb-3" />
             <span className="font-medium mb-2">분할 분석 실패</span>
