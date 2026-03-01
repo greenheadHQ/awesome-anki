@@ -95,6 +95,12 @@ app.post("/preview", async (c) => {
   }>();
 
   // provider+model 유효성 검증
+  if (model && !provider) {
+    return c.json(
+      { error: "model을 지정할 때 provider도 함께 지정해야 합니다." },
+      400,
+    );
+  }
   let modelId: LLMModelId | undefined;
   if (provider || model) {
     const resolvedProvider = (provider ?? "gemini") as LLMProviderName;

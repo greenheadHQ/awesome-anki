@@ -921,6 +921,7 @@ export function SplitWorkspace() {
             <Button
               onClick={handleRequestSplit}
               disabled={
+                !llmModelsData ||
                 splitPreview.isPending ||
                 pendingAnalyses.has(selectedCard?.noteId ?? -1)
               }
