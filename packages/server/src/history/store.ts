@@ -719,12 +719,20 @@ export class SplitHistoryStore {
       `UPDATE split_sessions
        SET status = 'error',
            error_message = ?,
+           provider = COALESCE(?, provider),
+           ai_model = COALESCE(?, ai_model),
            updated_at = ?
        WHERE id = ?`,
     );
 
     this.db.transaction(() => {
-      const result = stmt.run(payload.errorMessage, updatedAt, sessionId);
+      const result = stmt.run(
+        payload.errorMessage,
+        payload.provider || null,
+        payload.aiModel || null,
+        updatedAt,
+        sessionId,
+      );
       if (result.changes === 0) {
         throw new HistorySessionNotFoundError(sessionId);
       }

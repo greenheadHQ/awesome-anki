@@ -123,7 +123,14 @@ export async function requestCardSplit(
   });
 
   // JSON 파싱 및 검증
-  const parsed = JSON.parse(llmResult.text);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(llmResult.text);
+  } catch {
+    throw new Error(
+      `LLM이 유효하지 않은 JSON을 반환했습니다 (${resolvedModelId.provider}/${resolvedModelId.model})`,
+    );
+  }
   const validated = validateSplitResponse(parsed);
 
   return {

@@ -134,6 +134,8 @@ export interface SplitRejectedPayload {
 
 export interface SplitErrorPayload {
   errorMessage: string;
+  provider?: string;
+  aiModel?: string;
 }
 
 export interface HistorySyncHealth {

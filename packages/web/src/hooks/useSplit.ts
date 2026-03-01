@@ -42,12 +42,14 @@ export function useSplitPreview() {
         budgetUsdCap,
       }),
     onSuccess: (data, variables) => {
+      const resolvedProvider = data.provider ?? variables.provider;
+      const resolvedModel = data.aiModel ?? variables.model;
       queryClient.setQueryData(
         queryKeys.split.preview(
           variables.noteId,
           variables.versionId,
-          variables.provider,
-          variables.model,
+          resolvedProvider,
+          resolvedModel,
         ),
         data,
       );

@@ -177,6 +177,8 @@ app.post("/preview", async (c) => {
           const historyStore = await getSplitHistoryStore();
           historyStore.markError(sessionId, {
             errorMessage: versionNotFoundMessage,
+            provider: modelId?.provider,
+            aiModel: modelId?.model,
           });
         } catch (historyError) {
           const message =
@@ -208,6 +210,8 @@ app.post("/preview", async (c) => {
           const historyStore = await getSplitHistoryStore();
           historyStore.markError(sessionId, {
             errorMessage: remotePromptMissingMessage,
+            provider: modelId?.provider,
+            aiModel: modelId?.model,
           });
         } catch (historyError) {
           const message =
@@ -279,7 +283,7 @@ app.post("/preview", async (c) => {
                 splitReason: "예산 초과로 분할이 중단되었습니다.",
                 provider: resolvedModelId.provider,
                 aiModel: resolvedModelId.model,
-                estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+                estimatedCostUsd: budgetCheck.estimatedCostUsd,
               });
             } catch {
               // history 에러가 402 응답을 차단하면 안 됨
@@ -350,7 +354,7 @@ app.post("/preview", async (c) => {
     const aiResult = await requestCardSplit(
       { noteId, text, tags },
       prompts,
-      modelId,
+      resolvedModelId,
     );
     const executionTimeMs = Date.now() - startTime;
 
@@ -442,7 +446,11 @@ app.post("/preview", async (c) => {
       try {
         const historyStore = await getSplitHistoryStore();
         const message = error instanceof Error ? error.message : String(error);
-        historyStore.markError(sessionId, { errorMessage: message });
+        historyStore.markError(sessionId, {
+          errorMessage: message,
+          provider: modelId?.provider,
+          aiModel: modelId?.model,
+        });
       } catch {
         // Split 실패 에러를 덮어쓰지 않음
       }
