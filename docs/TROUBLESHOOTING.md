@@ -7,7 +7,7 @@
 1. `bun run check:quick`
 2. `bun run check`
 3. 서버/웹/AnkiConnect 실행 상태 확인
-4. `.env`의 API 키/프라이버시 모드/인증 키 확인
+4. `.env`/`.envrc`의 API 키/인증 키 주입 상태 확인 (agenix 사용 시 복호화 포함)
 
 ---
 
@@ -22,7 +22,6 @@
 해결:
 1. `.env`에 `GEMINI_API_KEY` 설정
 2. 서버 재시작
-3. `strict` 모드가 아니라면 다시 요청
 
 ---
 
@@ -39,16 +38,13 @@
 
 ---
 
-### 2.3 API 503 (privacy/auth 설정 오류)
+### 2.3 API 503 (인증 설정 오류)
 
 원인:
 - 서버에 `ANKI_SPLITTER_API_KEY` 미설정
-- `strict` 모드에서 외부 전송 기능 호출
 
 해결:
 1. `ANKI_SPLITTER_API_KEY` 설정
-2. `ANKI_SPLITTER_PRIVACY_MODE` 확인 (`strict`면 split/validation/embedding 차단)
-3. `/api/privacy/status`로 현재 정책 확인
 
 ---
 
@@ -108,7 +104,6 @@
 ## 3. 운영 체크리스트
 
 - `.env` 필수 값이 설정되어 있는가?
-- 프라이버시 모드가 의도와 일치하는가?
 - API 키가 일치하는가?
 - AnkiConnect가 응답하는가?
 - `bun run check`가 통과하는가?

@@ -63,11 +63,9 @@ Awesome Anki는 **Anki 노트를 학습 효율이 높은 원자 카드(Atomic Ca
 - 실패 패턴 분석
 - A/B 실험(Experiment) 생성 및 완료 처리
 
-### 2.5 보안/프라이버시
+### 2.5 보안
 
 - `/api/health`를 제외한 API는 `ANKI_SPLITTER_API_KEY` 인증 필요
-- 프라이버시 모드 제공: `standard`, `balanced`, `strict`
-- `strict` 모드에서는 외부 AI 호출(split/validation/embedding) 차단
 
 ## 3. 기술 스택
 
@@ -89,7 +87,7 @@ Awesome Anki는 **Anki 노트를 학습 효율이 높은 원자 카드(Atomic Ca
 awesome-anki/
 ├── src/                      # 루트 CLI 엔트리
 ├── packages/
-│   ├── core/                 # 도메인 로직(분할/검증/백업/프라이버시)
+│   ├── core/                 # 도메인 로직(분할/검증/백업)
 │   ├── server/               # Hono REST API
 │   └── web/                  # React + Vite 웹 UI
 ├── output/                   # 런타임 산출물(백업, 임베딩 캐시, 프롬프트 버전/legacy 기록)
@@ -170,11 +168,6 @@ bun run cli rollback <backupId>
 | `ANKI_CONNECT_URL` | AnkiConnect URL |
 | `ANKI_CONNECT_VERSION` | AnkiConnect 버전(기본 6) |
 | `TARGET_DECK` | 기본 대상 덱 |
-| `ANKI_SPLITTER_PRIVACY_MODE` | `standard` / `balanced` / `strict` |
-| `ANKI_SPLITTER_PRIVACY_MASK_SENSITIVE` | 민감정보 마스킹 여부 |
-| `ANKI_SPLITTER_PRIVACY_SPLIT_MAX_CHARS` | split 전송 길이 제한 |
-| `ANKI_SPLITTER_PRIVACY_VALIDATION_MAX_CHARS` | validation 전송 길이 제한 |
-| `ANKI_SPLITTER_PRIVACY_EMBEDDING_MAX_CHARS` | embedding 전송 길이 제한 |
 | `SPLIT_HISTORY_DB_PATH` | 분할 이력 SQLite 파일 경로 (기본 `data/split-history.db`) |
 | `HISTORY_SYNC_MODE` | 히스토리 동기화 모드 (`local` / `remote`) |
 
@@ -297,7 +290,6 @@ bun run cli rollback <backupId>
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
 | GET | `/api/health` | 서버 헬스 체크 |
-| GET | `/api/privacy/status` | 프라이버시 모드/정책 조회 |
 
 ### 9.3 Deck / Card
 
@@ -397,8 +389,6 @@ CI에서는 `.github/workflows/ci.yml`의 `quality-gate`가 `bun run check`를 �
 2. `bun run check`
 3. `ANKI_SPLITTER_API_KEY` 및 API 헤더 확인
 4. `ANKI_CONNECT_URL` 연결 확인
-5. `ANKI_SPLITTER_PRIVACY_MODE` 확인 (`strict`이면 외부 AI 기능 차단)
-6. `/api/privacy/status` 응답 점검
 
 상세 트러블슈팅 문서: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 

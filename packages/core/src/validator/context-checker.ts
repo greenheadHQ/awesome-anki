@@ -10,10 +10,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { findNotes, getNotesInfo, type NoteInfo } from "../anki/client.js";
 import { extractUniqueNids } from "../parser/nid-parser.js";
-import {
-  assertExternalAIEnabled,
-  sanitizeForExternalAI,
-} from "../privacy/index.js";
 import type { ContextResult, Inconsistency } from "./types.js";
 
 const MODEL_NAME = "gemini-2.0-flash";
@@ -117,8 +113,6 @@ export async function checkContext(
   targetCard: CardForContext,
   options: ContextCheckOptions = {},
 ): Promise<ContextResult> {
-  assertExternalAIEnabled("validation");
-
   const maxRelatedCards = options.maxRelatedCards ?? 10;
 
   // 1. 카드에서 nid 링크 추출
@@ -201,14 +195,13 @@ export async function checkContext(
         `[NOTE ID: ${c.noteId}${c.isTarget ? " (대상 카드)" : ""}]\n${c.text}`,
     )
     .join("\n\n---\n\n");
-  const sanitizedCardsText = sanitizeForExternalAI(cardsText, "validation");
 
   const prompt = `
 ${CONTEXT_CHECK_PROMPT}
 
 ## 검증할 카드들:
 
-${sanitizedCardsText}
+${cardsText}
 
 ## 특별 주의사항:
 - 대상 카드(NOTE ID: ${targetCard.noteId})를 중심으로 다른 카드들과의 일관성을 검사하세요.

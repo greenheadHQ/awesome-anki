@@ -3,10 +3,6 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
-import {
-  assertExternalAIEnabled,
-  sanitizeForExternalAI,
-} from "../privacy/index.js";
 import type { ClaimVerification, FactCheckResult } from "./types.js";
 
 const MODEL_NAME = "gemini-2.0-flash";
@@ -68,8 +64,6 @@ export async function checkFacts(
   cardContent: string,
   options: FactCheckOptions = {},
 ): Promise<FactCheckResult> {
-  assertExternalAIEnabled("validation");
-
   const client = getClient();
 
   // Cloze 마크업 제거하여 순수 텍스트 추출
@@ -79,13 +73,12 @@ export async function checkFacts(
     .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
     .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
     .trim();
-  const sanitizedContent = sanitizeForExternalAI(cleanContent, "validation");
 
   const prompt = `
 ${FACT_CHECK_PROMPT}
 
 ## 검증할 카드 내용:
-${sanitizedContent}
+${cleanContent}
 `;
 
   try {

@@ -61,12 +61,9 @@ Awesome Anki는 Anki 노트를 학습 효율이 높은 원자 카드(Atomic Card
 | AnkiConnect | 노트 조회/수정/삭제 | `$ANKI_CONNECT_URL` (MiniPC headless Anki) |
 | Gemini API | soft split / validation / embedding | `GEMINI_API_KEY` 필요 |
 
-## 6. 보안/프라이버시 경계
+## 6. 보안 경계
 
 - API 서버는 `ANKI_SPLITTER_API_KEY` 인증이 필요하다 (`X-API-Key` 또는 Bearer).
-- `/api/privacy/status`로 현재 프라이버시 모드(`standard/balanced/strict`)를 확인할 수 있다.
-- `strict` 모드에서는 split/validation/embedding 외부 전송이 차단된다.
-- `balanced` 모드에서는 민감정보 마스킹 + 기능별 길이 제한이 적용된다.
 
 ## 7. 품질 게이트
 
