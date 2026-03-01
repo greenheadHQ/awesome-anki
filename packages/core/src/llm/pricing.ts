@@ -31,14 +31,6 @@ export const MODEL_PRICING_TABLE: ModelPricing[] = [
     outputPricePerMillionTokens: 0.6,
     verifiedAt: "2025-05-01",
   },
-  {
-    provider: "gemini",
-    model: "gemini-2.0-flash",
-    displayName: "Gemini 2.0 Flash",
-    inputPricePerMillionTokens: 0.1,
-    outputPricePerMillionTokens: 0.4,
-    verifiedAt: "2025-05-01",
-  },
   // OpenAI
   {
     provider: "openai",
@@ -46,14 +38,6 @@ export const MODEL_PRICING_TABLE: ModelPricing[] = [
     displayName: "GPT-5 Mini",
     inputPricePerMillionTokens: 0.25,
     outputPricePerMillionTokens: 2.0,
-    verifiedAt: "2026-03-01",
-  },
-  {
-    provider: "openai",
-    model: "gpt-5-nano",
-    displayName: "GPT-5 Nano",
-    inputPricePerMillionTokens: 0.05,
-    outputPricePerMillionTokens: 0.4,
     verifiedAt: "2026-03-01",
   },
 ];

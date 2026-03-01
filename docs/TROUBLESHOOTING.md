@@ -45,8 +45,8 @@
 - 요청의 예상 비용이 서버 예산 상한(`ANKI_SPLITTER_BUDGET_CAP_USD`)을 초과
 
 해결:
-1. 더 저렴한 모델 선택 (예: `gpt-5-nano`)
-2. 필요 시 `ANKI_SPLITTER_BUDGET_CAP_USD` 상향 (기본 $1.0)
+1. 필요 시 `ANKI_SPLITTER_BUDGET_CAP_USD` 상향 (기본 $1.0)
+2. 더 긴 카드는 분할 전 수동으로 줄이기
 
 ---
 

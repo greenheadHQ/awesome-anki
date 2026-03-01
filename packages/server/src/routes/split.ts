@@ -143,6 +143,8 @@ app.post("/preview", async (c) => {
     sessionId = randomUUID();
   }
 
+  const resolvedModelId = modelId ?? getDefaultModelId();
+
   try {
     const resolvedVersion = await getPromptVersion(promptVersionId);
     if (!resolvedVersion) {
@@ -221,7 +223,6 @@ app.post("/preview", async (c) => {
           estimatedTotalCostUsd: number;
         }
       | undefined;
-    const resolvedModelId = modelId ?? getDefaultModelId();
 
     // 기본 모델 경로도 pricing table 검증 적용 — 미등록 시 예산 가드레일 우회 방지
     if (
@@ -284,9 +285,17 @@ app.post("/preview", async (c) => {
         resolvedModelId.model,
       );
       if (fallbackPricing) {
-        // 시스템 프롬프트 + 카드 텍스트 전체 길이 포함, 1 char ≈ 0.5 token (한국어 보정)
-        const fullTextLen = text.length + (prompts?.systemPrompt?.length ?? 0);
-        const fallbackInputTokens = Math.ceil(fullTextLen / 2);
+        // 시스템 프롬프트 + split 템플릿 + 태그 + 카드 텍스트를 포함한 보수적 추정
+        const fullTextLen =
+          text.length +
+          prompts.systemPrompt.length +
+          prompts.splitPromptTemplate.length +
+          tags.join(" ").length;
+        // 1 char ≈ 0.5 token (한국어 보정) + 15% 안전 마진
+        const SAFETY_MARGIN_RATIO = 1.15;
+        const fallbackInputTokens = Math.ceil(
+          (fullTextLen / 2) * SAFETY_MARGIN_RATIO,
+        );
         const fallbackOutputTokens = SPLIT_MAX_OUTPUT_TOKENS;
         estimatedCost = estimateCost(
           fallbackInputTokens,
@@ -423,8 +432,8 @@ app.post("/preview", async (c) => {
         const message = error instanceof Error ? error.message : String(error);
         historyStore.markError(sessionId, {
           errorMessage: message,
-          provider: modelId?.provider,
-          aiModel: modelId?.model,
+          provider: resolvedModelId.provider,
+          aiModel: resolvedModelId.model,
         });
       } catch {
         // Split 실패 에러를 덮어쓰지 않음

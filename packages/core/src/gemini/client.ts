@@ -230,11 +230,30 @@ ${card.text}
     model: resolvedModelId.model,
   });
 
+  let parsed: unknown;
   try {
-    return JSON.parse(llmResult.text);
+    parsed = JSON.parse(llmResult.text);
   } catch {
     throw new Error(
       `LLM이 유효하지 않은 JSON을 반환했습니다 (${resolvedModelId.provider}/${resolvedModelId.model})`,
     );
   }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed == null ||
+    typeof (parsed as Record<string, unknown>).needsSplit !== "boolean" ||
+    typeof (parsed as Record<string, unknown>).reason !== "string" ||
+    typeof (parsed as Record<string, unknown>).suggestedSplitCount !== "number"
+  ) {
+    throw new Error(
+      `LLM analysis 응답 스키마가 올바르지 않습니다 (${resolvedModelId.provider}/${resolvedModelId.model})`,
+    );
+  }
+
+  return parsed as {
+    needsSplit: boolean;
+    reason: string;
+    suggestedSplitCount: number;
+  };
 }
