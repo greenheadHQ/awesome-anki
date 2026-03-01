@@ -1,8 +1,15 @@
 /**
- * Gemini API 클라이언트
+ * 카드 분할 클라이언트 (멀티 LLM 지원)
  */
 
-import { GoogleGenAI } from "@google/genai";
+import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
+import { estimateCost, getModelPricing } from "../llm/pricing.js";
+import type {
+  ActualCost,
+  CostEstimate,
+  LLMModelId,
+  TokenUsage,
+} from "../llm/types.js";
 import {
   buildSplitPrompt,
   buildSplitPromptFromTemplate,
@@ -10,33 +17,15 @@ import {
 } from "./prompts.js";
 import { type SplitResponse, validateSplitResponse } from "./validator.js";
 
-export interface TokenUsage {
-  promptTokens?: number;
-  completionTokens?: number;
-  totalTokens?: number;
-}
+export type { TokenUsage };
 
 export interface SplitRequestMetadata {
   tokenUsage?: TokenUsage;
   modelName: string;
+  provider?: string;
+  actualCost?: ActualCost;
+  estimatedCost?: CostEstimate;
 }
-
-let genAI: GoogleGenAI | null = null;
-
-function getClient(): GoogleGenAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        "GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.",
-      );
-    }
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
-
-const MODEL_NAME = "gemini-3-flash-preview";
 
 export interface CardForSplit {
   noteId: number;
@@ -45,15 +34,50 @@ export interface CardForSplit {
 }
 
 /**
+ * 분할 비용 사전 추정
+ */
+export async function estimateSplitCost(
+  inputText: string,
+  modelId?: LLMModelId,
+): Promise<{
+  estimatedCost: CostEstimate;
+  inputTokens: number;
+  outputTokens: number;
+} | null> {
+  const resolvedModelId = modelId ?? getDefaultModelId();
+  const pricing = getModelPricing(
+    resolvedModelId.provider,
+    resolvedModelId.model,
+  );
+  if (!pricing) return null;
+
+  const client = createLLMClient(resolvedModelId.provider);
+  const inputTokens = await client.countTokens(
+    inputText,
+    resolvedModelId.model,
+  );
+  const outputTokens = Math.ceil(inputTokens * 0.7);
+
+  return {
+    estimatedCost: estimateCost(inputTokens, outputTokens, pricing),
+    inputTokens,
+    outputTokens,
+  };
+}
+
+/**
  * 단일 카드 분할 요청
  * @param card - 분할할 카드 정보
  * @param prompts - resolve된 프롬프트 (버전별 A/B 테스트용). 없으면 기본 프롬프트 사용.
+ * @param modelId - 사용할 LLM 모델. 없으면 기본 모델 사용.
  */
 export async function requestCardSplit(
   card: CardForSplit,
   prompts?: { systemPrompt: string; splitPromptTemplate: string },
+  modelId?: LLMModelId,
 ): Promise<SplitResponse & SplitRequestMetadata> {
-  const client = getClient();
+  const resolvedModelId = modelId ?? getDefaultModelId();
+  const client = createLLMClient(resolvedModelId.provider);
 
   const systemPrompt = prompts?.systemPrompt ?? SYSTEM_PROMPT;
   const userPrompt = prompts
@@ -65,34 +89,23 @@ export async function requestCardSplit(
       )
     : buildSplitPrompt(card.noteId, card.text);
 
-  const response = await client.models.generateContent({
-    model: MODEL_NAME,
-    contents: userPrompt,
-    config: {
-      systemInstruction: systemPrompt,
-      responseMimeType: "application/json",
-    },
+  const llmResult = await client.generateContent(userPrompt, {
+    systemPrompt,
+    responseMimeType: "application/json",
+    model: resolvedModelId.model,
   });
 
-  const text = response.text;
-  if (!text) {
-    throw new Error("Gemini 응답이 비어있습니다.");
-  }
-
-  // usageMetadata에서 토큰 사용량 추출
-  const usage = response.usageMetadata;
-  const tokenUsage: TokenUsage | undefined = usage
-    ? {
-        promptTokens: usage.promptTokenCount,
-        completionTokens: usage.candidatesTokenCount,
-        totalTokens: usage.totalTokenCount,
-      }
-    : undefined;
-
   // JSON 파싱 및 검증
-  const parsed = JSON.parse(text);
+  const parsed = JSON.parse(llmResult.text);
   const validated = validateSplitResponse(parsed);
-  return { ...validated, tokenUsage, modelName: MODEL_NAME };
+
+  return {
+    ...validated,
+    tokenUsage: llmResult.tokenUsage,
+    modelName: resolvedModelId.model,
+    provider: resolvedModelId.provider,
+    actualCost: llmResult.actualCost,
+  };
 }
 
 /**
@@ -101,6 +114,7 @@ export async function requestCardSplit(
 export async function requestBatchCardSplit(
   cards: CardForSplit[],
   onProgress?: (completed: number, total: number) => void,
+  modelId?: LLMModelId,
 ): Promise<Map<number, SplitResponse>> {
   const results = new Map<number, SplitResponse>();
   const BATCH_SIZE = 10;
@@ -111,7 +125,7 @@ export async function requestBatchCardSplit(
 
     // 배치 내 병렬 처리
     const batchResults = await Promise.allSettled(
-      batch.map((card) => requestCardSplit(card)),
+      batch.map((card) => requestCardSplit(card, undefined, modelId)),
     );
 
     for (let j = 0; j < batch.length; j++) {
@@ -139,12 +153,16 @@ export async function requestBatchCardSplit(
 /**
  * 카드가 분할이 필요한지 분석 요청
  */
-export async function analyzeCardForSplit(card: CardForSplit): Promise<{
+export async function analyzeCardForSplit(
+  card: CardForSplit,
+  modelId?: LLMModelId,
+): Promise<{
   needsSplit: boolean;
   reason: string;
   suggestedSplitCount: number;
 }> {
-  const client = getClient();
+  const resolvedModelId = modelId ?? getDefaultModelId();
+  const client = createLLMClient(resolvedModelId.provider);
 
   const analysisPrompt = `
 다음 Anki 카드가 분할이 필요한지 분석해주세요.
@@ -171,18 +189,10 @@ ${card.text}
 }
 `;
 
-  const response = await client.models.generateContent({
-    model: MODEL_NAME,
-    contents: analysisPrompt,
-    config: {
-      responseMimeType: "application/json",
-    },
+  const llmResult = await client.generateContent(analysisPrompt, {
+    responseMimeType: "application/json",
+    model: resolvedModelId.model,
   });
 
-  const text = response.text;
-  if (!text) {
-    throw new Error("Gemini 응답이 비어있습니다.");
-  }
-
-  return JSON.parse(text);
+  return JSON.parse(llmResult.text);
 }

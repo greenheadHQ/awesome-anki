@@ -12,6 +12,8 @@ import {
   extractTextField,
   getDeckNotes,
   getNoteById,
+  type LLMModelId,
+  type LLMProviderName,
   NotFoundError,
   ValidationError,
 } from "@anki-splitter/core";
@@ -24,9 +26,11 @@ const validate = new Hono();
  * 카드 내용 팩트 체크
  */
 validate.post("/fact-check", async (c) => {
-  const { noteId, thorough } = await c.req.json<{
+  const { noteId, thorough, provider, model } = await c.req.json<{
     noteId: number;
     thorough?: boolean;
+    provider?: string;
+    model?: string;
   }>();
 
   if (!noteId) {
@@ -39,7 +43,13 @@ validate.post("/fact-check", async (c) => {
   }
 
   const text = extractTextField(note);
-  const result = await checkFacts(text, { thorough });
+  const modelId: LLMModelId | undefined = provider
+    ? {
+        provider: provider as LLMProviderName,
+        model: model ?? "gemini-2.0-flash",
+      }
+    : undefined;
+  const result = await checkFacts(text, { thorough, modelId });
 
   return c.json({ noteId, result });
 });
@@ -49,9 +59,11 @@ validate.post("/fact-check", async (c) => {
  * 카드 내용 최신성 검사
  */
 validate.post("/freshness", async (c) => {
-  const { noteId, checkDate } = await c.req.json<{
+  const { noteId, checkDate, provider, model } = await c.req.json<{
     noteId: number;
     checkDate?: string;
+    provider?: string;
+    model?: string;
   }>();
 
   if (!noteId) {
@@ -64,7 +76,13 @@ validate.post("/freshness", async (c) => {
   }
 
   const text = extractTextField(note);
-  const result = await checkFreshness(text, { checkDate });
+  const modelId: LLMModelId | undefined = provider
+    ? {
+        provider: provider as LLMProviderName,
+        model: model ?? "gemini-2.0-flash",
+      }
+    : undefined;
+  const result = await checkFreshness(text, { checkDate, modelId });
 
   return c.json({ noteId, result });
 });
@@ -114,13 +132,21 @@ validate.post("/similarity", async (c) => {
  * 문맥 일관성 검사
  */
 validate.post("/context", async (c) => {
-  const { noteId, includeReverseLinks, maxRelatedCards, thorough } =
-    await c.req.json<{
-      noteId: number;
-      includeReverseLinks?: boolean;
-      maxRelatedCards?: number;
-      thorough?: boolean;
-    }>();
+  const {
+    noteId,
+    includeReverseLinks,
+    maxRelatedCards,
+    thorough,
+    provider,
+    model,
+  } = await c.req.json<{
+    noteId: number;
+    includeReverseLinks?: boolean;
+    maxRelatedCards?: number;
+    thorough?: boolean;
+    provider?: string;
+    model?: string;
+  }>();
 
   if (!noteId) {
     throw new ValidationError("noteId가 필요합니다");
@@ -133,11 +159,18 @@ validate.post("/context", async (c) => {
 
   const text = extractTextField(note);
   const targetCard: CardForContext = { noteId, text, tags: note.tags };
+  const modelId: LLMModelId | undefined = provider
+    ? {
+        provider: provider as LLMProviderName,
+        model: model ?? "gemini-2.0-flash",
+      }
+    : undefined;
 
   const result = await checkContext(targetCard, {
     includeReverseLinks,
     maxRelatedCards,
     thorough,
+    modelId,
   });
 
   return c.json({ noteId, result });

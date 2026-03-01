@@ -10,7 +10,8 @@
     "./gemini": "./src/gemini/index.ts",
     "./parser": "./src/parser/index.ts",
     "./splitter": "./src/splitter/index.ts",
-    "./utils": "./src/utils/index.ts"
+    "./utils": "./src/utils/index.ts",
+    "./llm": "./src/llm/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
+    "openai": "^6.0.0",
     "diff": "^5.2.0",
     "dotenv": "^16.4.0",
     "zod": "^3.23.0"

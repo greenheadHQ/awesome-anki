@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
 import {
   Select,
   SelectContent,
@@ -311,9 +312,11 @@ export function SplitHistory() {
                     <TableHead className="w-12">상세</TableHead>
                     <TableHead>Note</TableHead>
                     <TableHead>상태</TableHead>
+                    <TableHead className="hidden md:table-cell">모델</TableHead>
                     <TableHead className="hidden md:table-cell">
                       카드수
                     </TableHead>
+                    <TableHead className="hidden lg:table-cell">비용</TableHead>
                     <TableHead className="hidden md:table-cell">시간</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -339,8 +342,22 @@ export function SplitHistory() {
                       <TableCell>
                         <StatusBadge status={item.status} />
                       </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {item.provider ? (
+                          <ModelBadge provider={item.provider} />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            --
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell className="hidden md:table-cell text-xs">
                         {item.cardCount}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-xs font-mono text-muted-foreground">
+                        {item.actualCostUsd != null
+                          ? formatCostUsd(item.actualCostUsd)
+                          : "--"}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                         {new Date(item.createdAt).toLocaleString()}
@@ -401,9 +418,13 @@ export function SplitHistory() {
                 <div className="flex flex-wrap gap-2">
                   <StatusBadge status={detail.data.status} />
                   {detail.data.aiModel && (
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                      {detail.data.aiModel}
-                    </span>
+                    <ModelBadge
+                      provider={
+                        (detail.data as { provider?: string }).provider ??
+                        "gemini"
+                      }
+                      model={detail.data.aiModel}
+                    />
                   )}
                   {detail.data.executionTimeMs != null && (
                     <span className="text-xs bg-muted px-2 py-0.5 rounded flex items-center gap-1">

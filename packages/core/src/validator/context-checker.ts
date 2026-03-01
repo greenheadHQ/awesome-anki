@@ -7,25 +7,11 @@
  * 3. 불일치 사항 보고
  */
 
-import { GoogleGenAI } from "@google/genai";
 import { findNotes, getNotesInfo, type NoteInfo } from "../anki/client.js";
+import { createLLMClient } from "../llm/factory.js";
+import type { LLMModelId } from "../llm/types.js";
 import { extractUniqueNids } from "../parser/nid-parser.js";
 import type { ContextResult, Inconsistency } from "./types.js";
-
-const MODEL_NAME = "gemini-2.0-flash";
-
-let genAI: GoogleGenAI | null = null;
-
-function getClient(): GoogleGenAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다.");
-    }
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
 
 const CONTEXT_CHECK_PROMPT = `
 당신은 지식 카드(Anki) 간의 논리적 일관성을 검증하는 전문가입니다.
@@ -71,6 +57,7 @@ export interface ContextCheckOptions {
   includeReverseLinks?: boolean; // 역방향 링크도 검사할지 (다른 카드가 이 카드를 참조하는 경우)
   maxRelatedCards?: number; // 최대 관련 카드 수 (기본: 10)
   thorough?: boolean; // 심층 검증 (더 많은 토큰 사용)
+  modelId?: LLMModelId;
 }
 
 /**
@@ -172,8 +159,12 @@ export async function checkContext(
     };
   }
 
-  // 5. Gemini에게 일관성 검사 요청
-  const client = getClient();
+  // 5. LLM에게 일관성 검사 요청
+  const resolvedModelId: LLMModelId = options.modelId ?? {
+    provider: "gemini" as const,
+    model: "gemini-2.0-flash",
+  };
+  const client = createLLMClient(resolvedModelId.provider);
 
   // 카드 내용 정리
   const cardContents = [
@@ -209,20 +200,13 @@ ${cardsText}
 `;
 
   try {
-    const response = await client.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        maxOutputTokens: options.thorough ? 4096 : 2048,
-      },
+    const llmResult = await client.generateContent(prompt, {
+      responseMimeType: "application/json",
+      maxOutputTokens: options.thorough ? 4096 : 2048,
+      model: resolvedModelId.model,
     });
 
-    const text = response.text;
-    if (!text) {
-      throw new Error("Gemini 응답이 비어있습니다.");
-    }
-
+    const text = llmResult.text;
     const parsed = JSON.parse(text);
 
     // 결과 변환
@@ -262,6 +246,9 @@ ${cardsText}
         relatedCards: linkedNotes.map((n) => n.noteId),
       },
       timestamp: new Date().toISOString(),
+      modelId: llmResult.modelId,
+      tokenUsage: llmResult.tokenUsage,
+      actualCost: llmResult.actualCost,
     };
   } catch (error) {
     console.error("문맥 일관성 검사 실패:", error);

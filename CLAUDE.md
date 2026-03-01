@@ -4,10 +4,11 @@
 
 - `--apply` 없이 항상 **미리보기 먼저 확인**
 - `GEMINI_API_KEY` 필요 (Split, 검증용) — agenix로 `secrets/*.age`에서 자동 복호화
+- `OPENAI_API_KEY` 선택 (OpenAI 프로바이더 사용 시) — 미설정 시 Gemini만 사용
 
 ## 프로젝트 한줄 설명
 
-Anki 카드를 원자적 단위로 분할하는 웹 앱. Gemini AI로 정보 밀도 높은 카드를 학습 효율 좋은 작은 카드로 분리.
+Anki 카드를 원자적 단위로 분할하는 웹 앱. AI(Gemini/OpenAI)로 정보 밀도 높은 카드를 학습 효율 좋은 작은 카드로 분리.
 
 ## 환경
 
@@ -16,7 +17,10 @@ Anki 카드를 원자적 단위로 분할하는 웹 앱. Gemini AI로 정보 밀
 - **런타임**: Bun (npm 아님)
 - **AnkiConnect**: MiniPC `100.79.80.95:8765` (Tailscale, headless Anki, profile: `server`)
 - **대상 모델**: `KaTeX and Markdown Cloze` (필드: Text, Back Extra)
-- **LLM**: `gemini-3-flash-preview` (구조화된 출력, 1M 토큰)
+- **LLM**: 멀티 프로바이더 (Gemini + OpenAI). 기본: `gemini-3-flash-preview`
+  - `ANKI_SPLITTER_DEFAULT_LLM_PROVIDER` — 기본 프로바이더 (`gemini` | `openai`)
+  - `ANKI_SPLITTER_DEFAULT_LLM_MODEL` — 기본 모델
+  - `ANKI_SPLITTER_BUDGET_CAP_USD` — 서버 사이드 예산 상한 (기본 $1.0)
 
 ## 테스트 데이터
 

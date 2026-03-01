@@ -27,6 +27,7 @@ const LEGACY_HISTORY_PATH = join(REPO_ROOT, "output", "prompts", "history");
 const SCHEMA_MIGRATION_INITIAL = "001-initial-schema";
 const SCHEMA_MIGRATION_LEGACY = "002-legacy-json-import-v1";
 const SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE = "003-remove-split-type";
+const SCHEMA_MIGRATION_ADD_PROVIDER_COST = "004-add-provider-and-cost";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -82,6 +83,9 @@ interface SessionRow {
   token_usage_json: string | null;
   rejection_reason: string | null;
   error_message: string | null;
+  provider: string;
+  estimated_cost_usd: number | null;
+  actual_cost_usd: number | null;
   source: "runtime" | "legacy_json";
   created_at: string;
   updated_at: string;
@@ -176,6 +180,15 @@ export class SplitHistoryStore {
     return rows.length > 0;
   }
 
+  private hasProviderColumn(): boolean {
+    const rows = this.db
+      .query<{ name: string }, []>(
+        "SELECT name FROM pragma_table_info('split_sessions') WHERE name = 'provider'",
+      )
+      .all();
+    return rows.length > 0;
+  }
+
   private applySchemaMigrations(): void {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -231,6 +244,7 @@ export class SplitHistoryStore {
     }
 
     this.migrateRemoveSplitType();
+    this.migrateAddProviderAndCost();
   }
 
   private migrateRemoveSplitType(): void {
@@ -310,6 +324,33 @@ export class SplitHistoryStore {
       // FK 제약 복원 보장
       this.db.exec("PRAGMA foreign_keys = ON;");
     }
+  }
+
+  private migrateAddProviderAndCost(): void {
+    // Short-circuit: provider 컬럼이 이미 있으면 마이그레이션 불필요
+    if (this.hasProviderColumn()) {
+      if (!this.hasMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST)) {
+        this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
+      }
+      return;
+    }
+
+    if (this.hasMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST)) {
+      return;
+    }
+
+    this.db.transaction(() => {
+      this.db.exec(
+        "ALTER TABLE split_sessions ADD COLUMN provider TEXT DEFAULT 'gemini';",
+      );
+      this.db.exec(
+        "ALTER TABLE split_sessions ADD COLUMN estimated_cost_usd REAL;",
+      );
+      this.db.exec(
+        "ALTER TABLE split_sessions ADD COLUMN actual_cost_usd REAL;",
+      );
+      this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
+    })();
   }
 
   private async importLegacyJsonOnce(): Promise<void> {
@@ -501,6 +542,9 @@ export class SplitHistoryStore {
            ai_response_json = ?,
            split_reason = ?,
            ai_model = ?,
+           provider = COALESCE(?, provider),
+           estimated_cost_usd = ?,
+           actual_cost_usd = ?,
            execution_time_ms = ?,
            token_usage_json = ?,
            error_message = NULL,
@@ -514,6 +558,9 @@ export class SplitHistoryStore {
         toNullableJson(payload.aiResponse),
         payload.splitReason || null,
         payload.aiModel || null,
+        payload.provider || null,
+        payload.estimatedCostUsd ?? null,
+        payload.actualCostUsd ?? null,
         payload.executionTimeMs ?? null,
         toNullableJson(payload.tokenUsage ?? null),
         updatedAt,
@@ -547,6 +594,9 @@ export class SplitHistoryStore {
        SET status = 'not_split',
            split_reason = ?,
            ai_model = ?,
+           provider = COALESCE(?, provider),
+           estimated_cost_usd = ?,
+           actual_cost_usd = ?,
            execution_time_ms = ?,
            token_usage_json = ?,
            ai_response_json = COALESCE(?, ai_response_json),
@@ -559,6 +609,9 @@ export class SplitHistoryStore {
       const result = stmt.run(
         payload.splitReason || null,
         payload.aiModel || null,
+        payload.provider || null,
+        payload.estimatedCostUsd ?? null,
+        payload.actualCostUsd ?? null,
         payload.executionTimeMs ?? null,
         toNullableJson(payload.tokenUsage ?? null),
         toNullableJson(payload.aiResponse ?? null),
@@ -712,6 +765,9 @@ export class SplitHistoryStore {
       splitCards: safeJsonParse(row.split_cards_json, []),
       splitReason: row.split_reason ?? undefined,
       aiModel: row.ai_model ?? undefined,
+      provider: row.provider ?? undefined,
+      estimatedCostUsd: row.estimated_cost_usd ?? undefined,
+      actualCostUsd: row.actual_cost_usd ?? undefined,
       executionTimeMs: row.execution_time_ms ?? undefined,
       tokenUsage:
         safeJsonParse<TokenUsage | null>(row.token_usage_json, null) ??
@@ -763,6 +819,9 @@ export class SplitHistoryStore {
       promptVersionId: row.prompt_version_id ?? undefined,
       splitReason: row.split_reason ?? undefined,
       aiModel: row.ai_model ?? undefined,
+      provider: row.provider ?? undefined,
+      estimatedCostUsd: row.estimated_cost_usd ?? undefined,
+      actualCostUsd: row.actual_cost_usd ?? undefined,
       cardCount: safeJsonParse<unknown[]>(row.split_cards_json, []).length,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

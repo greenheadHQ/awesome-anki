@@ -31,6 +31,9 @@ export interface SplitSessionListItem {
   promptVersionId?: string;
   splitReason?: string;
   aiModel?: string;
+  provider?: string;
+  estimatedCostUsd?: number;
+  actualCostUsd?: number;
   cardCount: number;
   createdAt: string;
   updatedAt: string;
@@ -58,6 +61,9 @@ export interface SplitSessionDetail {
   splitCards: SplitCardPayload[];
   splitReason?: string;
   aiModel?: string;
+  provider?: string;
+  estimatedCostUsd?: number;
+  actualCostUsd?: number;
   executionTimeMs?: number;
   tokenUsage?: TokenUsage;
   rejectionReason?: string;
@@ -100,6 +106,9 @@ export interface SplitGeneratedPayload {
   aiResponse: Record<string, unknown> | null;
   splitReason?: string;
   aiModel?: string;
+  provider?: string;
+  estimatedCostUsd?: number;
+  actualCostUsd?: number;
   executionTimeMs?: number;
   tokenUsage?: TokenUsage;
 }
@@ -107,6 +116,9 @@ export interface SplitGeneratedPayload {
 export interface SplitNotSplitPayload {
   splitReason?: string;
   aiModel?: string;
+  provider?: string;
+  estimatedCostUsd?: number;
+  actualCostUsd?: number;
   executionTimeMs?: number;
   tokenUsage?: TokenUsage;
   aiResponse?: Record<string, unknown> | null;

@@ -5,6 +5,9 @@ import "dotenv/config";
 import { timingSafeEqual } from "node:crypto";
 import {
   AppError,
+  getAvailableProviders,
+  getDefaultModelId,
+  getModelPricing,
   migrateLegacySystemPromptToRemoteIfNeeded,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
@@ -16,6 +19,7 @@ import cards from "./routes/cards.js";
 import decks from "./routes/decks.js";
 import embedding from "./routes/embedding.js";
 import history from "./routes/history.js";
+import llm from "./routes/llm.js";
 import media from "./routes/media.js";
 import prompts from "./routes/prompts.js";
 import split from "./routes/split.js";
@@ -92,6 +96,7 @@ app.route("/api/split", split);
 app.route("/api/backup", backup);
 app.route("/api/media", media);
 app.route("/api/validate", validate);
+app.route("/api/llm", llm);
 app.route("/api/embedding", embedding);
 app.route("/api/prompts", prompts);
 app.route("/api/history", history);
@@ -112,7 +117,39 @@ app.onError((err, c) => {
 // Start server — Bun.serve()를 직접 호출하여 HMR 이중 바인딩 방지
 const port = parseInt(process.env.PORT || "3000", 10);
 
+function validateLLMProviders(): void {
+  const available = getAvailableProviders();
+  console.log(
+    `🤖 LLM providers available: ${available.length > 0 ? available.join(", ") : "(none)"}`,
+  );
+
+  if (available.length === 0) {
+    console.error(
+      "❌ 최소 1개의 LLM provider API 키가 필요합니다. GEMINI_API_KEY 또는 OPENAI_API_KEY를 설정하세요.",
+    );
+    process.exit(1);
+  }
+
+  const defaultModel = getDefaultModelId();
+  if (!available.includes(defaultModel.provider)) {
+    console.error(
+      `❌ 기본 provider '${defaultModel.provider}'의 API 키가 설정되지 않았습니다.`,
+    );
+    process.exit(1);
+  }
+
+  const pricing = getModelPricing(defaultModel.provider, defaultModel.model);
+  if (!pricing) {
+    console.error(
+      `❌ 기본 모델 '${defaultModel.provider}/${defaultModel.model}'이 pricing table에 등록되지 않았습니다.`,
+    );
+    process.exit(1);
+  }
+}
+
 async function runStartupTasks(): Promise<void> {
+  validateLLMProviders();
+
   const [historyResult, migrationResult] = await Promise.allSettled([
     getSplitHistoryStore(),
     migrateLegacySystemPromptToRemoteIfNeeded(),

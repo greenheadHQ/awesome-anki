@@ -25,7 +25,32 @@
 
 ---
 
-### 2.2 API 401 Unauthorized
+### 2.2 OpenAI 모델이 선택 불가 / 비활성 표시
+
+원인:
+- `OPENAI_API_KEY` 미설정
+
+해결:
+1. `.env`에 `OPENAI_API_KEY` 설정
+2. 서버 재시작
+3. `GET /api/llm/models`로 사용 가능 프로바이더 확인
+
+참고: OpenAI 키 없이도 Gemini만으로 정상 동작한다 (graceful degradation).
+
+---
+
+### 2.3 HTTP 402 Budget Exceeded
+
+원인:
+- 요청의 예상 비용이 서버 예산 상한(`ANKI_SPLITTER_BUDGET_CAP_USD`)을 초과
+
+해결:
+1. 더 저렴한 모델 선택 (예: `gpt-5-nano`)
+2. 필요 시 `ANKI_SPLITTER_BUDGET_CAP_USD` 상향 (기본 $1.0)
+
+---
+
+### 2.4 API 401 Unauthorized
 
 원인:
 - 서버 `ANKI_SPLITTER_API_KEY` 값 불일치
@@ -38,7 +63,7 @@
 
 ---
 
-### 2.3 API 503 (인증 설정 오류)
+### 2.5 API 503 (인증 설정 오류)
 
 원인:
 - 서버에 `ANKI_SPLITTER_API_KEY` 미설정
@@ -48,7 +73,7 @@
 
 ---
 
-### 2.4 AnkiConnect 연결 실패
+### 2.6 AnkiConnect 연결 실패
 
 원인:
 - Anki 미실행
@@ -61,7 +86,7 @@
 
 ---
 
-### 2.5 롤백 실패 또는 일부 복원 경고
+### 2.7 롤백 실패 또는 일부 복원 경고
 
 원인:
 - 백업 ID 없음/이미 롤백됨
@@ -74,7 +99,7 @@
 
 ---
 
-### 2.6 백업 파일 손상 메시지
+### 2.8 백업 파일 손상 메시지
 
 증상:
 - `손상된 백업 파일을 격리했습니다: ...corrupt-...`
@@ -89,7 +114,7 @@
 
 ---
 
-### 2.7 빌드/타입 검사는 통과하는데 런타임에서 실패
+### 2.9 빌드/타입 검사는 통과하는데 런타임에서 실패
 
 원인:
 - 환경변수/외부 의존(AnkiConnect, Gemini) 미준비

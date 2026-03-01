@@ -55,6 +55,34 @@ export interface CardDetail extends CardSummary {
   }>;
 }
 
+// LLM types
+export interface LLMModelInfo {
+  provider: string;
+  model: string;
+  displayName: string;
+  inputPricePerMillionTokens: number;
+  outputPricePerMillionTokens: number;
+}
+
+export interface LLMModelsResponse {
+  models: LLMModelInfo[];
+  defaultModelId: { provider: string; model: string };
+  budgetCapUsd: number;
+  availableProviders: string[];
+}
+
+export interface CostEstimate {
+  estimatedInputCostUsd: number;
+  estimatedOutputCostUsd: number;
+  estimatedTotalCostUsd: number;
+}
+
+export interface ActualCost {
+  inputCostUsd: number;
+  outputCostUsd: number;
+  totalCostUsd: number;
+}
+
 export interface SplitPreviewResult {
   sessionId?: string;
   noteId: number;
@@ -71,11 +99,14 @@ export interface SplitPreviewResult {
   reason?: string;
   executionTimeMs?: number;
   aiModel?: string;
+  provider?: string;
   tokenUsage?: {
     promptTokens?: number;
     completionTokens?: number;
     totalTokens?: number;
   };
+  estimatedCost?: CostEstimate;
+  actualCost?: ActualCost;
   historyWarning?: string;
 }
 
@@ -298,6 +329,9 @@ export interface SplitHistoryListItem {
   promptVersionId?: string;
   splitReason?: string;
   aiModel?: string;
+  provider?: string;
+  estimatedCostUsd?: number;
+  actualCostUsd?: number;
   cardCount: number;
   createdAt: string;
   updatedAt: string;
@@ -331,6 +365,9 @@ export interface SplitHistoryDetail {
   }>;
   splitReason?: string;
   aiModel?: string;
+  provider?: string;
+  estimatedCostUsd?: number;
+  actualCostUsd?: number;
   executionTimeMs?: number;
   tokenUsage?: {
     promptTokens?: number;
@@ -447,11 +484,31 @@ export const api = {
     },
   },
 
+  llm: {
+    models: () => fetchJson<LLMModelsResponse>("/llm/models"),
+  },
+
   split: {
-    preview: (noteId: number, versionId?: string, deckName?: string) =>
+    preview: (
+      noteId: number,
+      opts?: {
+        versionId?: string;
+        deckName?: string;
+        provider?: string;
+        model?: string;
+        budgetUsdCap?: number;
+      },
+    ) =>
       fetchJson<SplitPreviewResult>("/split/preview", {
         method: "POST",
-        body: JSON.stringify({ noteId, versionId, deckName }),
+        body: JSON.stringify({
+          noteId,
+          versionId: opts?.versionId,
+          deckName: opts?.deckName,
+          provider: opts?.provider,
+          model: opts?.model,
+          budgetUsdCap: opts?.budgetUsdCap,
+        }),
       }),
     apply: (data: {
       sessionId: string;

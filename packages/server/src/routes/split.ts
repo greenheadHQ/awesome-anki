@@ -5,15 +5,20 @@
 import { randomUUID } from "node:crypto";
 import {
   applySplitResult,
+  checkBudget,
   cloneSchedulingAfterSplit,
   detectCardType,
+  estimateSplitCost,
   extractTags,
   extractTextField,
   findCardsByNote,
   getActiveVersion,
+  getModelPricing,
   getNoteById,
   getPromptVersion,
   getRemoteSystemPromptPayload,
+  type LLMModelId,
+  type LLMProviderName,
   NotFoundError,
   preBackup,
   recordPromptMetricsEvent,
@@ -72,11 +77,36 @@ app.post("/preview", async (c) => {
     noteId,
     versionId,
     deckName = "",
+    provider,
+    model,
+    budgetUsdCap,
   } = await c.req.json<{
     noteId: number;
     versionId?: string;
     deckName?: string;
+    provider?: string;
+    model?: string;
+    budgetUsdCap?: number;
   }>();
+
+  // provider+model 유효성 검증
+  let modelId: LLMModelId | undefined;
+  if (provider || model) {
+    const resolvedProvider = (provider ?? "gemini") as LLMProviderName;
+    const resolvedModel =
+      model ??
+      (resolvedProvider === "gemini" ? "gemini-3-flash-preview" : "gpt-5-mini");
+    const pricing = getModelPricing(resolvedProvider, resolvedModel);
+    if (!pricing) {
+      return c.json(
+        {
+          error: `지원하지 않는 provider/model 조합입니다: ${resolvedProvider}/${resolvedModel}`,
+        },
+        400,
+      );
+    }
+    modelId = { provider: resolvedProvider, model: resolvedModel };
+  }
 
   const note = await getNoteById(noteId);
   if (!note) {
@@ -182,18 +212,48 @@ app.post("/preview", async (c) => {
       splitPromptTemplate: resolvedVersion.splitPromptTemplate,
     };
 
+    // 비용 가드레일: AI 호출 전 예상 비용 계산
+    let estimatedCost:
+      | {
+          estimatedInputCostUsd: number;
+          estimatedOutputCostUsd: number;
+          estimatedTotalCostUsd: number;
+        }
+      | undefined;
+    const costEstimation = await estimateSplitCost(text, modelId);
+    if (costEstimation) {
+      estimatedCost = costEstimation.estimatedCost;
+      const budgetCheck = checkBudget(
+        costEstimation.estimatedCost.estimatedTotalCostUsd,
+        budgetUsdCap,
+      );
+      if (!budgetCheck.allowed) {
+        return c.json(
+          {
+            error: "BUDGET_EXCEEDED",
+            estimatedCostUsd: budgetCheck.estimatedCostUsd,
+            budgetCapUsd: budgetCheck.budgetCapUsd,
+            provider: modelId?.provider ?? "gemini",
+            model: modelId?.model ?? "gemini-3-flash-preview",
+          },
+          402,
+        );
+      }
+    }
+
     const startTime = Date.now();
-    const geminiResult = await requestCardSplit(
+    const aiResult = await requestCardSplit(
       { noteId, text, tags },
       prompts,
+      modelId,
     );
     const executionTimeMs = Date.now() - startTime;
 
-    if (geminiResult.shouldSplit && geminiResult.splitCards.length > 1) {
-      const splitCards = geminiResult.splitCards.map((card, idx) => ({
+    if (aiResult.shouldSplit && aiResult.splitCards.length > 1) {
+      const splitCards = aiResult.splitCards.map((card, idx) => ({
         title: card.title,
         content: card.content,
-        isMainCard: idx === geminiResult.mainCardIndex,
+        isMainCard: idx === aiResult.mainCardIndex,
         cardType: card.cardType ?? detectCardType(card.content),
         charCount: card.charCount,
       }));
@@ -203,11 +263,14 @@ app.post("/preview", async (c) => {
           const historyStore = await getSplitHistoryStore();
           historyStore.markGenerated(sessionId, {
             splitCards: mapPreviewCards(splitCards),
-            aiResponse: geminiResult as unknown as Record<string, unknown>,
-            splitReason: geminiResult.splitReason,
+            aiResponse: aiResult as unknown as Record<string, unknown>,
+            splitReason: aiResult.splitReason,
             executionTimeMs,
-            aiModel: geminiResult.modelName,
-            tokenUsage: geminiResult.tokenUsage,
+            aiModel: aiResult.modelName,
+            provider: aiResult.provider,
+            tokenUsage: aiResult.tokenUsage,
+            estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+            actualCostUsd: aiResult.actualCost?.totalCostUsd,
           });
         } catch (error) {
           const message =
@@ -223,11 +286,14 @@ app.post("/preview", async (c) => {
         noteId,
         originalText: text,
         splitCards,
-        mainCardIndex: geminiResult.mainCardIndex,
-        splitReason: geminiResult.splitReason,
+        mainCardIndex: aiResult.mainCardIndex,
+        splitReason: aiResult.splitReason,
         executionTimeMs,
-        tokenUsage: geminiResult.tokenUsage,
-        aiModel: geminiResult.modelName,
+        tokenUsage: aiResult.tokenUsage,
+        aiModel: aiResult.modelName,
+        provider: aiResult.provider ?? "gemini",
+        estimatedCost,
+        actualCost: aiResult.actualCost,
         ...(historyWarning && { historyWarning }),
       });
     }
@@ -237,11 +303,14 @@ app.post("/preview", async (c) => {
         const historyStore = await getSplitHistoryStore();
         historyStore.markNotSplit(sessionId, {
           splitReason:
-            geminiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+            aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
           executionTimeMs,
-          aiModel: geminiResult.modelName,
-          tokenUsage: geminiResult.tokenUsage,
-          aiResponse: geminiResult as unknown as Record<string, unknown>,
+          aiModel: aiResult.modelName,
+          provider: aiResult.provider,
+          tokenUsage: aiResult.tokenUsage,
+          aiResponse: aiResult as unknown as Record<string, unknown>,
+          estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+          actualCostUsd: aiResult.actualCost?.totalCostUsd,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -254,11 +323,13 @@ app.post("/preview", async (c) => {
     return c.json({
       sessionId,
       noteId,
-      reason:
-        geminiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+      reason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
       executionTimeMs,
-      tokenUsage: geminiResult.tokenUsage,
-      aiModel: geminiResult.modelName,
+      tokenUsage: aiResult.tokenUsage,
+      aiModel: aiResult.modelName,
+      provider: aiResult.provider ?? "gemini",
+      estimatedCost,
+      actualCost: aiResult.actualCost,
       ...(historyWarning && { historyWarning }),
     });
   } catch (error) {

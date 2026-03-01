@@ -4,8 +4,7 @@
 
 | 영역 | 기능 | 설명 |
 |------|------|------|
-| Split | Hard Split | `####`, `---` 구조 기반 규칙 분할 |
-| Split | Soft Split | Gemini 기반 의미 분할 |
+| Split | AI Split | LLM(Gemini/OpenAI) 기반 의미 분할 |
 | Split | Preview + Apply | 분할 미리보기 후 명시적 적용 |
 | Safety | Backup + Rollback | 분할 전 백업, 실패/수동 롤백 |
 | Validation | Fact/Freshness/Context/Similarity | 카드 신뢰도 검증 |
@@ -15,15 +14,16 @@
 
 ## 2. Split 상세
 
-### Hard Split
-- 장점: 빠르고 예측 가능
-- 기준: 헤더/구분자 기반 분리
-- 적합: 구조가 명확한 카드
+### AI Split
+- LLM(Gemini/OpenAI)을 사용해 비정형 텍스트를 의미 단위로 분할
+- 웹 UI에서 프로바이더/모델 선택 가능
+- 분석 전 비용 추정 + 예산 가드레일 (서버 사이드 상한)
+- 분석 후 실측 비용/토큰 사용량 표시
 
-### Soft Split
-- 장점: 비정형 카드 처리
-- 단점: 외부 API 비용/지연
-- 적합: 복합 개념이 섞인 카드
+### 모델 비교
+- 동일 카드를 여러 모델로 분석 → 탭 전환으로 결과 비교
+- 모델별 비용/시간/카드 수 비교
+- 모델 뱃지로 프로바이더 시각 구분 (Gemini=파란, OpenAI=초록)
 
 ### Apply 안전장치
 - 분할 적용 전 `preBackup`
@@ -34,7 +34,7 @@
 
 | 검증 | 목적 | 처리 방식 |
 |------|------|----------|
-| Fact Check | 사실 정확도 확인 | Gemini 결과를 정확도 점수로 변환 |
+| Fact Check | 사실 정확도 확인 | LLM 결과를 정확도 점수로 변환 |
 | Freshness | 정보 최신성 확인 | outdated 항목과 심각도 분류 |
 | Similarity | 중복 탐지 | Jaccard 기본 + 임베딩 옵션 |
 | Context | 링크 카드 일관성 확인 | nid 링크 기반 관련 카드 비교 |
