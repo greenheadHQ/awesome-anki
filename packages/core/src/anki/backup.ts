@@ -39,7 +39,6 @@ export interface BackupEntry {
     modelName: string;
   };
   createdNoteIds: number[];
-  splitType: "hard" | "soft";
 }
 
 export interface BackupFile {
@@ -199,7 +198,6 @@ export async function createBackup(
   deckName: string,
   originalNoteId: number,
   createdNoteIds: number[],
-  splitType: "hard" | "soft",
 ): Promise<string> {
   // 원본 노트 정보 조회
   const [originalNote] = await getNotesInfo([originalNoteId]);
@@ -221,7 +219,6 @@ export async function createBackup(
       modelName: originalNote.modelName,
     },
     createdNoteIds,
-    splitType,
   };
 
   await appendBackupEntry(entry);
@@ -237,7 +234,6 @@ export async function createBackup(
 export async function preBackup(
   deckName: string,
   originalNoteId: number,
-  splitType: "hard" | "soft",
 ): Promise<{ backupId: string; originalNote: NoteInfo }> {
   const [originalNote] = await getNotesInfo([originalNoteId]);
 
@@ -258,7 +254,6 @@ export async function preBackup(
       modelName: originalNote.modelName,
     },
     createdNoteIds: [], // 나중에 업데이트
-    splitType,
   };
 
   await appendBackupEntry(entry);

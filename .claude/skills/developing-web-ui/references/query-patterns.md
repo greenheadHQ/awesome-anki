@@ -15,8 +15,8 @@ export const queryKeys = {
     detail: (noteId: number) => ['cards', noteId],
   },
   split: {
-    preview: (noteId: number, useGemini: boolean) =>
-      ['split', 'preview', noteId, useGemini],
+    preview: (noteId: number, versionId?: string) =>
+      ['split', 'preview', noteId, versionId],
   },
   backups: {
     all: ['backups'],
@@ -26,6 +26,12 @@ export const queryKeys = {
     active: ['prompts', 'active'],
     history: ['prompts', 'history'],
     experiments: ['prompts', 'experiments'],
+  },
+  history: {
+    list: (opts?: { page?: number; limit?: number; deckName?: string;
+      status?: string; startDate?: string; endDate?: string }) =>
+      ['history', 'list', opts],
+    detail: (sessionId: string) => ['history', 'detail', sessionId],
   },
 };
 ```
@@ -58,12 +64,11 @@ export function useCardDetail(noteId: number | null) {
 export function useSplitPreview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ noteId, useGemini = false }) =>
-      api.split.preview(noteId, useGemini),
+    mutationFn: ({ noteId, versionId }: { noteId: number; versionId?: string }) =>
+      api.split.preview(noteId, versionId),
     onSuccess: (data, variables) => {
-      // 캐시에 결과 저장 (카드별 독립 캐시)
       queryClient.setQueryData(
-        queryKeys.split.preview(variables.noteId, variables.useGemini),
+        queryKeys.split.preview(variables.noteId, variables.versionId),
         data
       );
     },
@@ -77,15 +82,15 @@ export function useSplitPreview() {
 function getCachedSplitPreview(
   queryClient: QueryClient,
   noteId: number,
-  useGemini: boolean
+  versionId?: string
 ) {
   return queryClient.getQueryData(
-    queryKeys.split.preview(noteId, useGemini)
+    queryKeys.split.preview(noteId, versionId)
   );
 }
 ```
 
-## ⚠️ useMutation + useEffect 안티패턴
+## useMutation + useEffect 안티패턴
 
 `useMutation()` 반환값은 매 렌더마다 새 참조를 생성하므로 `useEffect` 의존성 배열에 넣으면 무한 루프 발생:
 

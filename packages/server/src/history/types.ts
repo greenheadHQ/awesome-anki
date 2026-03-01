@@ -27,7 +27,6 @@ export interface SplitSessionListItem {
   sessionId: string;
   noteId: number;
   deckName: string;
-  splitType: "hard" | "soft";
   status: HistoryStatus;
   promptVersionId?: string;
   splitReason?: string;
@@ -51,7 +50,6 @@ export interface SplitSessionDetail {
   sessionId: string;
   noteId: number;
   deckName: string;
-  splitType: "hard" | "soft";
   status: HistoryStatus;
   promptVersionId?: string;
   originalText: string;
@@ -76,7 +74,6 @@ export interface HistoryListQuery {
   limit: number;
   deckName?: string;
   status?: HistoryStatus;
-  splitType?: "hard" | "soft";
   startDate: string;
   endDate: string;
 }
@@ -93,7 +90,6 @@ export interface HistoryListResult {
 export interface CreateSessionInput {
   noteId: number;
   deckName: string;
-  splitType: "hard" | "soft";
   promptVersionId?: string;
   originalText: string;
   originalTags: string[];

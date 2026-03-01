@@ -26,6 +26,7 @@ const LEGACY_HISTORY_PATH = join(REPO_ROOT, "output", "prompts", "history");
 
 const SCHEMA_MIGRATION_INITIAL = "001-initial-schema";
 const SCHEMA_MIGRATION_LEGACY = "002-legacy-json-import-v1";
+const SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE = "003-remove-split-type";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -69,7 +70,6 @@ interface SessionRow {
   id: string;
   note_id: number;
   deck_name: string;
-  split_type: "hard" | "soft";
   status: HistoryStatus;
   prompt_version_id: string | null;
   original_text: string;
@@ -108,10 +108,6 @@ function ensureParentDir(targetPath: string): void {
   if (!existsSync(parent)) {
     mkdirSync(parent, { recursive: true });
   }
-}
-
-function coerceSplitType(value: unknown): "hard" | "soft" {
-  return value === "hard" ? "hard" : "soft";
 }
 
 function buildLegacyMigrationKey(entry: SplitHistoryEntry): string {
@@ -171,6 +167,15 @@ export class SplitHistoryStore {
     stmt.run(name, nowIso());
   }
 
+  private hasSplitTypeColumn(): boolean {
+    const rows = this.db
+      .query<{ name: string }, []>(
+        "SELECT name FROM pragma_table_info('split_sessions') WHERE name = 'split_type'",
+      )
+      .all();
+    return rows.length > 0;
+  }
+
   private applySchemaMigrations(): void {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -185,7 +190,6 @@ export class SplitHistoryStore {
           id TEXT PRIMARY KEY,
           note_id INTEGER NOT NULL,
           deck_name TEXT NOT NULL DEFAULT '',
-          split_type TEXT NOT NULL CHECK (split_type IN ('hard', 'soft')),
           status TEXT NOT NULL CHECK (status IN ('generating','generated','applied','rejected','error','not_split')),
           prompt_version_id TEXT,
           original_text TEXT NOT NULL,
@@ -218,13 +222,93 @@ export class SplitHistoryStore {
         CREATE INDEX IF NOT EXISTS idx_split_sessions_created_at ON split_sessions(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_split_sessions_deck_name ON split_sessions(deck_name);
         CREATE INDEX IF NOT EXISTS idx_split_sessions_status ON split_sessions(status);
-        CREATE INDEX IF NOT EXISTS idx_split_sessions_split_type ON split_sessions(split_type);
         CREATE INDEX IF NOT EXISTS idx_split_sessions_note_id ON split_sessions(note_id);
         CREATE INDEX IF NOT EXISTS idx_split_events_session_id ON split_events(session_id);
         CREATE INDEX IF NOT EXISTS idx_split_events_created_at ON split_events(created_at);
       `);
 
       this.markMigration(SCHEMA_MIGRATION_INITIAL);
+    }
+
+    this.migrateRemoveSplitType();
+  }
+
+  private migrateRemoveSplitType(): void {
+    // Short-circuit: split_type 컬럼이 이미 없으면 마이그레이션 불필요
+    if (!this.hasSplitTypeColumn()) {
+      if (!this.hasMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE)) {
+        this.markMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE);
+      }
+      return;
+    }
+
+    if (this.hasMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE)) {
+      return;
+    }
+
+    // FK 제약 비활성화 후 try/finally로 복원 보장
+    this.db.exec("PRAGMA foreign_keys = OFF;");
+    try {
+      this.db.transaction(() => {
+        // 1. 새 테이블 생성 (split_type 컬럼 없이)
+        this.db.exec(`
+          CREATE TABLE split_sessions_new (
+            id TEXT PRIMARY KEY,
+            note_id INTEGER NOT NULL,
+            deck_name TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL CHECK (status IN ('generating','generated','applied','rejected','error','not_split')),
+            prompt_version_id TEXT,
+            original_text TEXT NOT NULL,
+            original_tags_json TEXT NOT NULL DEFAULT '[]',
+            ai_response_json TEXT,
+            split_cards_json TEXT NOT NULL DEFAULT '[]',
+            split_reason TEXT,
+            ai_model TEXT,
+            execution_time_ms INTEGER,
+            token_usage_json TEXT,
+            rejection_reason TEXT,
+            error_message TEXT,
+            source TEXT NOT NULL DEFAULT 'runtime' CHECK (source IN ('runtime','legacy_json')),
+            legacy_entry_id TEXT,
+            migration_dedup_key TEXT UNIQUE,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            applied_at TEXT
+          );
+        `);
+
+        // 2. 데이터 복사 (split_type 제외)
+        this.db.exec(`
+          INSERT INTO split_sessions_new
+            SELECT id, note_id, deck_name, status, prompt_version_id,
+                   original_text, original_tags_json, ai_response_json,
+                   split_cards_json, split_reason, ai_model, execution_time_ms,
+                   token_usage_json, rejection_reason, error_message, source,
+                   legacy_entry_id, migration_dedup_key, created_at,
+                   updated_at, applied_at
+            FROM split_sessions;
+        `);
+
+        // 3. 기존 테이블 삭제 + 리네임
+        this.db.exec("DROP TABLE split_sessions;");
+        this.db.exec(
+          "ALTER TABLE split_sessions_new RENAME TO split_sessions;",
+        );
+
+        // 4. 인덱스 재생성 (idx_split_sessions_split_type 제외)
+        this.db.exec(`
+          CREATE INDEX IF NOT EXISTS idx_split_sessions_created_at ON split_sessions(created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_split_sessions_deck_name ON split_sessions(deck_name);
+          CREATE INDEX IF NOT EXISTS idx_split_sessions_status ON split_sessions(status);
+          CREATE INDEX IF NOT EXISTS idx_split_sessions_note_id ON split_sessions(note_id);
+        `);
+
+        // 5. 마이그레이션 기록 (트랜잭션 내부에서 원자성 확보)
+        this.markMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE);
+      })();
+    } finally {
+      // FK 제약 복원 보장
+      this.db.exec("PRAGMA foreign_keys = ON;");
     }
   }
 
@@ -284,7 +368,6 @@ export class SplitHistoryStore {
     if (dedupStmt.get(dedupKey)) return;
 
     const status = mapLegacyActionToStatus(entry.userAction);
-    const splitType = coerceSplitType(entry.splitType);
     const timestamp = entry.timestamp || nowIso();
     const sessionId = sanitizeSessionId(
       `legacy-${entry.id || `${entry.noteId}-${Date.parse(timestamp) || Date.now()}`}`,
@@ -307,19 +390,18 @@ export class SplitHistoryStore {
 
     const insert = this.db.query(
       `INSERT INTO split_sessions (
-        id, note_id, deck_name, split_type, status, prompt_version_id,
+        id, note_id, deck_name, status, prompt_version_id,
         original_text, original_tags_json, ai_response_json, split_cards_json,
         split_reason, ai_model, execution_time_ms, token_usage_json,
         rejection_reason, source, legacy_entry_id, migration_dedup_key,
         created_at, updated_at, applied_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'legacy_json', ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'legacy_json', ?, ?, ?, ?, ?)`,
     );
 
     insert.run(
       sessionId,
       entry.noteId,
       entry.deckName || "",
-      splitType,
       status,
       entry.promptVersionId || null,
       entry.originalContent || "",
@@ -376,10 +458,10 @@ export class SplitHistoryStore {
 
     const stmt = this.db.query(
       `INSERT INTO split_sessions (
-        id, note_id, deck_name, split_type, status, prompt_version_id,
+        id, note_id, deck_name, status, prompt_version_id,
         original_text, original_tags_json, source,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, 'generating', ?, ?, ?, 'runtime', ?, ?)`,
+      ) VALUES (?, ?, ?, 'generating', ?, ?, ?, 'runtime', ?, ?)`,
     );
 
     this.db.transaction(() => {
@@ -387,7 +469,6 @@ export class SplitHistoryStore {
         sessionId,
         input.noteId,
         input.deckName,
-        input.splitType,
         input.promptVersionId || null,
         input.originalText,
         JSON.stringify(input.originalTags || []),
@@ -402,7 +483,6 @@ export class SplitHistoryStore {
         {
           noteId: input.noteId,
           deckName: input.deckName,
-          splitType: input.splitType,
           promptVersionId: input.promptVersionId,
         },
         createdAt,
@@ -624,7 +704,6 @@ export class SplitHistoryStore {
       sessionId: row.id,
       noteId: row.note_id,
       deckName: row.deck_name,
-      splitType: row.split_type,
       status: row.status,
       promptVersionId: row.prompt_version_id ?? undefined,
       originalText: row.original_text,
@@ -661,11 +740,6 @@ export class SplitHistoryStore {
       params.push(query.status);
     }
 
-    if (query.splitType) {
-      conditions.push("split_type = ?");
-      params.push(query.splitType);
-    }
-
     const whereClause = `WHERE ${conditions.join(" AND ")}`;
     const offset = (query.page - 1) * query.limit;
 
@@ -685,7 +759,6 @@ export class SplitHistoryStore {
       sessionId: row.id,
       noteId: row.note_id,
       deckName: row.deck_name,
-      splitType: row.split_type,
       status: row.status,
       promptVersionId: row.prompt_version_id ?? undefined,
       splitReason: row.split_reason ?? undefined,
@@ -711,17 +784,13 @@ export class SplitHistoryStore {
   getSessionMetadata(sessionId: string): {
     sessionId: string;
     promptVersionId?: string;
-    splitType: "hard" | "soft";
     splitCards: Array<{ content: string; charCount?: number; title?: string }>;
   } | null {
     const stmt = this.db.query<
-      Pick<
-        SessionRow,
-        "id" | "prompt_version_id" | "split_type" | "split_cards_json"
-      >,
+      Pick<SessionRow, "id" | "prompt_version_id" | "split_cards_json">,
       [string]
     >(
-      "SELECT id, prompt_version_id, split_type, split_cards_json FROM split_sessions WHERE id = ?",
+      "SELECT id, prompt_version_id, split_cards_json FROM split_sessions WHERE id = ?",
     );
 
     const row = stmt.get(sessionId);
@@ -730,7 +799,6 @@ export class SplitHistoryStore {
     return {
       sessionId: row.id,
       promptVersionId: row.prompt_version_id ?? undefined,
-      splitType: row.split_type,
       splitCards: safeJsonParse(row.split_cards_json, []),
     };
   }

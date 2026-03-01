@@ -117,7 +117,7 @@ export function Help() {
           </Card>
 
           {/* Split */}
-          <Card id="hard-split">
+          <Card id="split">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <Scissors className="h-4 w-4" />
@@ -125,23 +125,12 @@ export function Help() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-2">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 카드를 원자적 단위로 분할합니다. 왼쪽에서 후보를 선택하고,
                 가운데에서 원본을 확인하며, 오른쪽에서 분할 미리보기를 볼 수
-                있습니다.
+                있습니다. Gemini AI가 카드 내용을 분석하여 의미적으로 분할을
+                제안합니다. Cloze가 3개 이상인 카드가 분할 대상입니다.
               </p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>
-                  <span className="text-blue-600 font-medium">Hard Split</span>:
-                  #### 헤더 기준 자동 분할
-                </li>
-                <li>
-                  <span className="text-purple-600 font-medium">
-                    Soft Split
-                  </span>
-                  : AI가 의미적으로 분할 제안
-                </li>
-              </ul>
             </CardContent>
           </Card>
 

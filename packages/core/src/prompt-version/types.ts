@@ -150,7 +150,6 @@ export interface SplitHistoryEntry {
 
   // AI 메타데이터
   aiModel?: string; // "gemini-3-flash-preview"
-  splitType?: "hard" | "soft"; // 분할 방식
   splitReason?: string; // Gemini가 제시한 분할 이유
   executionTimeMs?: number; // Gemini API 호출 소요 시간
   tokenUsage?: {

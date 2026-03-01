@@ -43,12 +43,7 @@ app.get("/deck/:name", async (c) => {
       modelName: note.modelName,
       analysis,
       clozeStats,
-      isSplitable: analysis.canHardSplit || analysis.clozeCount > 3,
-      splitType: analysis.canHardSplit
-        ? "hard"
-        : analysis.clozeCount > 3
-          ? "soft"
-          : null,
+      isSplitable: analysis.canSplit,
     };
   });
 
@@ -120,12 +115,7 @@ app.get("/:noteId", async (c) => {
     nidLinks,
     clozes,
     clozeStats,
-    isSplitable: analysis.canHardSplit || analysis.clozeCount > 3,
-    splitType: analysis.canHardSplit
-      ? "hard"
-      : analysis.clozeCount > 3
-        ? "soft"
-        : null,
+    isSplitable: analysis.canSplit,
   });
 });
 

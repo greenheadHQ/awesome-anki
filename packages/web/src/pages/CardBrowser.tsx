@@ -299,7 +299,7 @@ export function CardBrowser() {
                     <TableHead className="hidden md:table-cell p-3">
                       Cloze
                     </TableHead>
-                    <TableHead className="p-3">분할 타입</TableHead>
+                    <TableHead className="p-3">분할</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -327,16 +327,9 @@ export function CardBrowser() {
                         {card.clozeStats.totalClozes}
                       </TableCell>
                       <TableCell className="p-3">
-                        {card.splitType && (
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-1 text-xs font-medium",
-                              card.splitType === "hard"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-purple-100 text-purple-700",
-                            )}
-                          >
-                            {card.splitType}
+                        {card.isSplitable && (
+                          <span className="rounded-full px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700">
+                            가능
                           </span>
                         )}
                       </TableCell>
@@ -511,8 +504,7 @@ export function CardBrowser() {
                 <ul className="text-sm text-muted-foreground">
                   <li>Cloze 개수: {cardDetail.clozeStats.totalClozes}</li>
                   <li>
-                    Hard Split 가능:{" "}
-                    {cardDetail.analysis.canHardSplit ? "예" : "아니오"}
+                    분할 가능: {cardDetail.analysis.canSplit ? "예" : "아니오"}
                   </li>
                   <li>nid 링크: {cardDetail.nidLinks.length}개</li>
                 </ul>

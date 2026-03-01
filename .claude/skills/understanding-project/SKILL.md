@@ -9,17 +9,16 @@ description: |
 
 # 프로젝트 이해
 
-Anki 카드를 원자적 단위로 분할하는 웹 앱 + CLI 도구. 정보 밀도 높은 카드를 Gemini AI로 학습 효율 좋은 작은 카드로 분리.
+Anki 카드를 원자적 단위로 분할하는 웹 앱. 정보 밀도 높은 카드를 Gemini AI로 학습 효율 좋은 작은 카드로 분리.
 
 ## 모노레포 구조
 
 ```
 anki-claude-code/
 ├── packages/
-│   ├── core/      # 핵심 로직 (CLI + 웹 공용) — 파서, 분할, 검증, 임베딩, 프롬프트
+│   ├── core/      # 핵심 로직 — 파서, 분할, 검증, 임베딩, 프롬프트
 │   ├── server/    # Hono REST API (localhost:3000)
 │   └── web/       # React 19 + Vite 프론트엔드 (localhost:5173)
-├── src/           # CLI 진입점 (하위 호환)
 └── output/        # backups/, embeddings/, prompts/
 ```
 
@@ -43,7 +42,7 @@ anki-claude-code/
 | `anki/` | AnkiConnect API 래퍼 — `working-with-anki` 스킬 참조 |
 | `gemini/` | Gemini API 호출 (분할, cloze-enhancer) |
 | `parser/` | 텍스트 파싱 (container, nid, cloze) — `splitting-cards` 스킬 참조 |
-| `splitter/` | Hard/Soft Split 로직 — `splitting-cards` 스킬 참조 |
+| `splitter/` | Split 로직 — `splitting-cards` 스킬 참조 |
 | `validator/` | 카드 검증 4종 — `validating-cards` 스킬 참조 |
 | `embedding/` | Gemini 임베딩 — `managing-embeddings` 스킬 참조 |
 | `prompt-version/` | 프롬프트 버전 관리 — `managing-prompts` 스킬 참조 |
@@ -63,8 +62,6 @@ anki-claude-code/
 bun run dev          # 서버 + 클라이언트 동시 실행
 bun run dev:server   # 서버만 (localhost:3000)
 bun run dev:web      # 클라이언트만 (localhost:5173)
-bun run cli:status   # CLI 연결 확인
-bun run cli:split    # CLI 분할 미리보기
 ```
 
 ## 자주 발생하는 문제

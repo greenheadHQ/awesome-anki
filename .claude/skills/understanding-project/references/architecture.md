@@ -5,7 +5,7 @@
 ```
 anki-claude-code/
 ├── packages/
-│   ├── core/                 # 핵심 로직 (CLI + 웹 공용)
+│   ├── core/                 # 핵심 로직
 │   │   └── src/
 │   │       ├── anki/         # AnkiConnect API 래퍼
 │   │       │   ├── client.ts     # ankiConnect(action, params) 함수
@@ -22,7 +22,7 @@ anki-claude-code/
 │   │       │   ├── nid-parser.ts      # [제목|nid...] 링크
 │   │       │   └── cloze-parser.ts    # {{c1::...}} 구문
 │   │       ├── splitter/     # 분할 로직
-│   │       │   └── atomic-converter.ts # Hard/Soft Split, analyzeForSplit
+│   │       │   └── atomic-converter.ts # Split, analyzeForSplit
 │   │       ├── validator/    # 카드 검증
 │   │       │   ├── types.ts             # 검증 결과 타입
 │   │       │   ├── fact-checker.ts      # Gemini 팩트 체크
@@ -56,9 +56,6 @@ anki-claude-code/
 │           ├── components/   # card/, help/, ui/, onboarding/
 │           ├── hooks/        # useCards, useSplit, usePrompts 등
 │           └── lib/          # api.ts, query-keys.ts, helpContent.ts
-│
-├── src/                      # CLI 진입점 (하위 호환)
-│   └── index.ts
 │
 └── output/
     ├── backups/              # 분할 전 상태 백업 (JSON)

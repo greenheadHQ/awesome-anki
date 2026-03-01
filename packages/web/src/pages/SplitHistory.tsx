@@ -159,7 +159,6 @@ export function SplitHistory() {
   const [page, setPage] = useState(1);
   const [deckName, setDeckName] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
-  const [splitType, setSplitType] = useState<string>("all");
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
@@ -175,7 +174,6 @@ export function SplitHistory() {
     limit: 50,
     deckName: deckName === "all" ? undefined : deckName,
     status: status === "all" ? undefined : (status as SplitHistoryStatus),
-    splitType: splitType === "all" ? undefined : (splitType as "hard" | "soft"),
     startDate: toStartIso(startDate),
     endDate: toEndIso(endDate),
   });
@@ -255,23 +253,6 @@ export function SplitHistory() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={splitType}
-                onValueChange={(value) => {
-                  setSplitType(value);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="타입" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                  <SelectItem value="soft">Soft</SelectItem>
-                </SelectContent>
-              </Select>
-
               <input
                 type="date"
                 value={startDate}
@@ -330,7 +311,6 @@ export function SplitHistory() {
                     <TableHead className="w-12">상세</TableHead>
                     <TableHead>Note</TableHead>
                     <TableHead>상태</TableHead>
-                    <TableHead>타입</TableHead>
                     <TableHead className="hidden md:table-cell">
                       카드수
                     </TableHead>
@@ -358,9 +338,6 @@ export function SplitHistory() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={item.status} />
-                      </TableCell>
-                      <TableCell className="uppercase text-xs">
-                        {item.splitType}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-xs">
                         {item.cardCount}
@@ -423,9 +400,6 @@ export function SplitHistory() {
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   <StatusBadge status={detail.data.status} />
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded uppercase">
-                    {detail.data.splitType}
-                  </span>
                   {detail.data.aiModel && (
                     <span className="text-xs bg-muted px-2 py-0.5 rounded">
                       {detail.data.aiModel}

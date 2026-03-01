@@ -9,7 +9,7 @@
 - SplitWorkspace에서 원클릭 재분할
 - AnkiConnect `cardsInfo`로 학습 데이터 조회 → 필터링
 
-## 전체 Soft Split (보통 우선순위)
+## 전체 Split (보통 우선순위)
 
 - **현재**: 5개 후보만 분석 (API 비용 고려)
 - **개선**: 전체 후보 분석 옵션 추가

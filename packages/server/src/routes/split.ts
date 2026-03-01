@@ -15,7 +15,6 @@ import {
   getPromptVersion,
   getRemoteSystemPromptPayload,
   NotFoundError,
-  performHardSplit,
   preBackup,
   recordPromptMetricsEvent,
   requestCardSplit,
@@ -71,12 +70,10 @@ function mapApplyCards(
 app.post("/preview", async (c) => {
   const {
     noteId,
-    useGemini = false,
     versionId,
     deckName = "",
   } = await c.req.json<{
     noteId: number;
-    useGemini?: boolean;
     versionId?: string;
     deckName?: string;
   }>();
@@ -89,19 +86,15 @@ app.post("/preview", async (c) => {
   const text = extractTextField(note);
   const tags = extractTags(note);
 
-  let promptVersionId: string | undefined;
-  if (useGemini) {
-    if (versionId) {
-      promptVersionId = versionId;
-    } else {
-      const activeVersionInfo = await getActiveVersion();
-      if (!activeVersionInfo) {
-        throw new ValidationError(
-          "Soft Split에는 활성 프롬프트 버전이 필요합니다.",
-        );
-      }
-      promptVersionId = activeVersionInfo.versionId;
+  let promptVersionId: string;
+  if (versionId) {
+    promptVersionId = versionId;
+  } else {
+    const activeVersionInfo = await getActiveVersion();
+    if (!activeVersionInfo) {
+      throw new ValidationError("분할에는 활성 프롬프트 버전이 필요합니다.");
     }
+    promptVersionId = activeVersionInfo.versionId;
   }
 
   let sessionId: string | undefined;
@@ -112,7 +105,6 @@ app.post("/preview", async (c) => {
     sessionId = historyStore.createSession({
       noteId,
       deckName,
-      splitType: useGemini ? "soft" : "hard",
       promptVersionId,
       originalText: text,
       originalTags: tags,
@@ -125,77 +117,6 @@ app.post("/preview", async (c) => {
   }
 
   try {
-    // Hard Split 먼저 시도 (versionId 무관)
-    if (!useGemini) {
-      const hardResult = performHardSplit(text, noteId);
-      if (hardResult && hardResult.length > 1) {
-        const splitCards = hardResult.map((card) => ({
-          title: card.title,
-          content: card.content,
-          isMainCard: card.isMainCard,
-          cardType: detectCardType(card.content),
-        }));
-
-        if (sessionId) {
-          try {
-            const historyStore = await getSplitHistoryStore();
-            historyStore.markGenerated(sessionId, {
-              splitCards: mapPreviewCards(splitCards),
-              aiResponse: null,
-            });
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            historyWarning = historyWarning
-              ? `${historyWarning}; ${message}`
-              : `히스토리 기록 실패: ${message}`;
-          }
-        }
-
-        return c.json({
-          sessionId,
-          noteId,
-          splitType: "hard",
-          originalText: text,
-          splitCards,
-          mainCardIndex: hardResult.findIndex((card) => card.isMainCard),
-          ...(historyWarning && { historyWarning }),
-        });
-      }
-
-      if (sessionId) {
-        try {
-          const historyStore = await getSplitHistoryStore();
-          historyStore.markNotSplit(sessionId, {
-            splitReason:
-              "하드 분할을 적용할 수 없습니다. 소프트 분할을 사용하려면 useGemini를 활성화하세요.",
-          });
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          historyWarning = historyWarning
-            ? `${historyWarning}; ${message}`
-            : `히스토리 기록 실패: ${message}`;
-        }
-      }
-
-      return c.json({
-        sessionId,
-        noteId,
-        splitType: "none",
-        reason:
-          "하드 분할을 적용할 수 없습니다. 소프트 분할을 사용하려면 useGemini를 활성화하세요.",
-        ...(historyWarning && { historyWarning }),
-      });
-    }
-
-    // Soft Split (Gemini) 요청 — 활성/요청 버전 + 원격 systemPrompt resolve
-    if (!promptVersionId) {
-      throw new ValidationError(
-        "Soft Split용 프롬프트 버전을 확인할 수 없습니다.",
-      );
-    }
-
     const resolvedVersion = await getPromptVersion(promptVersionId);
     if (!resolvedVersion) {
       const versionNotFoundMessage = `프롬프트 버전 '${promptVersionId}'을 찾을 수 없습니다.`;
@@ -300,7 +221,6 @@ app.post("/preview", async (c) => {
       return c.json({
         sessionId,
         noteId,
-        splitType: "soft",
         originalText: text,
         splitCards,
         mainCardIndex: geminiResult.mainCardIndex,
@@ -317,8 +237,7 @@ app.post("/preview", async (c) => {
         const historyStore = await getSplitHistoryStore();
         historyStore.markNotSplit(sessionId, {
           splitReason:
-            geminiResult.splitReason ||
-            "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
+            geminiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
           executionTimeMs,
           aiModel: geminiResult.modelName,
           tokenUsage: geminiResult.tokenUsage,
@@ -335,10 +254,8 @@ app.post("/preview", async (c) => {
     return c.json({
       sessionId,
       noteId,
-      splitType: "none",
       reason:
-        geminiResult.splitReason ||
-        "Gemini에서 분할이 필요하지 않다고 판단했습니다.",
+        geminiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
       executionTimeMs,
       tokenUsage: geminiResult.tokenUsage,
       aiModel: geminiResult.modelName,
@@ -363,28 +280,21 @@ app.post("/preview", async (c) => {
  * 분할 적용 (자동 롤백 포함)
  */
 app.post("/apply", async (c) => {
-  const {
-    sessionId,
-    noteId,
-    deckName,
-    splitCards,
-    mainCardIndex,
-    splitType = "soft",
-  } = await c.req.json<{
-    sessionId: string;
-    noteId: number;
-    deckName: string;
-    splitCards: Array<{
-      title: string;
-      content: string;
-      inheritImages?: string[];
-      inheritTags?: string[];
-      preservedLinks?: string[];
-      backLinks?: string[];
-    }>;
-    mainCardIndex: number;
-    splitType?: "hard" | "soft";
-  }>();
+  const { sessionId, noteId, deckName, splitCards, mainCardIndex } =
+    await c.req.json<{
+      sessionId: string;
+      noteId: number;
+      deckName: string;
+      splitCards: Array<{
+        title: string;
+        content: string;
+        inheritImages?: string[];
+        inheritTags?: string[];
+        preservedLinks?: string[];
+        backLinks?: string[];
+      }>;
+      mainCardIndex: number;
+    }>();
 
   if (!sessionId) {
     throw new ValidationError("sessionId가 필요합니다.");
@@ -400,7 +310,7 @@ app.post("/apply", async (c) => {
 
   try {
     // Critical Step 1: 백업 생성
-    const backup = await preBackup(deckName, noteId, splitType);
+    const backup = await preBackup(deckName, noteId);
     backupId = backup.backupId;
 
     // Critical Step 2: 분할 적용
@@ -416,7 +326,6 @@ app.post("/apply", async (c) => {
         backLinks: card.backLinks || [],
       })),
       splitReason: "",
-      splitType,
     };
 
     const applied = await applySplitResult(deckName, splitResult, []);
@@ -460,10 +369,9 @@ app.post("/apply", async (c) => {
       });
 
       const metadata = historyStore.getSessionMetadata(sessionId);
-      if (metadata?.promptVersionId && metadata.splitType === "soft") {
+      if (metadata?.promptVersionId) {
         await recordPromptMetricsEvent({
           promptVersionId: metadata.promptVersionId,
-          splitType: metadata.splitType,
           userAction: "approved",
           splitCards: metadata.splitCards,
         });
@@ -480,7 +388,6 @@ app.post("/apply", async (c) => {
     return c.json({
       success: true,
       backupId,
-      splitType,
       mainNoteId: applied.mainNoteId,
       newNoteIds: applied.newNoteIds,
       syncResult,
@@ -550,10 +457,9 @@ app.post("/reject", async (c) => {
   let historyWarning: string | undefined;
   try {
     const metadata = historyStore.getSessionMetadata(sessionId);
-    if (metadata?.promptVersionId && metadata.splitType === "soft") {
+    if (metadata?.promptVersionId) {
       await recordPromptMetricsEvent({
         promptVersionId: metadata.promptVersionId,
-        splitType: metadata.splitType,
         userAction: "rejected",
         splitCards: metadata.splitCards,
       });

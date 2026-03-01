@@ -25,7 +25,6 @@ export interface SplitResult {
   mainCardIndex: number;
   splitCards: SplitCard[];
   splitReason: string;
-  splitType: "hard" | "soft";
 }
 
 const MODEL_NAME = "KaTeX and Markdown Cloze";

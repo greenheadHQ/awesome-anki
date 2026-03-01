@@ -20,7 +20,7 @@ description: |
 
 ### 보통 우선순위
 
-2. **전체 Soft Split**
+2. **전체 Split**
    - 현재 5개 후보만 분석 (API 비용 고려)
    - 전체 후보 분석 옵션 추가
 
@@ -38,7 +38,7 @@ description: |
 7. **임베딩 기반 자동 중복 탐지** — 전체 덱 스캔, 병합/삭제 제안
 8. **Gemini 분석 토스트 알림** — react-hot-toast 또는 sonner
 9. **반응형 레이아웃** — 모바일/태블릿 대응
-10. **Soft Split 고도화** — 프롬프트 개선, Few-shot, 기준 조정 UI
+10. **Split 고도화** — 프롬프트 개선, Few-shot, 기준 조정 UI
 
 ## 기술 부채
 

@@ -254,16 +254,6 @@ function BackupCard({
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                  backup.splitType === "hard"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-                )}
-              >
-                {backup.splitType === "hard" ? "Hard Split" : "Soft Split"}
-              </span>
               <span className="text-xs text-muted-foreground">
                 {relativeTime}
               </span>
@@ -378,51 +368,17 @@ export function BackupManager() {
       </div>
 
       {/* 통계 카드 */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">총 백업</p>
-                <p className="text-2xl font-bold">{data?.total || 0}</p>
-              </div>
-              <History className="h-8 w-8 text-muted-foreground" />
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">총 백업</p>
+              <p className="text-2xl font-bold">{data?.total || 0}</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Hard Split</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {backups.filter((b) => b.splitType === "hard").length}
-                </p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <span className="text-blue-600 text-sm font-medium">H</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Soft Split</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {backups.filter((b) => b.splitType === "soft").length}
-                </p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <span className="text-purple-600 text-sm font-medium">S</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <History className="h-8 w-8 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 백업 목록 */}
       <Card>

@@ -11,22 +11,16 @@ export interface HelpItem {
 
 export const helpContent: Record<string, HelpItem> = {
   // 분할 관련
-  hardSplit: {
-    title: "Hard Split",
+  split: {
+    title: "Split (분할)",
     description:
-      "#### 헤더로 명확히 구분된 카드를 자동으로 분할합니다. 정규식 기반으로 빠르고 정확하게 처리됩니다.",
-    learnMore: "/help#hard-split",
-  },
-  softSplit: {
-    title: "Soft Split",
-    description:
-      "AI(Gemini)가 카드 내용을 분석하여 의미적으로 분할을 제안합니다. Cloze가 3개 이상인 카드가 대상입니다.",
-    learnMore: "/help#soft-split",
+      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다. Cloze가 3개 이상인 카드가 대상입니다.",
+    learnMore: "/help#split",
   },
   splitCandidate: {
     title: "분할 후보",
     description:
-      "Hard Split 또는 Soft Split이 가능한 카드의 총 개수입니다. 정보 밀도가 높은 카드들이 선정됩니다.",
+      "분할이 가능한 카드의 총 개수입니다. Cloze가 3개 이상인 정보 밀도가 높은 카드들이 선정됩니다.",
     learnMore: "/help#split-candidates",
   },
 
@@ -164,14 +158,9 @@ export const helpContent: Record<string, HelpItem> = {
  */
 export const glossaryItems = [
   {
-    term: "Hard Split",
+    term: "Split (분할)",
     definition:
-      "#### 헤더로 명확히 구분된 카드를 정규식으로 자동 분할하는 방식입니다. 빠르고 정확하지만, 명확한 구분자가 있는 경우에만 사용 가능합니다.",
-  },
-  {
-    term: "Soft Split",
-    definition:
-      "AI(Gemini)가 카드 내용을 분석하여 의미적으로 분할을 제안하는 방식입니다. Cloze가 3개 이상인 복잡한 카드에 적용됩니다.",
+      "AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안하는 방식입니다. Cloze가 3개 이상인 복잡한 카드에 적용됩니다.",
   },
   {
     term: "Cloze",
@@ -227,12 +216,12 @@ export const faqItems = [
   {
     question: "API 비용은 얼마나 드나요?",
     answer:
-      "Soft Split과 검증 기능은 Gemini API를 사용합니다. Gemini 3 Flash Preview는 무료 티어가 넉넉하며, 일반적인 사용량에서는 비용이 거의 발생하지 않습니다.",
+      "분할과 검증 기능은 Gemini API를 사용합니다. Gemini 3 Flash Preview는 무료 티어가 넉넉하며, 일반적인 사용량에서는 비용이 거의 발생하지 않습니다.",
   },
   {
-    question: "Hard Split과 Soft Split 중 어떤 것을 사용해야 하나요?",
+    question: "어떤 카드가 분할 대상이 되나요?",
     answer:
-      "카드에 #### 헤더가 명확히 있다면 Hard Split이 사용됩니다. 그렇지 않은 경우 Soft Split이 AI의 판단으로 분할을 제안합니다. 시스템이 자동으로 적절한 방식을 선택합니다.",
+      "Cloze가 3개 이상인 카드가 분할 후보로 선정됩니다. AI(Gemini)가 카드 내용을 분석하여 원자적 단위로 분할을 제안합니다.",
   },
   {
     question: "검증은 꼭 해야 하나요?",
