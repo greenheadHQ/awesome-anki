@@ -27,6 +27,11 @@ function resolveModelId(
   provider?: string,
   model?: string,
 ): LLMModelId | undefined {
+  if (model && !provider) {
+    throw new ValidationError(
+      "model을 지정할 때 provider도 함께 지정해야 합니다.",
+    );
+  }
   if (!provider) return undefined;
   if (!VALID_PROVIDERS.has(provider)) {
     throw new ValidationError(`지원하지 않는 provider입니다: ${provider}`);

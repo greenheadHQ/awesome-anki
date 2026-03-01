@@ -312,7 +312,7 @@ bun run cli rollback <backupId>
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
 | GET | `/api/llm/models` | 사용 가능 LLM 모델/가격 조회 |
-| POST | `/api/split/preview` | 분할 미리보기 (provider/model 선택 가능) |
+| POST | `/api/split/preview` | 분할 미리보기 (provider/model/budgetUsdCap 선택 가능, 예산 초과 시 HTTP 402) |
 | POST | `/api/split/apply` | 분할 적용 |
 | POST | `/api/split/reject` | 분할 반려 처리 |
 | GET | `/api/history` | 분할 이력 목록 조회 |

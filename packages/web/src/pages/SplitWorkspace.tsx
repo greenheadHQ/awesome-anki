@@ -1017,7 +1017,8 @@ export function SplitWorkspace() {
                 {llmModelsData?.availableProviders?.map((provider) => (
                   <SelectGroup key={provider}>
                     <SelectLabel>
-                      {provider === "gemini" ? "Gemini" : "OpenAI"}
+                      {{ gemini: "Gemini", openai: "OpenAI" }[provider] ??
+                        provider}
                     </SelectLabel>
                     {llmModelsData.models
                       .filter((m) => m.provider === provider)

@@ -15,6 +15,7 @@ import {
   getActiveVersion,
   getAvailableProviders,
   getDefaultModelForProvider,
+  getDefaultModelId,
   getModelPricing,
   getNoteById,
   getPromptVersion,
@@ -233,11 +234,12 @@ app.post("/preview", async (c) => {
           estimatedTotalCostUsd: number;
         }
       | undefined;
+    const resolvedModelId = modelId ?? getDefaultModelId();
     try {
       const costEstimation = await estimateSplitCost(
-        text,
-        modelId,
-        prompts.systemPrompt,
+        { noteId, text, tags },
+        prompts,
+        resolvedModelId,
       );
       if (costEstimation) {
         estimatedCost = costEstimation.estimatedCost;
@@ -262,8 +264,8 @@ app.post("/preview", async (c) => {
               error: "BUDGET_EXCEEDED",
               estimatedCostUsd: budgetCheck.estimatedCostUsd,
               budgetCapUsd: budgetCheck.budgetCapUsd,
-              provider: modelId?.provider ?? "gemini",
-              model: modelId?.model ?? "gemini-3-flash-preview",
+              provider: resolvedModelId.provider,
+              model: resolvedModelId.model,
             },
             402,
           );

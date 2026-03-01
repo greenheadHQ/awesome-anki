@@ -17,10 +17,17 @@ export function createLLMClient(provider: LLMProviderName): LLMProvider {
   }
 }
 
+const VALID_PROVIDERS = new Set<string>(["gemini", "openai"]);
+
 export function getDefaultModelId(): LLMModelId {
-  const provider =
-    (process.env.ANKI_SPLITTER_DEFAULT_LLM_PROVIDER as LLMProviderName) ??
-    "gemini";
+  const rawProvider = process.env.ANKI_SPLITTER_DEFAULT_LLM_PROVIDER;
+  if (rawProvider && !VALID_PROVIDERS.has(rawProvider)) {
+    throw new Error(
+      `유효하지 않은 LLM provider: ${rawProvider} (지원: gemini, openai)`,
+    );
+  }
+  const provider: LLMProviderName =
+    (rawProvider as LLMProviderName) ?? "gemini";
   const model =
     process.env.ANKI_SPLITTER_DEFAULT_LLM_MODEL ??
     getDefaultModelForProvider(provider);

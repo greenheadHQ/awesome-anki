@@ -25,13 +25,22 @@ export function useSplitPreview() {
       deckName,
       provider,
       model,
+      budgetUsdCap,
     }: {
       noteId: number;
       versionId?: string;
       deckName?: string;
       provider?: string;
       model?: string;
-    }) => api.split.preview(noteId, { versionId, deckName, provider, model }),
+      budgetUsdCap?: number;
+    }) =>
+      api.split.preview(noteId, {
+        versionId,
+        deckName,
+        provider,
+        model,
+        budgetUsdCap,
+      }),
     onSuccess: (data, variables) => {
       queryClient.setQueryData(
         queryKeys.split.preview(

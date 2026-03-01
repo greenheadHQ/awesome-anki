@@ -37,9 +37,9 @@ export interface CardForSplit {
  * 분할 비용 사전 추정
  */
 export async function estimateSplitCost(
-  inputText: string,
+  card: CardForSplit,
+  prompts?: { systemPrompt: string; splitPromptTemplate: string },
   modelId?: LLMModelId,
-  systemPrompt?: string,
 ): Promise<{
   estimatedCost: CostEstimate;
   inputTokens: number;
@@ -53,8 +53,17 @@ export async function estimateSplitCost(
   if (!pricing) return null;
 
   const client = createLLMClient(resolvedModelId.provider);
-  // DA Fix: 실제 시스템 프롬프트 + 카드 본문을 합산하여 입력 토큰 추정
-  const fullInput = `${systemPrompt ?? SYSTEM_PROMPT}\n\n${inputText}`;
+  // 실제 프롬프트와 동일한 구조로 입력 토큰 추정
+  const systemPromptText = prompts?.systemPrompt ?? SYSTEM_PROMPT;
+  const userPrompt = prompts
+    ? buildSplitPromptFromTemplate(
+        prompts.splitPromptTemplate,
+        card.noteId,
+        card.text,
+        card.tags,
+      )
+    : buildSplitPrompt(card.noteId, card.text);
+  const fullInput = `${systemPromptText}\n\n${userPrompt}`;
   const inputTokens = await client.countTokens(
     fullInput,
     resolvedModelId.model,
