@@ -260,11 +260,11 @@ export function SplitWorkspace() {
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
   const [activePanel, setActivePanel] = useState<MobilePanel>("candidates");
 
-  // 분석 상태 추적
-  const [pendingAnalyses, setPendingAnalyses] = useState<Set<number>>(
+  // 분석 상태 추적 — noteId:provider/model 복합 키로 멀티모델 분리
+  const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(
     new Set(),
   );
-  const [errorAnalyses, setErrorAnalyses] = useState<Map<number, string>>(
+  const [errorAnalyses, setErrorAnalyses] = useState<Map<string, string>>(
     new Map(),
   );
 
@@ -332,15 +332,18 @@ export function SplitWorkspace() {
     splitPreview.isPending &&
     splitPreview.variables?.noteId === selectedCard?.noteId;
 
-  // 현재 선택된 카드의 에러 메시지 확인
+  // 현재 선택된 카드+모델의 에러 메시지 확인
+  const analysisKey = (nid: number) =>
+    `${nid}:${activeProvider}/${activeModel}`;
   const currentCardError = selectedCard
-    ? errorAnalyses.get(selectedCard.noteId)
+    ? errorAnalyses.get(analysisKey(selectedCard.noteId))
     : undefined;
 
   // 카드 상태 헬퍼
   const getCardStatus = (noteId: number): CardAnalysisStatus => {
-    if (pendingAnalyses.has(noteId)) return "pending";
-    if (errorAnalyses.has(noteId)) return "error";
+    const key = analysisKey(noteId);
+    if (pendingAnalyses.has(key)) return "pending";
+    if (errorAnalyses.has(key)) return "error";
     const cached = getCachedSplitPreview(
       queryClient,
       noteId,
@@ -373,20 +376,21 @@ export function SplitWorkspace() {
   // 분할 분석 요청 핸들러
   const handleRequestSplit = () => {
     if (!selectedCard) return;
+    const key = analysisKey(selectedCard.noteId);
     // 연타 방지
-    if (pendingAnalyses.has(selectedCard.noteId)) return;
+    if (pendingAnalyses.has(key)) return;
 
     const noteId = selectedCard.noteId;
 
     // 상태 전이: pending 추가, error 제거
     setPendingAnalyses((prev) => {
       const next = new Set(prev);
-      next.add(noteId);
+      next.add(key);
       return next;
     });
     setErrorAnalyses((prev) => {
       const next = new Map(prev);
-      next.delete(noteId);
+      next.delete(key);
       return next;
     });
 
@@ -402,7 +406,7 @@ export function SplitWorkspace() {
         onSuccess: () => {
           setPendingAnalyses((prev) => {
             const next = new Set(prev);
-            next.delete(noteId);
+            next.delete(key);
             return next;
           });
           toast.success(`카드 ${noteId} 분석 완료`, {
@@ -417,12 +421,12 @@ export function SplitWorkspace() {
             error instanceof Error ? error.message : String(error);
           setPendingAnalyses((prev) => {
             const next = new Set(prev);
-            next.delete(noteId);
+            next.delete(key);
             return next;
           });
           setErrorAnalyses((prev) => {
             const next = new Map(prev);
-            next.set(noteId, message);
+            next.set(key, message);
             return next;
           });
           toast.error(`카드 ${noteId} 분석 실패: ${message}`);
@@ -923,7 +927,7 @@ export function SplitWorkspace() {
               disabled={
                 !llmModelsData ||
                 splitPreview.isPending ||
-                pendingAnalyses.has(selectedCard?.noteId ?? -1)
+                pendingAnalyses.has(analysisKey(selectedCard?.noteId ?? -1))
               }
               variant="outline"
               className="bg-purple-50 hover:bg-purple-100 border-purple-200"

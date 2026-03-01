@@ -243,6 +243,20 @@ app.post("/preview", async (c) => {
         }
       | undefined;
     const resolvedModelId = modelId ?? getDefaultModelId();
+
+    // 기본 모델 경로도 pricing table 검증 적용 — 미등록 시 예산 가드레일 우회 방지
+    if (
+      !getModelPricing(resolvedModelId.provider, resolvedModelId.model) &&
+      budgetUsdCap !== undefined
+    ) {
+      return c.json(
+        {
+          error: `모델 ${resolvedModelId.provider}/${resolvedModelId.model}의 비용 정보가 등록되지 않아 예산 검사가 불가능합니다.`,
+        },
+        400,
+      );
+    }
+
     try {
       const costEstimation = await estimateSplitCost(
         { noteId, text, tags },
