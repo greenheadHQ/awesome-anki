@@ -10,6 +10,9 @@ import {
   parseContainers,
 } from "../parser/container-parser.js";
 
+/** 카드당 최대 Cloze 수. 이를 초과하면 분할 대상 (UI: "N+1개 이상") */
+export const MAX_CLOZES_PER_CARD = 3;
+
 export interface AtomicCard {
   title: string;
   content: string;
@@ -43,14 +46,13 @@ export function analyzeForSplit(htmlContent: string): SplitAnalysis {
   const clozes = parseClozes(htmlContent);
   const clozeCount = clozes.length;
 
-  // 분할 가능 여부: Cloze가 3개 초과인 경우
-  const canSplit = clozeCount > 3;
+  const canSplit = clozeCount > MAX_CLOZES_PER_CARD;
 
   return {
     canSplit,
     hasTodoBlock,
     clozeCount,
-    estimatedCards: canSplit ? Math.ceil(clozeCount / 3) : 1,
+    estimatedCards: canSplit ? Math.ceil(clozeCount / MAX_CLOZES_PER_CARD) : 1,
   };
 }
 
