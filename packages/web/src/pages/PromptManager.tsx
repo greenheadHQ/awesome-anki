@@ -577,9 +577,9 @@ function VersionsTab({
   const showDetail = !!selectedVersion;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full grid-rows-[1fr]">
       {/* 버전 목록 — 모바일: 상세 선택 시 숨김 */}
-      <div className={cn("md:col-span-5 overflow-y-auto", showDetail && "hidden md:block")}>
+      <div className={cn("md:col-span-5 overflow-y-auto min-h-0", showDetail && "hidden md:block")}>
         <Card className="h-full">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-sm">버전 목록</CardTitle>
@@ -630,7 +630,7 @@ function VersionsTab({
       </div>
 
       {/* 버전 상세 — 모바일: 전체 너비, 뒤로 버튼 */}
-      <div className={cn("md:col-span-7 overflow-y-auto", !showDetail && "hidden md:block")}>
+      <div className={cn("md:col-span-7 overflow-y-auto min-h-0", !showDetail && "hidden md:block")}>
         {selectedVersion ? (
           <Card className="h-full">
             <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
