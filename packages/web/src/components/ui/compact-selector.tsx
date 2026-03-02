@@ -89,7 +89,9 @@ function CompactSelector({
   if (isMobile) {
     return (
       <>
-        <div onClick={() => !disabled && setOpen(true)}>{triggerContent}</div>
+        <div className="flex-1 min-w-0" onClick={() => !disabled && setOpen(true)}>
+          {triggerContent}
+        </div>
         <BottomSheet open={open} onOpenChange={setOpen} title={sheetTitle || label}>
           {itemList}
         </BottomSheet>
