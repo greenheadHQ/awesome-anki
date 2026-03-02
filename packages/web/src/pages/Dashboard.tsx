@@ -33,6 +33,8 @@ export function Dashboard() {
     enabled: !!selectedDeck,
     staleTime: 30000,
   });
+  const isEmbeddingCacheReady =
+    embeddingStatus?.cache.exists && embeddingStatus.cache.health === "ok";
 
   // 임베딩 생성 뮤테이션
   const generateMutation = useMutation({
@@ -148,7 +150,7 @@ export function Dashboard() {
             <CardContent>
               {isLoadingEmbedding ? (
                 <div className="text-2xl font-bold text-muted-foreground">...</div>
-              ) : embeddingStatus?.cache.exists ? (
+              ) : isEmbeddingCacheReady ? (
                 <div>
                   <div className="text-2xl font-bold text-violet-600">
                     {embeddingStatus.coverage}%
@@ -157,6 +159,8 @@ export function Dashboard() {
                     {embeddingStatus.cache.count} / {embeddingStatus.notes.total}
                   </p>
                 </div>
+              ) : embeddingStatus?.cache.exists ? (
+                <div className="text-sm text-amber-600">재생성 필요</div>
               ) : (
                 <div className="text-sm text-muted-foreground">없음</div>
               )}
@@ -197,7 +201,7 @@ export function Dashboard() {
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
                   임베딩 생성
-                  {embeddingStatus?.cache.exists && embeddingStatus.coverage < 100 && (
+                  {isEmbeddingCacheReady && embeddingStatus.coverage < 100 && (
                     <span className="ml-1 text-xs opacity-70">({embeddingStatus.coverage}%)</span>
                   )}
                 </>

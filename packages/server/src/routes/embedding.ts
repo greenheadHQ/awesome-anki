@@ -196,10 +196,13 @@ embedding.post("/generate", async (c) => {
 
   try {
     const { deckName: rawDeckName, forceRegenerate } = await c.req.json<{
-      deckName: string;
+      deckName?: unknown;
       forceRegenerate?: boolean;
     }>();
-    const deckName = rawDeckName?.trim();
+    if (typeof rawDeckName !== "string") {
+      throw new ValidationError("deckName은 문자열이어야 합니다");
+    }
+    const deckName = rawDeckName.trim();
     if (!deckName) {
       throw new ValidationError("deckName이 필요합니다");
     }
