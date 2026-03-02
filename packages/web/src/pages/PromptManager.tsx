@@ -630,7 +630,9 @@ function VersionsTab({
       </div>
 
       {/* 버전 상세 — 모바일: 전체 너비, 뒤로 버튼 */}
-      <div className={cn("md:col-span-7 overflow-y-auto min-h-0", !showDetail && "hidden md:block")}>
+      <div
+        className={cn("md:col-span-7 overflow-y-auto min-h-0", !showDetail && "hidden md:block")}
+      >
         {selectedVersion ? (
           <Card className="h-full">
             <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
