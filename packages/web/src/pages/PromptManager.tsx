@@ -405,15 +405,15 @@ function SystemPromptEditor({
   return (
     <Card className="mb-4 border-primary/30 bg-gradient-to-br from-card via-card to-primary/5">
       <CardHeader className="py-3 px-4 border-b">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-sm flex items-center gap-2">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+          <CardTitle className="text-sm flex items-center gap-2 shrink-0">
             <Save className="w-4 h-4 text-primary" />
             시스템 프롬프트 원격 편집
           </CardTitle>
-          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
             <span>revision: {revision ?? "-"}</span>
-            <span>active: {activeVersionName ?? "-"}</span>
-            {activeVersionId && <span className="font-mono text-[11px]">{activeVersionId}</span>}
+            <span className="truncate">active: {activeVersionName ?? "-"}</span>
+            {activeVersionId && <span className="font-mono text-[11px] truncate">{activeVersionId}</span>}
           </div>
         </div>
       </CardHeader>
@@ -444,8 +444,8 @@ function SystemPromptEditor({
               placeholder="원격 systemPrompt를 입력하세요."
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="md:col-span-3">
+            <div className="space-y-3">
+              <div>
                 <label htmlFor="system-prompt-reason" className="text-xs text-muted-foreground">
                   변경 사유 (필수, 새 버전 changelog로 저장)
                 </label>
@@ -458,17 +458,17 @@ function SystemPromptEditor({
                   placeholder="예: 용어 통일, 지시문 간결화"
                 />
               </div>
-              <div className="md:col-span-1 flex items-end gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="shrink-0"
                   onClick={onReloadRemote}
                   disabled={isSaving}
                 >
                   원격 재조회
                 </Button>
-                <Button type="button" className="w-full" onClick={onSave} disabled={!canSave}>
+                <Button type="button" className="shrink-0" onClick={onSave} disabled={!canSave}>
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin mr-1" />
                   ) : (

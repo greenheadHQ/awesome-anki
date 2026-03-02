@@ -29,11 +29,7 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -56,11 +52,7 @@ import {
   useSplitPreview,
   useSplitReject,
 } from "../hooks/useSplit";
-import type {
-  CardSummary,
-  DifficultCard,
-  SplitPreviewResult,
-} from "../lib/api";
+import type { CardSummary, DifficultCard, SplitPreviewResult } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { recordSyncAttempt } from "../lib/sync-status";
 import { cn } from "../lib/utils";
@@ -245,24 +237,16 @@ export function SplitWorkspace() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
   const [showValidation, setShowValidation] = useState(false);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
-    null,
-  );
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
   const [activePanel, setActivePanel] = useState<MobilePanel>("list");
-  const [detailTab, setDetailTab] = useState<"original" | "preview">(
-    "original",
-  );
+  const [detailTab, setDetailTab] = useState<"original" | "preview">("original");
   const [showConfigSheet, setShowConfigSheet] = useState(false);
 
   // 분석 상태 추적 — noteId:provider/model 복합 키로 멀티모델 분리
-  const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(
-    new Set(),
-  );
-  const [errorAnalyses, setErrorAnalyses] = useState<Map<string, string>>(
-    new Map(),
-  );
+  const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(new Set());
+  const [errorAnalyses, setErrorAnalyses] = useState<Map<string, string>>(new Map());
 
   const queryClient = useQueryClient();
   const { data: decksData } = useDecks();
@@ -272,14 +256,12 @@ export function SplitWorkspace() {
     filter: "all",
   });
 
-  const { data: difficultData, isLoading: isLoadingDifficult } =
-    useDifficultCards(activeDeck, {
-      limit: 200,
-    });
+  const { data: difficultData, isLoading: isLoadingDifficult } = useDifficultCards(activeDeck, {
+    limit: 200,
+  });
 
   // 프롬프트 버전 관련
-  const { data: promptVersionsData, isLoading: isLoadingVersions } =
-    usePromptVersions();
+  const { data: promptVersionsData, isLoading: isLoadingVersions } = usePromptVersions();
   const activeVersionId =
     selectedVersionId ??
     promptVersionsData?.activeVersionId ??
@@ -333,8 +315,7 @@ export function SplitWorkspace() {
     splitPreview.variables?.model === activeModel;
 
   // 현재 선택된 카드+모델의 에러 메시지 확인
-  const analysisKey = (nid: number) =>
-    `${nid}:${activeProvider}/${activeModel}`;
+  const analysisKey = (nid: number) => `${nid}:${activeProvider}/${activeModel}`;
   const currentCardError = selectedCard
     ? errorAnalyses.get(analysisKey(selectedCard.noteId))
     : undefined;
@@ -429,8 +410,7 @@ export function SplitWorkspace() {
           });
         },
         onError: (error) => {
-          const message =
-            error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error);
           setPendingAnalyses((prev) => {
             const next = new Set(prev);
             next.delete(key);
@@ -451,16 +431,12 @@ export function SplitWorkspace() {
     .map(mapCardSummaryToCandidate)
     .filter((card) => card.analysis.canSplit);
 
-  const difficultCards = (difficultData?.cards || []).map(
-    mapDifficultToCandidate,
-  );
+  const difficultCards = (difficultData?.cards || []).map(mapDifficultToCandidate);
 
   const handleApply = () => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
     if (!previewData.sessionId) {
-      toast.warning(
-        "히스토리 세션이 없어 적용할 수 없습니다. 미리보기를 다시 실행해주세요.",
-      );
+      toast.warning("히스토리 세션이 없어 적용할 수 없습니다. 미리보기를 다시 실행해주세요.");
       return;
     }
 
@@ -492,11 +468,8 @@ export function SplitWorkspace() {
           }
 
           // 성공 후 목록에서 제거하고 다음 카드 선택
-          const activeList =
-            mode === "candidates" ? candidates : difficultCards;
-          const nextCard = activeList.find(
-            (c) => c.noteId !== selectedCard.noteId,
-          );
+          const activeList = mode === "candidates" ? candidates : difficultCards;
+          const nextCard = activeList.find((c) => c.noteId !== selectedCard.noteId);
           if (nextCard) {
             handleSelectCard(nextCard);
           } else {
@@ -505,8 +478,7 @@ export function SplitWorkspace() {
           }
         },
         onError: (error) => {
-          const message =
-            error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error);
           toast.error(`분할 적용 실패: ${message}`);
         },
       },
@@ -516,9 +488,7 @@ export function SplitWorkspace() {
   const handleReject = (rejectionReason: string) => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
     if (!previewData.sessionId) {
-      toast.warning(
-        "히스토리 세션이 없어 반려할 수 없습니다. 미리보기를 다시 실행해주세요.",
-      );
+      toast.warning("히스토리 세션이 없어 반려할 수 없습니다. 미리보기를 다시 실행해주세요.");
       return;
     }
 
@@ -550,11 +520,9 @@ export function SplitWorkspace() {
     );
   };
 
-  const isLoadingList =
-    mode === "candidates" ? isLoadingCards : isLoadingDifficult;
+  const isLoadingList = mode === "candidates" ? isLoadingCards : isLoadingDifficult;
   const activeList = mode === "candidates" ? candidates : difficultCards;
-  const activeCount =
-    mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
+  const activeCount = mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
 
   const isBusy = splitReject.isPending || splitApply.isPending;
   const canReject =
@@ -625,11 +593,7 @@ export function SplitWorkspace() {
             <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
               <span>lapses: {card.difficulty?.lapses}</span>
               <span>
-                ease:{" "}
-                {card.difficulty
-                  ? (card.difficulty.easeFactor / 10).toFixed(0)
-                  : 0}
-                %
+                ease: {card.difficulty ? (card.difficulty.easeFactor / 10).toFixed(0) : 0}%
               </span>
             </div>
           </div>
@@ -702,16 +666,12 @@ export function SplitWorkspace() {
           </div>
         ) : activeList.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {mode === "candidates"
-              ? "분할 후보가 없습니다"
-              : "재분할 대상이 없습니다"}
+            {mode === "candidates" ? "분할 후보가 없습니다" : "재분할 대상이 없습니다"}
           </div>
         ) : mode === "candidates" ? (
           <div className="divide-y">{candidates.map(renderCardListItem)}</div>
         ) : (
-          <div className="divide-y">
-            {difficultCards.map(renderDifficultCardListItem)}
-          </div>
+          <div className="divide-y">{difficultCards.map(renderDifficultCardListItem)}</div>
         )}
       </div>
     </>
@@ -738,9 +698,7 @@ export function SplitWorkspace() {
                 <Shield className="w-3 h-3" />
                 검증
               </button>
-              <span className="text-xs text-muted-foreground">
-                NID: {selectedCard.noteId}
-              </span>
+              <span className="text-xs text-muted-foreground">NID: {selectedCard.noteId}</span>
             </div>
           )}
         </div>
@@ -765,8 +723,7 @@ export function SplitWorkspace() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-amber-700">
                     <span>실패 횟수: {selectedCard.difficulty.lapses}회</span>
                     <span>
-                      Ease Factor:{" "}
-                      {(selectedCard.difficulty.easeFactor / 10).toFixed(0)}%
+                      Ease Factor: {(selectedCard.difficulty.easeFactor / 10).toFixed(0)}%
                     </span>
                     <span>복습 간격: {selectedCard.difficulty.interval}일</span>
                     <span>총 복습: {selectedCard.difficulty.reps}회</span>
@@ -792,10 +749,7 @@ export function SplitWorkspace() {
               />
               {/* 검증 패널 */}
               {showValidation && activeDeck && (
-                <ValidationPanel
-                  noteId={selectedCard.noteId}
-                  deckName={activeDeck}
-                />
+                <ValidationPanel noteId={selectedCard.noteId} deckName={activeDeck} />
               )}
             </div>
           )
@@ -837,12 +791,7 @@ export function SplitWorkspace() {
             <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
               {currentCardError}
             </p>
-            <Button
-              onClick={handleRequestSplit}
-              variant="outline"
-              size="sm"
-              className="mt-3"
-            >
+            <Button onClick={handleRequestSplit} variant="outline" size="sm" className="mt-3">
               다시 시도
             </Button>
           </div>
@@ -860,12 +809,7 @@ export function SplitWorkspace() {
                   : String(splitPreview.error)}
               </p>
             )}
-            <Button
-              onClick={handleRequestSplit}
-              variant="outline"
-              size="sm"
-              className="mt-3"
-            >
+            <Button onClick={handleRequestSplit} variant="outline" size="sm" className="mt-3">
               다시 시도
             </Button>
           </div>
@@ -881,20 +825,13 @@ export function SplitWorkspace() {
             {/* 분할 요약 */}
             <div className="p-3 bg-muted rounded-lg text-sm">
               <div className="flex items-center gap-2 mb-1">
-                <p className="font-medium">
-                  {previewData.splitCards.length}개 카드로 분할
-                </p>
+                <p className="font-medium">{previewData.splitCards.length}개 카드로 분할</p>
                 {previewData.provider && (
-                  <ModelBadge
-                    provider={previewData.provider}
-                    model={previewData.aiModel}
-                  />
+                  <ModelBadge provider={previewData.provider} model={previewData.aiModel} />
                 )}
               </div>
               {previewData.splitReason && (
-                <p className="text-muted-foreground text-xs">
-                  {previewData.splitReason}
-                </p>
+                <p className="text-muted-foreground text-xs">{previewData.splitReason}</p>
               )}
               <p className="text-muted-foreground text-xs mt-1">
                 {previewData.executionTimeMs != null &&
@@ -909,11 +846,7 @@ export function SplitWorkspace() {
             {/* 분할 카드 미리보기 */}
             <div className="space-y-3">
               {previewData.splitCards.map((card, idx) => (
-                <SplitPreviewCard
-                  key={`split-${card.title}-${idx}`}
-                  card={card}
-                  index={idx}
-                />
+                <SplitPreviewCard key={`split-${card.title}-${idx}`} card={card} index={idx} />
               ))}
             </div>
 
@@ -932,9 +865,7 @@ export function SplitWorkspace() {
                 </span>
               )}
               <br />
-              <span className="text-xs text-muted-foreground">
-                API 비용이 발생할 수 있습니다.
-              </span>
+              <span className="text-xs text-muted-foreground">API 비용이 발생할 수 있습니다.</span>
             </p>
             <Button
               onClick={handleRequestSplit}
@@ -956,16 +887,14 @@ export function SplitWorkspace() {
   );
 
   // CompactSelector 아이템 빌드
-  const promptSelectorItems: CompactSelectorItem[] = (
-    promptVersionsData?.versions || []
-  ).map((v) => ({
-    key: v.id,
-    label: `${v.name}${v.id === promptVersionsData?.activeVersionId ? " \u2713" : ""}`,
-  }));
+  const promptSelectorItems: CompactSelectorItem[] = (promptVersionsData?.versions || []).map(
+    (v) => ({
+      key: v.id,
+      label: `${v.name}${v.id === promptVersionsData?.activeVersionId ? " \u2713" : ""}`,
+    }),
+  );
 
-  const modelSelectorItems: CompactSelectorItem[] = (
-    llmModelsData?.models || []
-  ).map((m) => {
+  const modelSelectorItems: CompactSelectorItem[] = (llmModelsData?.models || []).map((m) => {
     const key = `${m.provider}/${m.model}`;
     const isDefault =
       m.provider === llmModelsData?.defaultModelId.provider &&
@@ -1020,8 +949,7 @@ export function SplitWorkspace() {
               <div className="flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span className="text-sm truncate">
-                  {promptSelectorItems.find((i) => i.key === activeVersionId)
-                    ?.label ||
+                  {promptSelectorItems.find((i) => i.key === activeVersionId)?.label ||
                     (isLoadingVersions ? "로딩 중..." : "프롬프트 선택")}
                 </span>
               </div>
@@ -1032,18 +960,13 @@ export function SplitWorkspace() {
                   <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 )}
                 <span className="text-xs text-muted-foreground truncate">
-                  {modelSelectorItems.find((i) => i.key === activeModelKey)
-                    ?.label || "모델 선택"}
+                  {modelSelectorItems.find((i) => i.key === activeModelKey)?.label || "모델 선택"}
                 </span>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </button>
-          <BottomSheet
-            open={showConfigSheet}
-            onOpenChange={setShowConfigSheet}
-            title="분할 설정"
-          >
+          <BottomSheet open={showConfigSheet} onOpenChange={setShowConfigSheet} title="분할 설정">
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">
@@ -1060,8 +983,7 @@ export function SplitWorkspace() {
                       }}
                       className={cn(
                         "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
-                        item.key === activeVersionId &&
-                          "bg-primary/10 font-medium",
+                        item.key === activeVersionId && "bg-primary/10 font-medium",
                       )}
                     >
                       {item.label}
@@ -1070,9 +992,7 @@ export function SplitWorkspace() {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">
-                  LLM 모델
-                </p>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
                 <div className="divide-y rounded-lg border overflow-hidden">
                   {modelSelectorItems.map((item) => (
                     <button
@@ -1084,8 +1004,7 @@ export function SplitWorkspace() {
                       }}
                       className={cn(
                         "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
-                        item.key === activeModelKey &&
-                          "bg-primary/10 font-medium",
+                        item.key === activeModelKey && "bg-primary/10 font-medium",
                       )}
                     >
                       <div>{item.label}</div>
@@ -1103,32 +1022,30 @@ export function SplitWorkspace() {
         </div>
       ) : (
         /* ===== 데스크톱 헤더 (lg+) — 기존 구조 유지 ===== */
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <h1 className="typo-h1">분할 작업</h1>
-            <Select
-              value={activeDeck ?? undefined}
-              onValueChange={(value) => {
-                setSelectedDeck(value || null);
-                handleSelectCard(null);
-              }}
-              disabled={!decksData?.decks?.length}
-            >
-              <SelectTrigger className="min-w-0 text-sm lg:min-w-[180px]">
-                <SelectValue placeholder="덱 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {decksData?.decks?.map((deck) => (
-                  <SelectItem key={deck} value={deck}>
-                    {deck}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+          <h1 className="typo-h1 shrink-0">분할 작업</h1>
+          <Select
+            value={activeDeck ?? undefined}
+            onValueChange={(value) => {
+              setSelectedDeck(value || null);
+              handleSelectCard(null);
+            }}
+            disabled={!decksData?.decks?.length}
+          >
+            <SelectTrigger className="w-auto min-w-[140px] max-w-[220px] text-sm">
+              <SelectValue placeholder="덱 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {decksData?.decks?.map((deck) => (
+                <SelectItem key={deck} value={deck}>
+                  {deck}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="ml-auto flex flex-wrap items-center gap-3">
             {/* 프롬프트 버전 선택 */}
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
               <HelpTooltip helpKey="promptVersionSelect" />
               <Select
@@ -1140,63 +1057,50 @@ export function SplitWorkspace() {
                   promptVersionsData.versions.length === 0
                 }
               >
-                <SelectTrigger className="min-w-0 text-sm lg:min-w-[220px]">
-                  <SelectValue
-                    placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"}
-                  />
+                <SelectTrigger className="w-auto min-w-[120px] max-w-[220px] text-sm">
+                  <SelectValue placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"} />
                 </SelectTrigger>
                 <SelectContent>
                   {promptVersionsData?.versions?.map((version) => (
                     <SelectItem key={version.id} value={version.id}>
                       {version.name}
-                      {version.id === promptVersionsData.activeVersionId &&
-                        " \u2713"}
+                      {version.id === promptVersionsData.activeVersionId && " \u2713"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             {/* LLM 모델 선택 */}
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <Select
                 value={activeModelKey ?? undefined}
                 onValueChange={(value) => setSelectedModelKey(value || null)}
                 disabled={!llmModelsData?.models?.length}
               >
-                <SelectTrigger
-                  size="sm"
-                  className="min-w-0 text-sm lg:min-w-[200px]"
-                >
+                <SelectTrigger size="sm" className="w-auto min-w-[120px] max-w-[200px] text-sm">
                   <SelectValue placeholder="모델 선택" />
                 </SelectTrigger>
                 <SelectContent>
                   {llmModelsData?.availableProviders?.map((provider) => (
                     <SelectGroup key={provider}>
                       <SelectLabel>
-                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ??
-                          provider}
+                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
                       </SelectLabel>
                       {llmModelsData.models
                         .filter((m) => m.provider === provider)
                         .map((m) => {
                           const key = `${m.provider}/${m.model}`;
                           const isDefault =
-                            m.provider ===
-                              llmModelsData.defaultModelId.provider &&
+                            m.provider === llmModelsData.defaultModelId.provider &&
                             m.model === llmModelsData.defaultModelId.model;
                           return (
                             <SelectItem key={key} value={key}>
                               <span className="flex items-center gap-2">
                                 <span>{m.displayName}</span>
                                 <span className="text-[10px] text-muted-foreground font-mono">
-                                  ${m.inputPricePerMillionTokens}/
-                                  {m.outputPricePerMillionTokens}
+                                  ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
                                 </span>
-                                {isDefault && (
-                                  <span className="text-[10px]">
-                                    {"\u2713"}
-                                  </span>
-                                )}
+                                {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
                               </span>
                             </SelectItem>
                           );
@@ -1207,8 +1111,7 @@ export function SplitWorkspace() {
               </Select>
             </div>
             <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {activeCount}개{" "}
-              {mode === "candidates" ? "분할 후보" : "재분할 대상"}
+              {activeCount}개 {mode === "candidates" ? "분할 후보" : "재분할 대상"}
             </span>
           </div>
         </div>
@@ -1292,24 +1195,15 @@ export function SplitWorkspace() {
 
               {/* 탭 콘텐츠 */}
               <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
-                {detailTab === "original"
-                  ? renderOriginalCard()
-                  : renderPreviewContent()}
+                {detailTab === "original" ? renderOriginalCard() : renderPreviewContent()}
               </div>
 
               {/* Sticky footer — 적용/반려 버튼 */}
               {selectedCard && previewData?.splitCards && (
                 <div className="border-t p-3 shrink-0">
                   <div className="flex gap-2">
-                    <RejectPopover
-                      canReject={canReject}
-                      onReject={handleReject}
-                    />
-                    <Button
-                      onClick={handleApply}
-                      disabled={isBusy}
-                      className="flex-1"
-                    >
+                    <RejectPopover canReject={canReject} onReject={handleReject} />
+                    <Button onClick={handleApply} disabled={isBusy} className="flex-1">
                       {splitApply.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1333,9 +1227,7 @@ export function SplitWorkspace() {
         <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
           {/* 왼쪽: 후보 목록 */}
           <div className="col-span-3 flex flex-col min-h-0">
-            <Card className="flex-1 flex flex-col min-h-0">
-              {renderCandidatesList()}
-            </Card>
+            <Card className="flex-1 flex flex-col min-h-0">{renderCandidatesList()}</Card>
           </div>
 
           {/* 중앙: 원본 카드 */}
@@ -1355,17 +1247,10 @@ export function SplitWorkspace() {
                 <div className="px-4 py-3 border-t shrink-0">
                   <div className="flex gap-2">
                     {/* 반려 버튼 */}
-                    <RejectPopover
-                      canReject={canReject}
-                      onReject={handleReject}
-                    />
+                    <RejectPopover canReject={canReject} onReject={handleReject} />
 
                     {/* 적용 버튼 */}
-                    <Button
-                      onClick={handleApply}
-                      disabled={isBusy}
-                      className="flex-1"
-                    >
+                    <Button onClick={handleApply} disabled={isBusy} className="flex-1">
                       {splitApply.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
