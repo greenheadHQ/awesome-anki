@@ -703,22 +703,24 @@ function VersionsTab({
               {/* 설정 */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">카드 설정</h3>
-                <div className="grid grid-cols-3 gap-2 text-sm bg-muted p-3 rounded">
-                  <div>
-                    <span className="text-muted-foreground block">Cloze 최대</span>
-                    <span className="font-medium">{selectedVersion.config?.maxClozeChars}자</span>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded bg-muted px-2.5 py-2 text-center">
+                    <div className="text-sm font-semibold tabular-nums">
+                      {selectedVersion.config?.maxClozeChars}자
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Cloze 최대</div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground block">Basic Front</span>
-                    <span className="font-medium">
+                  <div className="rounded bg-muted px-2.5 py-2 text-center">
+                    <div className="text-sm font-semibold tabular-nums">
                       {selectedVersion.config?.maxBasicFrontChars}자
-                    </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Basic Front</div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground block">Basic Back</span>
-                    <span className="font-medium">
+                  <div className="rounded bg-muted px-2.5 py-2 text-center">
+                    <div className="text-sm font-semibold tabular-nums">
                       {selectedVersion.config?.maxBasicBackChars}자
-                    </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Basic Back</div>
                   </div>
                 </div>
               </div>
