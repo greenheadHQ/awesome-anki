@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
-  ChevronRight,
   Clock,
   Filter,
   Loader2,
@@ -562,9 +561,8 @@ export function SplitHistory() {
         /* ===== 데스크톱 레이아웃 (xl+) — 기존 좌우 분할 유지 ===== */
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0">
           <Card className="xl:col-span-6 flex flex-col min-h-0">
-            <CardHeader className="pb-3 gap-3">
-              <CardTitle className="text-base">목록</CardTitle>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="space-y-2 px-4 py-3 border-b">
+              <div className="flex items-center gap-2">
                 <Select
                   value={deckName}
                   onValueChange={(value) => {
@@ -572,8 +570,8 @@ export function SplitHistory() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="덱" />
+                  <SelectTrigger className="h-9 flex-1 min-w-0">
+                    <SelectValue placeholder="덱 선택" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Decks</SelectItem>
@@ -592,7 +590,7 @@ export function SplitHistory() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 flex-1 min-w-0">
                     <SelectValue placeholder="상태" />
                   </SelectTrigger>
                   <SelectContent>
@@ -604,7 +602,9 @@ export function SplitHistory() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
 
+              <div className="flex items-center gap-1.5">
                 <input
                   type="date"
                   value={startDate}
@@ -612,9 +612,9 @@ export function SplitHistory() {
                     setStartDate(e.target.value);
                     setPage(1);
                   }}
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  className="h-9 flex-1 min-w-0 rounded-md border bg-background px-2.5 text-sm"
                 />
-
+                <span className="text-xs text-muted-foreground select-none">~</span>
                 <input
                   type="date"
                   value={endDate}
@@ -622,22 +622,10 @@ export function SplitHistory() {
                     setEndDate(e.target.value);
                     setPage(1);
                   }}
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  className="h-9 flex-1 min-w-0 rounded-md border bg-background px-2.5 text-sm"
                 />
-
-                <Button
-                  variant="outline"
-                  onClick={() => historyList.refetch()}
-                  disabled={historyList.isFetching}
-                >
-                  {historyList.isFetching ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "새로고침"
-                  )}
-                </Button>
               </div>
-            </CardHeader>
+            </div>
 
             <CardContent className="flex-1 min-h-0 overflow-auto p-0">
               {historyList.isLoading ? (
@@ -660,25 +648,24 @@ export function SplitHistory() {
                 <Table>
                   <TableHeader className="bg-muted sticky top-0 z-10">
                     <TableRow>
-                      <TableHead className="w-12">상세</TableHead>
                       <TableHead>Note</TableHead>
                       <TableHead>상태</TableHead>
                       <TableHead className="hidden md:table-cell">모델</TableHead>
                       <TableHead className="hidden md:table-cell">카드수</TableHead>
                       <TableHead className="hidden lg:table-cell">비용</TableHead>
-                      <TableHead className="hidden md:table-cell">시간</TableHead>
+                      <TableHead className="hidden md:table-cell">생성일시</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {listItems.map((item) => (
                       <TableRow
                         key={item.sessionId}
-                        className="cursor-pointer"
+                        className={cn(
+                          "cursor-pointer transition-colors",
+                          selectedSessionId === item.sessionId && "bg-primary/5",
+                        )}
                         onClick={() => handleSelectSession(item.sessionId)}
                       >
-                        <TableCell>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        </TableCell>
                         <TableCell>
                           <div className="font-mono text-xs">{item.noteId}</div>
                           <div className="text-xs text-muted-foreground truncate max-w-[220px]">
