@@ -1,0 +1,50 @@
+# Dependencies (reinstalled in build)
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Runtime data (mounted as volumes)
+data/
+output/
+!output/prompts/
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+
+# Secrets
+secrets/
+.env
+.envrc
+.direnv/
+
+# Nix
+flake.nix
+flake.lock
+*.nix
+.devenv/
+result
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation / meta
+docs/
+*.md
+LICENSE
+
+# CI (not needed in image)
+.github/
+
+# Claude Code
+.claude/
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/

@@ -75,6 +75,38 @@ Awesome Anki는 Anki 노트를 학습 효율이 높은 원자 카드(Atomic Card
 ## 6. 보안 경계
 
 - API 서버는 `ANKI_SPLITTER_API_KEY` 인증이 필요하다 (`X-API-Key` 또는 Bearer).
+- `ANKI_SPLITTER_REQUIRE_API_KEY=false`로 인증을 비활성화할 수 있다. Tailscale/VPN 등 네트워크 격리 환경에서만 사용한다.
+
+## 8. 컨테이너 배포
+
+### 8.1 이미지 구조
+
+3단계 multi-stage 빌드로 구성된다.
+
+| 스테이지 | 베이스 | 목적 |
+|---------|--------|------|
+| `deps` | `oven/bun:1` | 전체 의존성 설치 (레이어 캐시) |
+| `web-builder` | `deps` | Vite SPA 빌드 → `packages/web/dist/` |
+| `runtime` | `oven/bun:1-slim` | 프로덕션 deps + 서버 소스 + 웹 dist |
+
+### 8.2 경로 매핑
+
+| 컨테이너 경로 | 용도 | 볼륨 |
+|-------------|------|------|
+| `/app/data` | SQLite DB (`split-history.db`) | 필수 마운트 |
+| `/app/output` | 백업, 임베딩 캐시, 프롬프트 버전 | 필수 마운트 |
+| `/app/packages/web/dist` | SPA 정적 파일 (이미지 내장) | — |
+
+### 8.3 인증 모드
+
+| `ANKI_SPLITTER_REQUIRE_API_KEY` | 동작 |
+|----|------|
+| `true` (기본값) | `ANKI_SPLITTER_API_KEY` 필수, 미설정 시 503 |
+| `false` | 인증 스킵, Tailscale/VPN 환경 전용 |
+
+### 8.4 프로덕션 SPA 서빙
+
+`NODE_ENV=production`일 때 Hono가 `packages/web/dist/`에서 정적 파일을 서빙한다. `/api/*` 미등록 경로는 JSON 404, 확장자 없는 경로는 `index.html` (SPA fallback)로 처리한다.
 
 ## 7. 품질 게이트
 

@@ -413,7 +413,9 @@ function SystemPromptEditor({
           <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
             <span>revision: {revision ?? "-"}</span>
             <span className="truncate">active: {activeVersionName ?? "-"}</span>
-            {activeVersionId && <span className="font-mono text-[11px] truncate">{activeVersionId}</span>}
+            {activeVersionId && (
+              <span className="font-mono text-[11px] truncate">{activeVersionId}</span>
+            )}
           </div>
         </div>
       </CardHeader>

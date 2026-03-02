@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { atomicWriteFileSync } from "../utils/atomic-write.js";
 import { EMBEDDING_MODEL, EMBEDDING_PROVIDER } from "./client.js";
 
-const CACHE_DIR = "output/embeddings";
+const CACHE_DIR = process.env.EMBEDDING_CACHE_DIR || "output/embeddings";
 export const EMBEDDING_CACHE_SCHEMA_VERSION = 1;
 export const LEGACY_EMBEDDING_PROVIDER = "gemini";
 export const LEGACY_EMBEDDING_MODEL = "gemini-embedding-001";
