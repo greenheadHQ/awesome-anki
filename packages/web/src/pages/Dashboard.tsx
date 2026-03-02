@@ -70,10 +70,10 @@ export function Dashboard() {
 
       {/* Deck Selector */}
       <Card>
-        <CardHeader>
+        <CardHeader className="p-3">
           <CardTitle className="text-lg">덱 선택</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0">
           {isLoadingDecks ? (
             <p className="text-muted-foreground">로딩 중...</p>
           ) : (
@@ -100,10 +100,10 @@ export function Dashboard() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="p-3 pb-2">
           <CardTitle className="text-sm font-medium">Anki 동기화 상태</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0">
           <SyncStatusBadge status={syncStatus} />
         </CardContent>
       </Card>
@@ -112,11 +112,11 @@ export function Dashboard() {
       {selectedDeck && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
               <CardTitle className="text-sm font-medium">총 노트</CardTitle>
               <FileStack className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               <div className="text-2xl font-bold">
                 {isLoadingStats ? "..." : stats?.totalNotes || 0}
               </div>
@@ -124,14 +124,14 @@ export function Dashboard() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-1">
                 분할 후보
                 <HelpTooltip helpKey="splitCandidate" />
               </CardTitle>
               <Scissors className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               <div className="text-2xl font-bold">
                 {isLoadingStats ? "..." : stats?.splitCandidates || 0}
               </div>
@@ -140,14 +140,14 @@ export function Dashboard() {
 
           {/* 임베딩 상태 */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-1">
                 임베딩
                 <HelpTooltip helpKey="embeddingCoverage" />
               </CardTitle>
               <Sparkles className="h-4 w-4 text-violet-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0">
               {isLoadingEmbedding ? (
                 <div className="text-2xl font-bold text-muted-foreground">...</div>
               ) : isEmbeddingCacheReady ? (
@@ -172,10 +172,10 @@ export function Dashboard() {
       {/* Quick Actions */}
       {selectedDeck && (
         <Card>
-          <CardHeader>
+          <CardHeader className="p-3">
             <CardTitle className="text-lg">빠른 작업</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-4">
+          <CardContent className="p-3 pt-0 flex flex-wrap gap-4">
             <Button onClick={() => navigate("/split", { state: { deckName: selectedDeck } })}>
               <Scissors className="mr-2 h-4 w-4" />
               분할 시작
