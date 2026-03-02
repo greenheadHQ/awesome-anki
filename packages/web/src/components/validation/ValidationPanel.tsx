@@ -342,7 +342,7 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
                       >
                         <Sparkles className="w-3 h-3" />
                         임베딩
-                        {embeddingStatus?.exists && embeddingStatus.coverage > 0 && (
+                        {embeddingStatus?.cache.exists && embeddingStatus.coverage > 0 && (
                           <span className="text-[10px] opacity-80">
                             ({embeddingStatus.coverage}%)
                           </span>

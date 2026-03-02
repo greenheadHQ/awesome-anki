@@ -3,12 +3,15 @@
  *
  * 두 가지 방식 지원:
  * 1. Jaccard 유사도 (기본): 단어 집합 + 2-gram 비교
- * 2. 임베딩 기반 (useEmbedding: true): Gemini 임베딩 + 코사인 유사도
+ * 2. 임베딩 기반 (useEmbedding: true): OpenAI 임베딩 + 코사인 유사도
  */
 
 import { cosineSimilarity } from "../embedding/cosine.js";
 import {
+  EMBEDDING_MODEL,
+  EMBEDDING_PROVIDER,
   createCache,
+  getCacheIncompatibilityReason,
   getCachedEmbedding,
   getEmbedding,
   getTextHash,
@@ -162,8 +165,18 @@ async function checkSimilarityWithEmbedding(
 
   // 캐시 로드 또는 생성
   let cache = loadCache(deckName);
-  if (!cache) {
-    cache = createCache(deckName, 768);
+  const incompatibility = cache ? getCacheIncompatibilityReason(cache) : null;
+
+  if (!cache || incompatibility) {
+    if (incompatibility) {
+      console.warn(
+        `임베딩 캐시 호환성 불일치(${deckName}): ${incompatibility} -> ${EMBEDDING_PROVIDER}/${EMBEDDING_MODEL} 캐시 재생성`,
+      );
+    }
+    cache = createCache(deckName, {
+      provider: EMBEDDING_PROVIDER,
+      model: EMBEDDING_MODEL,
+    });
   }
 
   // 타겟 카드 임베딩

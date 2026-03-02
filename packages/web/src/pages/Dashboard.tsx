@@ -148,13 +148,13 @@ export function Dashboard() {
             <CardContent>
               {isLoadingEmbedding ? (
                 <div className="text-2xl font-bold text-muted-foreground">...</div>
-              ) : embeddingStatus?.exists ? (
+              ) : embeddingStatus?.cache.exists ? (
                 <div>
                   <div className="text-2xl font-bold text-violet-600">
                     {embeddingStatus.coverage}%
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {embeddingStatus.totalEmbeddings} / {embeddingStatus.totalNotes}
+                    {embeddingStatus.cache.count} / {embeddingStatus.notes.total}
                   </p>
                 </div>
               ) : (
@@ -197,7 +197,7 @@ export function Dashboard() {
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
                   임베딩 생성
-                  {embeddingStatus?.exists && embeddingStatus.coverage < 100 && (
+                  {embeddingStatus?.cache.exists && embeddingStatus.coverage < 100 && (
                     <span className="ml-1 text-xs opacity-70">({embeddingStatus.coverage}%)</span>
                   )}
                 </>

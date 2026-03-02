@@ -165,8 +165,8 @@ bun run cli rollback <backupId>
 
 | 변수 | 설명 |
 |------|------|
-| `GEMINI_API_KEY` | Gemini API 키 (필수) |
-| `OPENAI_API_KEY` | OpenAI API 키 (선택 — 미설정 시 OpenAI 비활성) |
+| `GEMINI_API_KEY` | Gemini API 키 (split/validation에서 Gemini 사용 시 필요) |
+| `OPENAI_API_KEY` | OpenAI API 키 (임베딩 필수, split/validation에서 OpenAI 사용 시 필요) |
 | `ANKI_SPLITTER_API_KEY` | 서버 API 인증 키 |
 | `ANKI_CONNECT_URL` | AnkiConnect URL |
 | `ANKI_CONNECT_VERSION` | AnkiConnect 버전(기본 6) |
@@ -341,6 +341,11 @@ bun run cli rollback <backupId>
 | GET | `/api/embedding/status/:deckName` | 임베딩 캐시 상태 |
 | DELETE | `/api/embedding/cache/:deckName` | 캐시 삭제 |
 | POST | `/api/embedding/single` | 단일 텍스트 임베딩(디버그용) |
+
+임베딩 API 응답은 공통 envelope를 사용합니다:
+- 성공: `ok=true`, `schemaVersion`, `requestId`, `data`
+- 실패: `ok=false`, `schemaVersion`, `requestId`, `error.code/message/retryable`
+- `POST /api/embedding/generate`는 부분 실패 시에도 HTTP 200을 유지하고 `data.status=completed_with_errors`와 `data.failures[]`로 상세를 반환합니다.
 
 ### 9.7 Prompt Ops
 

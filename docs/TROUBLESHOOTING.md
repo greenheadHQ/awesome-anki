@@ -16,7 +16,7 @@
 ### 2.1 `GEMINI_API_KEY가 설정되지 않았습니다`
 
 원인:
-- `.env`에 `GEMINI_API_KEY`가 없음
+- `.env`에 `GEMINI_API_KEY`가 없음 (Gemini로 split/validation 실행 시)
 - 쉘 환경에 키가 주입되지 않음
 
 해결:
@@ -25,17 +25,17 @@
 
 ---
 
-### 2.2 OpenAI 모델이 선택 불가 / 비활성 표시
+### 2.2 `OPENAI_API_KEY가 설정되지 않았습니다` 또는 임베딩 생성 실패
 
 원인:
 - `OPENAI_API_KEY` 미설정
+- 임베딩 API 호출 한도 초과(429) 또는 일시적 네트워크 오류
 
 해결:
 1. `.env`에 `OPENAI_API_KEY` 설정
 2. 서버 재시작
-3. `GET /api/llm/models`로 사용 가능 프로바이더 확인
-
-참고: OpenAI 키 없이도 Gemini만으로 정상 동작한다 (graceful degradation).
+3. `POST /api/embedding/single`로 임베딩 경로 정상 응답 확인
+4. 반복 429 발생 시 잠시 후 재시도
 
 ---
 
@@ -117,7 +117,7 @@
 ### 2.9 빌드/타입 검사는 통과하는데 런타임에서 실패
 
 원인:
-- 환경변수/외부 의존(AnkiConnect, Gemini) 미준비
+- 환경변수/외부 의존(AnkiConnect, Gemini/OpenAI) 미준비
 
 해결:
 1. `bun run check`로 정적 검증 통과 확인

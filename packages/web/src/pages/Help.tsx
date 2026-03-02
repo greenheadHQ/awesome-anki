@@ -119,8 +119,9 @@ export function Help() {
             <CardContent>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 카드를 원자적 단위로 분할합니다. 왼쪽에서 후보를 선택하고, 가운데에서 원본을
-                확인하며, 오른쪽에서 분할 미리보기를 볼 수 있습니다. Gemini AI가 카드 내용을
-                분석하여 의미적으로 분할을 제안합니다. Cloze가 4개 이상인 카드가 분할 대상입니다.
+                확인하며, 오른쪽에서 분할 미리보기를 볼 수 있습니다. 선택한 LLM(Gemini/OpenAI)이
+                카드 내용을 분석하여 의미적으로 분할을 제안합니다. Cloze가 4개 이상인 카드가 분할
+                대상입니다.
               </p>
             </CardContent>
           </Card>
@@ -248,8 +249,8 @@ export function Help() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              임베딩은 텍스트를 768차원의 숫자 벡터로 변환하는 기술입니다. Gemini 임베딩 모델을
-              사용하며, 의미적으로 유사한 텍스트는 유사한 벡터를 가집니다.
+              임베딩은 텍스트를 숫자 벡터로 변환하는 기술입니다. OpenAI text-embedding-3-large
+              모델을 사용하며, 의미적으로 유사한 텍스트는 유사한 벡터를 가집니다.
             </p>
             <div>
               <h4 className="font-medium text-sm">임베딩 생성하기</h4>
