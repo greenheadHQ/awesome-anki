@@ -9,6 +9,7 @@ node_modules/
 data/
 output/*
 !output/prompts/
+!output/prompts/**
 
 # Build artifacts
 dist/
