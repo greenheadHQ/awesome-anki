@@ -58,6 +58,7 @@ COPY --chmod=755 <<'ENTRYPOINT' /app/entrypoint.sh
 # Seed prompt files into volume on first run
 if [ ! -f /app/output/prompts/active-version.json ] && [ -d /app/.seed/prompts ]; then
   echo "📋 Seeding prompt files into /app/output/prompts/ ..."
+  mkdir -p /app/output/prompts/history /app/output/prompts/versions
   cp -rn /app/.seed/prompts/* /app/output/prompts/ 2>/dev/null || true
 fi
 exec "$@"
