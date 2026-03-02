@@ -96,6 +96,15 @@ describe("EmbeddingCache", () => {
     };
     expect(getCacheIncompatibilityReason(legacyCache)).toBe("schema_version_mismatch");
   });
+
+  test("레거시 캐시(schemaVersion 없음)는 schema_version_mismatch로 감지", () => {
+    const legacyCache = {
+      ...cache,
+      schemaVersion: 0,
+    };
+    expect(getCacheIncompatibilityReason(legacyCache)).toBe("schema_version_mismatch");
+    expect(isCacheCompatible(legacyCache)).toBe(false);
+  });
 });
 
 describe("getTextHash", () => {

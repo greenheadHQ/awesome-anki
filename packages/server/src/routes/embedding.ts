@@ -9,6 +9,7 @@ import {
   cleanupCache,
   createCache,
   deleteCache,
+  EMBEDDING_CACHE_SCHEMA_VERSION,
   EMBEDDING_EXPECTED_DIMENSION,
   EMBEDDING_MODEL,
   EMBEDDING_PROVIDER,
@@ -61,7 +62,10 @@ interface MappedError {
 
 function getRequestId(c: Context): string {
   const requestIdHeader = c.req.header("x-request-id")?.trim();
-  return requestIdHeader && requestIdHeader.length > 0 ? requestIdHeader : randomUUID();
+  if (requestIdHeader && requestIdHeader.length > 0) {
+    return requestIdHeader.length > 128 ? requestIdHeader.slice(0, 128) : requestIdHeader;
+  }
+  return randomUUID();
 }
 
 function success<T>(c: Context, requestId: string, data: T, status: 200 | 201 = 200) {
@@ -174,7 +178,7 @@ function mapError(error: unknown): MappedError {
     };
   }
 
-  if (/cache|EACCES|EPERM|ENOENT|ENOSPC|read|write|unlink/i.test(message)) {
+  if (/\bcache\b|EACCES|EPERM|ENOSPC|file.*(read|write)|unlinkSync/i.test(message)) {
     return {
       status: 500,
       payload: {
@@ -286,8 +290,8 @@ embedding.post("/generate", async (c) => {
         console.error(`임베딩 생성 실패 (noteId: ${noteId}):`, error);
       }
 
-      // Rate limit 대응
-      if ((generatedCount + failures.length) % 10 === 0) {
+      // Rate limit 대응: 10건마다 RATE_LIMIT_DELAY_MS만큼 대기
+      if (RATE_LIMIT_DELAY_MS > 0 && (generatedCount + failures.length) % 10 === 0) {
         await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
       }
     }
@@ -353,8 +357,6 @@ embedding.get("/status/:deckName", async (c) => {
     }
 
     const cacheStatus = getCacheStatus(deckName);
-    const loadedCache = loadCache(deckName);
-    const incompatibility = loadedCache ? getCacheIncompatibilityReason(loadedCache) : null;
 
     // 덱의 총 노트 수도 함께 반환
     let totalNotes = 0;
@@ -363,6 +365,29 @@ embedding.get("/status/:deckName", async (c) => {
       totalNotes = notes.length;
     } catch {
       // 덱을 찾을 수 없는 경우
+    }
+
+    let health: string;
+    if (!cacheStatus.exists) {
+      health = "missing";
+    } else if (cacheStatus.health === "legacy") {
+      // CacheStatus 필드에서 구체적 비호환 사유 도출 (loadCache 재호출 없이)
+      if (cacheStatus.schemaVersion !== EMBEDDING_CACHE_SCHEMA_VERSION) {
+        health = "schema_version_mismatch";
+      } else if (cacheStatus.provider !== EMBEDDING_PROVIDER) {
+        health = "provider_mismatch";
+      } else if (cacheStatus.model !== EMBEDDING_MODEL) {
+        health = "model_mismatch";
+      } else {
+        health = "legacy";
+      }
+    } else if (
+      cacheStatus.dimension > 0 &&
+      cacheStatus.dimension !== EMBEDDING_EXPECTED_DIMENSION
+    ) {
+      health = "dimension_unexpected";
+    } else {
+      health = "ok";
     }
 
     return success(c, requestId, {
@@ -382,17 +407,10 @@ embedding.get("/status/:deckName", async (c) => {
         exists: cacheStatus.exists,
         count: cacheStatus.totalEmbeddings,
         lastUpdated: cacheStatus.lastUpdated,
-        path: cacheStatus.cacheFilePath,
         schemaVersion: cacheStatus.schemaVersion,
         provider: cacheStatus.provider,
         model: cacheStatus.model,
-        health: !cacheStatus.exists
-          ? "missing"
-          : incompatibility
-            ? incompatibility
-            : cacheStatus.dimension > 0 && cacheStatus.dimension !== EMBEDDING_EXPECTED_DIMENSION
-              ? "dimension_unexpected"
-              : "ok",
+        health,
       },
     });
   } catch (error) {
@@ -412,15 +430,11 @@ embedding.delete("/cache/:deckName", async (c) => {
       throw new ValidationError("deckName이 필요합니다");
     }
 
-    const existingCache = loadCache(deckName);
     const deleted = deleteCache(deckName);
-    const deletedCount =
-      deleted && existingCache ? Object.keys(existingCache.embeddings).length : 0;
 
     return success(c, requestId, {
       deckName,
       deleted,
-      deletedCount,
       message: deleted ? "캐시가 삭제되었습니다." : "캐시가 존재하지 않습니다.",
     });
   } catch (error) {

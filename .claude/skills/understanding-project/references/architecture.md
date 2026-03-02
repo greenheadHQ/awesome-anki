@@ -36,7 +36,7 @@ anki-claude-code/
 │   │       │   ├── freshness-checker.ts # 최신성 검사
 │   │       │   ├── similarity-checker.ts # Jaccard + 임베딩 유사도
 │   │       │   └── context-checker.ts   # nid 기반 문맥 일관성
-│   │       ├── embedding/    # Gemini 임베딩
+│   │       ├── embedding/    # OpenAI 임베딩
 │   │       │   ├── client.ts  # getEmbedding, getEmbeddings
 │   │       │   ├── cosine.ts  # 코사인 유사도
 │   │       │   └── cache.ts   # 파일 기반 증분 캐시

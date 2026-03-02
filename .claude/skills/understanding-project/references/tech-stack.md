@@ -67,8 +67,8 @@ export default {
 - 루트 `package.json`에 devDependencies로 `oxlint`, `oxfmt` 설치
 - 각 패키지 `lint` 스크립트: `bunx oxlint src && bunx oxfmt --check src`
 
-## Gemini Embedding (gemini-embedding-001)
+## OpenAI Embedding (text-embedding-3-large)
 
-- 768차원 벡터
+- 3072차원 벡터
 - 8K 토큰 입력 한도
-- `SEMANTIC_SIMILARITY` taskType
+- `openai` SDK 사용

@@ -70,10 +70,7 @@ function parseCache(deckName: string, raw: string): EmbeddingCache | null {
   }
 
   const cache: EmbeddingCache = {
-    schemaVersion:
-      typeof parsed.schemaVersion === "number"
-        ? parsed.schemaVersion
-        : EMBEDDING_CACHE_SCHEMA_VERSION,
+    schemaVersion: typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : 0,
     deckName: parsed.deckName,
     provider: typeof parsed.provider === "string" ? parsed.provider : LEGACY_EMBEDDING_PROVIDER,
     model: typeof parsed.model === "string" ? parsed.model : LEGACY_EMBEDDING_MODEL,

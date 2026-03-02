@@ -292,7 +292,6 @@ export interface EmbeddingStatus {
     exists: boolean;
     count: number;
     lastUpdated: string | null;
-    path: string;
     schemaVersion: number | null;
     provider: string | null;
     model: string | null;
@@ -357,7 +356,6 @@ export interface EmbeddingGenerateResult {
 export interface EmbeddingDeleteResult {
   deckName: string;
   deleted: boolean;
-  deletedCount: number;
   message: string;
 }
 

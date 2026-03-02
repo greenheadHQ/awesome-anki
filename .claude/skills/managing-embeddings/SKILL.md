@@ -3,29 +3,28 @@ name: managing-embeddings
 description: |
   This skill should be used when users request embedding generation or analysis.
   Triggers: "임베딩 생성", "코사인 유사도", "캐시 어디에",
-  "임베딩 상태", "의미 유사도", "embedding-001",
-  "gemini-embedding-001", "벡터 차원".
-  Covers Gemini embedding API, file-based cache strategy, and text preprocessing.
+  "임베딩 상태", "의미 유사도", "text-embedding-3-large",
+  "벡터 차원".
+  Covers OpenAI embedding API, file-based cache strategy, and text preprocessing.
 ---
 
 # 임베딩 관리
 
 ## 기술 스택
 
-- **모델**: `gemini-embedding-001` (GA, MTEB 상위권)
-- **차원**: 768 (기본값)
+- **모델**: `text-embedding-3-large` (OpenAI)
+- **차원**: 3072 (기본값)
 - **입력 한도**: 8K 토큰
-- **taskType**: `SEMANTIC_SIMILARITY` (문자열로 직접 지정)
 
 ## LLM 추상화 미사용
 
-> **Note**: 임베딩은 `packages/core/src/llm/` 추상화 계층을 사용하지 않고, `packages/core/src/embedding/client.ts`에서 `@google/genai` (GoogleGenAI)를 직접 호출합니다. 따라서 임베딩은 Gemini 전용이며, OpenAI 등 다른 프로바이더로 전환할 수 없습니다.
+> **Note**: 임베딩은 `packages/core/src/llm/` 추상화 계층을 사용하지 않고, `packages/core/src/embedding/client.ts`에서 `openai` SDK를 직접 호출합니다. OpenAI 기반 임베딩 전용 모듈입니다.
 
 ## 모듈 구조 (packages/core/src/embedding/)
 
 | 파일 | 역할 |
 |------|------|
-| `client.ts` | Gemini 임베딩 API 클라이언트 |
+| `client.ts` | OpenAI 임베딩 API 클라이언트 |
 | `cosine.ts` | 코사인 유사도 계산 (0-100%) |
 | `cache.ts` | 파일 기반 증분 캐시 |
 
@@ -33,7 +32,7 @@ description: |
 
 ```typescript
 // 단일 텍스트 임베딩
-const embedding = await getEmbedding(text);  // number[] (768차원)
+const embedding = await getEmbedding(text);  // number[] (3072차원)
 
 // 의미적 유사도
 const similarity = await getSemanticSimilarity(text1, text2);  // 0-100 (%)
@@ -71,11 +70,11 @@ const result = await checkSimilarity(targetCard, allCards, {
 
 ## 자주 발생하는 문제
 
-- **TaskType 미지원**: `@google/genai`에서 `TaskType` enum이 export 안 됨 → 문자열 `'SEMANTIC_SIMILARITY'`로 직접 지정
 - **캐시 위치 혼동**: 덱 이름을 MD5 해시로 변환하여 파일명 생성
+- **캐시 호환성**: 레거시 Gemini 캐시는 자동 감지 후 재생성 필요
 
 ## 상세 참조
 
-- `references/embedding-system.md` — gemini-embedding-001, 캐시 전략 상세
+- `references/embedding-system.md` — text-embedding-3-large, 캐시 전략 상세
 - `references/preprocessing.md` — Cloze/HTML/컨테이너 제거 로직
-- `references/troubleshooting.md` — TaskType 미지원, 캐시 위치
+- `references/troubleshooting.md` — OpenAI API 키, 캐시 호환성

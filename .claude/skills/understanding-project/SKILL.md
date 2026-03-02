@@ -45,7 +45,7 @@ anki-claude-code/
 | `parser/` | 텍스트 파싱 (container, nid, cloze) — `splitting-cards` 스킬 참조 |
 | `splitter/` | Split 로직 — `splitting-cards` 스킬 참조 |
 | `validator/` | 카드 검증 4종 — `validating-cards` 스킬 참조 |
-| `embedding/` | Gemini 임베딩 — `managing-embeddings` 스킬 참조 |
+| `embedding/` | OpenAI 임베딩 — `managing-embeddings` 스킬 참조 |
 | `prompt-version/` | 프롬프트 버전 관리 — `managing-prompts` 스킬 참조 |
 | `utils/` | HTML 스타일 보존, diff |
 

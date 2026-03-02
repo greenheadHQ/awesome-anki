@@ -31,7 +31,7 @@
 - 로컬 처리 (빠름)
 
 ### 임베딩 모드
-- Gemini gemini-embedding-001 사용
+- OpenAI text-embedding-3-large 사용
 - 기본 threshold: 85%
 - 의미적 유사도 (더 정확)
 - `managing-embeddings` 스킬 참조

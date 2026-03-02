@@ -2,10 +2,10 @@
 
 ## 모델 정보
 
-- **모델**: `gemini-embedding-001` (GA, MTEB 상위권)
-- **차원**: 768 (기본값)
+- **모델**: `text-embedding-3-large` (OpenAI)
+- **차원**: 3072 (기본값)
 - **입력 한도**: 8K 토큰
-- **패키지**: `@google/genai`
+- **패키지**: `openai`
 
 ## 주요 함수 (packages/core/src/embedding/)
 
@@ -13,7 +13,7 @@
 
 ```typescript
 // 단일 텍스트 임베딩
-const embedding = await getEmbedding(text);  // number[] (768차원)
+const embedding = await getEmbedding(text);  // number[] (3072차원)
 
 // 배치 임베딩
 const embeddings = await getEmbeddings(texts);  // number[][]
