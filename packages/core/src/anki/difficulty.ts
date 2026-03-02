@@ -137,7 +137,7 @@ export async function getDifficultCards(
     results.push({
       noteId: card.noteId,
       cardId: card.cardId,
-      text: text.slice(0, 200) + (text.length > 200 ? "..." : ""),
+      text,
       tags: card.tags,
       lapses: card.lapses,
       easeFactor: card.factor,

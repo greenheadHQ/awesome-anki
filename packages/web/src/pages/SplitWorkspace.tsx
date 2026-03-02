@@ -1,12 +1,13 @@
 /**
  * SplitWorkspace - 카드 분할 작업 공간
  * 데스크톱: 3단 레이아웃 (후보 목록 | 원본 카드 | 분할 미리보기)
- * 모바일: 탭 전환 방식
+ * 모바일: list↔detail view transition (후보 목록 ↔ 원본/미리보기 탭)
  */
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   ChevronDown,
   ChevronRight,
@@ -17,14 +18,16 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
+import { BottomSheet } from "../components/ui/bottom-sheet";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import {
@@ -40,6 +43,7 @@ import { ValidationPanel } from "../components/validation/ValidationPanel";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useDifficultCards } from "../hooks/useDifficultCards";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { usePromptVersions } from "../hooks/usePrompts";
 import {
   getCachedSplitPreview,
@@ -52,6 +56,7 @@ import type { CardSummary, DifficultCard, SplitPreviewResult } from "../lib/api"
 import { queryKeys } from "../lib/query-keys";
 import { recordSyncAttempt } from "../lib/sync-status";
 import { cn } from "../lib/utils";
+import { startViewTransition } from "../lib/view-transition";
 
 // NOTE: core의 REJECTION_REASONS는 런타임 import 시 브라우저 번들 경계를 넘기 때문에
 // web 패키지에서 동일 스키마를 로컬 상수로 유지한다.
@@ -66,7 +71,7 @@ const REJECTION_REASONS = [
 
 type WorkspaceMode = "candidates" | "difficult";
 type CardAnalysisStatus = "pending" | "cached" | "error" | "none";
-type MobilePanel = "candidates" | "original" | "preview";
+type MobilePanel = "list" | "detail";
 
 interface SplitCandidate {
   noteId: number;
@@ -83,18 +88,6 @@ interface SplitCandidate {
     reps: number;
     reasons: string[];
   };
-}
-
-function useIsMobile() {
-  // SplitWorkspace는 3열 그리드에 충분한 너비가 필요하므로 lg: (1024px) 사용
-  const [isMobile, setIsMobile] = useState(() => !window.matchMedia("(min-width: 1024px)").matches);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const handler = (e: MediaQueryListEvent) => setIsMobile(!e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return isMobile;
 }
 
 function mapDifficultToCandidate(card: DifficultCard): SplitCandidate {
@@ -239,7 +232,7 @@ function RejectPopover({
 }
 
 export function SplitWorkspace() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile("lg");
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
@@ -247,7 +240,9 @@ export function SplitWorkspace() {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
-  const [activePanel, setActivePanel] = useState<MobilePanel>("candidates");
+  const [activePanel, setActivePanel] = useState<MobilePanel>("list");
+  const [detailTab, setDetailTab] = useState<"original" | "preview">("original");
+  const [showConfigSheet, setShowConfigSheet] = useState(false);
 
   // 분석 상태 추적 — noteId:provider/model 복합 키로 멀티모델 분리
   const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(new Set());
@@ -346,10 +341,20 @@ export function SplitWorkspace() {
     setSelectedCard(card);
     if (card) {
       splitPreview.reset();
+      setDetailTab("original");
 
-      // 모바일: 원본 탭으로 자동 전환
-      if (isMobile) setActivePanel("original");
+      // 모바일: detail 뷰로 전환
+      if (isMobile) {
+        startViewTransition(() => setActivePanel("detail"));
+      }
     }
+  };
+
+  // 모바일: 리스트로 돌아가기
+  const handleBackToList = () => {
+    startViewTransition(() => {
+      setActivePanel("list");
+    });
   };
 
   // noteId로 카드를 찾아 선택 (toast action에서 사용 — stale closure 방지)
@@ -395,6 +400,8 @@ export function SplitWorkspace() {
             next.delete(key);
             return next;
           });
+          // 모바일: 분석 완료 시 미리보기 탭으로 자동 전환
+          if (isMobile) setDetailTab("preview");
           toast.success(`카드 ${noteId} 분석 완료`, {
             action: {
               label: "보기",
@@ -463,7 +470,12 @@ export function SplitWorkspace() {
           // 성공 후 목록에서 제거하고 다음 카드 선택
           const activeList = mode === "candidates" ? candidates : difficultCards;
           const nextCard = activeList.find((c) => c.noteId !== selectedCard.noteId);
-          handleSelectCard(nextCard || null);
+          if (nextCard) {
+            handleSelectCard(nextCard);
+          } else {
+            handleSelectCard(null);
+            if (isMobile) setActivePanel("list");
+          }
         },
         onError: (error) => {
           const message = error instanceof Error ? error.message : String(error);
@@ -616,7 +628,7 @@ export function SplitWorkspace() {
             onClick={() => {
               setMode("candidates");
               handleSelectCard(null);
-              if (isMobile) setActivePanel("candidates");
+              if (isMobile) setActivePanel("list");
             }}
             className={cn(
               "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
@@ -633,7 +645,7 @@ export function SplitWorkspace() {
             onClick={() => {
               setMode("difficult");
               handleSelectCard(null);
-              if (isMobile) setActivePanel("candidates");
+              if (isMobile) setActivePanel("list");
             }}
             className={cn(
               "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
@@ -668,28 +680,30 @@ export function SplitWorkspace() {
   /** 원본 카드 패널 */
   const renderOriginalCard = () => (
     <>
-      <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-        <span className="text-sm font-semibold">원본 카드</span>
-        {selectedCard && (
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowValidation(!showValidation)}
-              className={cn(
-                "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
-                showValidation
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-muted/80",
-              )}
-            >
-              <Shield className="w-3 h-3" />
-              검증
-            </button>
-            <span className="text-xs text-muted-foreground">NID: {selectedCard.noteId}</span>
-          </div>
-        )}
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
+      {!isMobile && (
+        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
+          <span className="text-sm font-semibold">원본 카드</span>
+          {selectedCard && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowValidation(!showValidation)}
+                className={cn(
+                  "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
+                  showValidation
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80",
+                )}
+              >
+                <Shield className="w-3 h-3" />
+                검증
+              </button>
+              <span className="text-xs text-muted-foreground">NID: {selectedCard.noteId}</span>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto py-4">
         {selectedCard ? (
           isLoadingDetail ? (
             <div className="flex items-center justify-center h-full">
@@ -743,7 +757,7 @@ export function SplitWorkspace() {
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
               <ChevronRight className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>{isMobile ? "후보 탭에서 카드를 선택하세요" : "왼쪽에서 카드를 선택하세요"}</p>
+              <p>왼쪽에서 카드를 선택하세요</p>
             </div>
           </div>
         )}
@@ -754,11 +768,13 @@ export function SplitWorkspace() {
   /** 분할 미리보기 패널 (반려 Popover 포함) */
   const renderPreviewContent = () => (
     <>
-      <div className="py-3 px-4 border-b shrink-0">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">분할 미리보기</span>
+      {!isMobile && (
+        <div className="py-3 px-4 border-b shrink-0">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold">분할 미리보기</span>
+          </div>
         </div>
-      </div>
+      )}
       <div className="flex-1 overflow-y-auto p-4">
         {!selectedCard ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -834,12 +850,7 @@ export function SplitWorkspace() {
               ))}
             </div>
 
-            {/* 모바일: 반려 Popover를 미리보기 콘텐츠 내 표시 */}
-            {isMobile && (
-              <div className="pt-2">
-                <RejectPopover canReject={canReject} onReject={handleReject} />
-              </div>
-            )}
+            {/* 데스크톱에서만 미리보기 내 반려 Popover 표시 (모바일은 footer에 표시) */}
           </div>
         ) : (
           // 분석 요청 필요
@@ -875,20 +886,40 @@ export function SplitWorkspace() {
     </>
   );
 
-  // --- 모바일 탭 정의 ---
-  const mobileTabs: { id: MobilePanel; label: string }[] = [
-    { id: "candidates", label: "후보 목록" },
-    { id: "original", label: "원본" },
-    { id: "preview", label: "미리보기" },
-  ];
+  // CompactSelector 아이템 빌드
+  const promptSelectorItems: CompactSelectorItem[] = (promptVersionsData?.versions || []).map(
+    (v) => ({
+      key: v.id,
+      label: `${v.name}${v.id === promptVersionsData?.activeVersionId ? " \u2713" : ""}`,
+    }),
+  );
+
+  const modelSelectorItems: CompactSelectorItem[] = (llmModelsData?.models || []).map((m) => {
+    const key = `${m.provider}/${m.model}`;
+    const isDefault =
+      m.provider === llmModelsData?.defaultModelId.provider &&
+      m.model === llmModelsData?.defaultModelId.model;
+    return {
+      key,
+      label: `${m.displayName}${isDefault ? " \u2713" : ""}`,
+      description: `$${m.inputPricePerMillionTokens}/$${m.outputPricePerMillionTokens} per 1M tokens`,
+    };
+  });
 
   // 높이: 모바일/태블릿 dvh-5rem (h-14 헤더 + p-3 x2), 데스크톱(lg) vh-4rem (p-6 x2)
   return (
     <div className="h-[calc(100dvh-5rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
-      {/* 헤더 — md:text-sm은 iOS 줌 방지용으로 레이아웃 breakpoint(lg:)와 별도 */}
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-4">
-        <div className="flex items-center gap-2 lg:gap-4">
-          <h1 className="typo-h1">분할 작업</h1>
+      {/* ===== 모바일 헤더 (< lg) ===== */}
+      {isMobile ? (
+        <div className="flex flex-col gap-3 overflow-hidden">
+          {/* Row 1: 제목 + 카운트 배지 */}
+          <div className="flex items-center gap-2.5">
+            <h1 className="typo-h1">분할 작업</h1>
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary tabular-nums">
+              {activeCount}개
+            </span>
+          </div>
+          {/* Row 2: 덱 셀렉터 (full-width) */}
           <Select
             value={activeDeck ?? undefined}
             onValueChange={(value) => {
@@ -897,7 +928,7 @@ export function SplitWorkspace() {
             }}
             disabled={!decksData?.decks?.length}
           >
-            <SelectTrigger className="min-w-0 flex-1 text-base md:text-sm lg:flex-initial lg:min-w-[180px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="덱 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -908,139 +939,286 @@ export function SplitWorkspace() {
               ))}
             </SelectContent>
           </Select>
+          {/* Row 3: 설정 요약 바 — 터치 시 설정 시트 열림 */}
+          <button
+            type="button"
+            onClick={() => setShowConfigSheet(true)}
+            className="flex items-center gap-3 w-full rounded-lg border border-primary/20 bg-gradient-to-r from-card to-primary/5 px-3.5 py-2.5 text-left transition-colors hover:bg-accent"
+          >
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-sm truncate">
+                  {promptSelectorItems.find((i) => i.key === activeVersionId)?.label ||
+                    (isLoadingVersions ? "로딩 중..." : "프롬프트 선택")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {activeProvider ? (
+                  <ModelBadge provider={activeProvider} />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                )}
+                <span className="text-xs text-muted-foreground truncate">
+                  {modelSelectorItems.find((i) => i.key === activeModelKey)?.label || "모델 선택"}
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
+          <BottomSheet open={showConfigSheet} onOpenChange={setShowConfigSheet} title="분할 설정">
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">
+                  프롬프트 버전
+                </p>
+                <div className="divide-y rounded-lg border overflow-hidden">
+                  {promptSelectorItems.map((item) => (
+                    <button
+                      type="button"
+                      key={item.key}
+                      onClick={() => {
+                        setSelectedVersionId(item.key);
+                        setShowConfigSheet(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
+                        item.key === activeVersionId && "bg-primary/10 font-medium",
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
+                <div className="divide-y rounded-lg border overflow-hidden">
+                  {modelSelectorItems.map((item) => (
+                    <button
+                      type="button"
+                      key={item.key}
+                      onClick={() => {
+                        setSelectedModelKey(item.key);
+                        setShowConfigSheet(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
+                        item.key === activeModelKey && "bg-primary/10 font-medium",
+                      )}
+                    >
+                      <div>{item.label}</div>
+                      {item.description && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {item.description}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </BottomSheet>
         </div>
-        <div className="flex items-center gap-2 lg:gap-4">
-          {/* 프롬프트 버전 선택 */}
-          <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
-            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-            <HelpTooltip helpKey="promptVersionSelect" />
-            <Select
-              value={activeVersionId ?? undefined}
-              onValueChange={(value) => setSelectedVersionId(value || null)}
-              disabled={
-                isLoadingVersions ||
-                !promptVersionsData?.versions ||
-                promptVersionsData.versions.length === 0
-              }
-            >
-              <SelectTrigger className="min-w-0 text-base md:text-sm lg:min-w-[220px]">
-                <SelectValue placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"} />
-              </SelectTrigger>
-              <SelectContent>
-                {promptVersionsData?.versions?.map((version) => (
-                  <SelectItem key={version.id} value={version.id}>
-                    {version.name}
-                    {version.id === promptVersionsData.activeVersionId && " \u2713"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {/* LLM 모델 선택 */}
-          <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
-            <Select
-              value={activeModelKey ?? undefined}
-              onValueChange={(value) => setSelectedModelKey(value || null)}
-              disabled={!llmModelsData?.models?.length}
-            >
-              <SelectTrigger size="sm" className="min-w-0 text-base md:text-sm lg:min-w-[200px]">
-                <SelectValue placeholder="모델 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {llmModelsData?.availableProviders?.map((provider) => (
-                  <SelectGroup key={provider}>
-                    <SelectLabel>
-                      {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
-                    </SelectLabel>
-                    {llmModelsData.models
-                      .filter((m) => m.provider === provider)
-                      .map((m) => {
-                        const key = `${m.provider}/${m.model}`;
-                        const isDefault =
-                          m.provider === llmModelsData.defaultModelId.provider &&
-                          m.model === llmModelsData.defaultModelId.model;
-                        return (
-                          <SelectItem key={key} value={key}>
-                            <span className="flex items-center gap-2">
-                              <span>{m.displayName}</span>
-                              <span className="text-[10px] text-muted-foreground font-mono">
-                                ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
+      ) : (
+        /* ===== 데스크톱 헤더 (lg+) — 기존 구조 유지 ===== */
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+          <h1 className="typo-h1 shrink-0">분할 작업</h1>
+          <Select
+            value={activeDeck ?? undefined}
+            onValueChange={(value) => {
+              setSelectedDeck(value || null);
+              handleSelectCard(null);
+            }}
+            disabled={!decksData?.decks?.length}
+          >
+            <SelectTrigger className="w-auto min-w-[140px] max-w-[220px] text-sm">
+              <SelectValue placeholder="덱 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {decksData?.decks?.map((deck) => (
+                <SelectItem key={deck} value={deck}>
+                  {deck}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            {/* 프롬프트 버전 선택 */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              <HelpTooltip helpKey="promptVersionSelect" />
+              <Select
+                value={activeVersionId ?? undefined}
+                onValueChange={(value) => setSelectedVersionId(value || null)}
+                disabled={
+                  isLoadingVersions ||
+                  !promptVersionsData?.versions ||
+                  promptVersionsData.versions.length === 0
+                }
+              >
+                <SelectTrigger className="w-auto min-w-[120px] max-w-[220px] text-sm">
+                  <SelectValue placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {promptVersionsData?.versions?.map((version) => (
+                    <SelectItem key={version.id} value={version.id}>
+                      {version.name}
+                      {version.id === promptVersionsData.activeVersionId && " \u2713"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* LLM 모델 선택 */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Select
+                value={activeModelKey ?? undefined}
+                onValueChange={(value) => setSelectedModelKey(value || null)}
+                disabled={!llmModelsData?.models?.length}
+              >
+                <SelectTrigger size="sm" className="w-auto min-w-[120px] max-w-[200px] text-sm">
+                  <SelectValue placeholder="모델 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {llmModelsData?.availableProviders?.map((provider) => (
+                    <SelectGroup key={provider}>
+                      <SelectLabel>
+                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
+                      </SelectLabel>
+                      {llmModelsData.models
+                        .filter((m) => m.provider === provider)
+                        .map((m) => {
+                          const key = `${m.provider}/${m.model}`;
+                          const isDefault =
+                            m.provider === llmModelsData.defaultModelId.provider &&
+                            m.model === llmModelsData.defaultModelId.model;
+                          return (
+                            <SelectItem key={key} value={key}>
+                              <span className="flex items-center gap-2">
+                                <span>{m.displayName}</span>
+                                <span className="text-[10px] text-muted-foreground font-mono">
+                                  ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
+                                </span>
+                                {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
                               </span>
-                              {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
-                            </span>
-                          </SelectItem>
-                        );
-                      })}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
+                            </SelectItem>
+                          );
+                        })}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {activeCount}개 {mode === "candidates" ? "분할 후보" : "재분할 대상"}
+            </span>
           </div>
-          <span className="text-xs lg:text-sm text-muted-foreground whitespace-nowrap">
-            {activeCount}개 {mode === "candidates" ? "분할 후보" : "재분할 대상"}
-          </span>
         </div>
-      </div>
+      )}
 
-      {/* 모바일: 탭 전환 레이아웃 */}
+      {/* 모바일: list↔detail 뷰 전환 */}
       {isMobile ? (
         <div className="flex-1 flex flex-col min-h-0">
-          {/* 탭 바 */}
-          <div role="tablist" className="flex border-b shrink-0">
-            {mobileTabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-selected={activePanel === tab.id}
-                aria-controls="mobile-tabpanel"
-                onClick={() => setActivePanel(tab.id)}
-                className={cn(
-                  "flex-1 py-2.5 text-sm font-medium transition-all duration-200",
-                  activePanel === tab.id
-                    ? "border-b-2 border-primary text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* 패널 콘텐츠 */}
-          <div
-            role="tabpanel"
-            id="mobile-tabpanel"
-            aria-labelledby={`tab-${activePanel}`}
-            className="flex-1 min-h-0 overflow-hidden"
-          >
+          {activePanel === "list" ? (
             <div
-              key={activePanel}
-              className="h-full flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-right-2 duration-200"
+              key="list"
+              className="vt-list flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-left-2 duration-200"
             >
-              {activePanel === "candidates" && renderCandidatesList()}
-              {activePanel === "original" && renderOriginalCard()}
-              {activePanel === "preview" && renderPreviewContent()}
+              {renderCandidatesList()}
             </div>
-          </div>
-
-          {/* Sticky footer — 분할 적용 버튼 */}
-          {selectedCard && previewData?.splitCards && (
-            <div className="border-t p-3 shrink-0">
-              <Button onClick={handleApply} disabled={isBusy} className="w-full">
-                {splitApply.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    적용 중...
-                  </>
-                ) : (
-                  <>
-                    <Scissors className="w-4 h-4 mr-2" />
-                    분할 적용
-                  </>
+          ) : (
+            <div
+              key="detail"
+              className="vt-detail flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-right-2 duration-200"
+            >
+              {/* 뒤로 헤더 */}
+              <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
+                <Button variant="ghost" size="sm" onClick={handleBackToList}>
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  뒤로
+                </Button>
+                {selectedCard && (
+                  <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                    {selectedCard.noteId}
+                  </span>
                 )}
-              </Button>
+                {/* 검증 토글 */}
+                {selectedCard && (
+                  <button
+                    type="button"
+                    onClick={() => setShowValidation(!showValidation)}
+                    className={cn(
+                      "ml-auto flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
+                      showValidation
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80",
+                    )}
+                  >
+                    <Shield className="w-3 h-3" />
+                    검증
+                  </button>
+                )}
+              </div>
+
+              {/* 원본/미리보기 탭 */}
+              <div role="tablist" className="flex border-b shrink-0">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === "original"}
+                  onClick={() => setDetailTab("original")}
+                  className={cn(
+                    "flex-1 py-2.5 text-sm font-medium transition-all duration-200",
+                    detailTab === "original"
+                      ? "border-b-2 border-primary text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  원본
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === "preview"}
+                  onClick={() => setDetailTab("preview")}
+                  className={cn(
+                    "flex-1 py-2.5 text-sm font-medium transition-all duration-200",
+                    detailTab === "preview"
+                      ? "border-b-2 border-primary text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  미리보기
+                </button>
+              </div>
+
+              {/* 탭 콘텐츠 */}
+              <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+                {detailTab === "original" ? renderOriginalCard() : renderPreviewContent()}
+              </div>
+
+              {/* Sticky footer — 적용/반려 버튼 */}
+              {selectedCard && previewData?.splitCards && (
+                <div className="border-t p-3 shrink-0">
+                  <div className="flex gap-2">
+                    <RejectPopover canReject={canReject} onReject={handleReject} />
+                    <Button onClick={handleApply} disabled={isBusy} className="flex-1">
+                      {splitApply.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          적용 중...
+                        </>
+                      ) : (
+                        <>
+                          <Scissors className="w-4 h-4 mr-2" />
+                          분할 적용
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

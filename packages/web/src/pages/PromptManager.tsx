@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -31,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import {
   useActivatePrompt,
   useExperiments,
@@ -52,6 +54,7 @@ type TabType = "versions" | "experiments" | "metrics";
 
 export function PromptManager() {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile("md");
   const [activeTab, setActiveTab] = useState<TabType>("versions");
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
   const [systemPromptDraft, setSystemPromptDraft] = useState("");
@@ -64,6 +67,7 @@ export function PromptManager() {
     syncedAt?: string;
     error?: string;
   } | null>(null);
+  const [showMobileEditor, setShowMobileEditor] = useState(false);
 
   const { data: versionsData, isLoading: isLoadingVersions } = usePromptVersions();
   const { data: experimentsData, isLoading: isLoadingExperiments } = useExperiments();
@@ -212,6 +216,44 @@ export function PromptManager() {
     toast.success("원격 systemPrompt를 다시 불러왔습니다.");
   };
 
+  const systemPromptEditorProps = {
+    systemPromptDraft,
+    setSystemPromptDraft: (value: string) => {
+      setSystemPromptDraft(value);
+      setHasUserEditedSystemPrompt(true);
+    },
+    saveReason,
+    setSaveReason,
+    isLoading: systemPromptQuery.isLoading,
+    isError: systemPromptQuery.isError,
+    errorMessage:
+      systemPromptQuery.error instanceof Error
+        ? systemPromptQuery.error.message
+        : "원격 systemPrompt 조회 실패",
+    revision: systemPromptQuery.data?.revision,
+    activeVersionName: systemPromptQuery.data?.activeVersion.name,
+    activeVersionId: systemPromptQuery.data?.activeVersion.id,
+    isDirty: isSystemPromptDirty,
+    canSave: canSaveSystemPrompt,
+    isSaving: saveSystemPrompt.isPending,
+    conflictLatest,
+    lastSyncState,
+    showRemoteAdvancedNotice: remoteAdvanced && isSystemPromptDirty && !hasUserEditedSystemPrompt,
+    onSave: () => void handleSaveSystemPrompt(),
+    onReloadRemote: () => void handleReloadRemote(),
+    onUseRemoteValue: () => {
+      if (!conflictLatest) return;
+      setSystemPromptDraft(conflictLatest.systemPrompt);
+      setDraftBaseRevision(conflictLatest.revision);
+      setConflictLatest(null);
+      setHasUserEditedSystemPrompt(false);
+    },
+    onRetryWithLatest: () => {
+      if (!conflictLatest) return;
+      void handleSaveSystemPrompt(conflictLatest.revision);
+    },
+  };
+
   return (
     <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
@@ -219,56 +261,53 @@ export function PromptManager() {
         <h1 className="typo-h1">프롬프트 관리</h1>
       </div>
 
-      <SystemPromptEditor
-        systemPromptDraft={systemPromptDraft}
-        setSystemPromptDraft={(value) => {
-          setSystemPromptDraft(value);
-          setHasUserEditedSystemPrompt(true);
-        }}
-        saveReason={saveReason}
-        setSaveReason={setSaveReason}
-        isLoading={systemPromptQuery.isLoading}
-        isError={systemPromptQuery.isError}
-        errorMessage={
-          systemPromptQuery.error instanceof Error
-            ? systemPromptQuery.error.message
-            : "원격 systemPrompt 조회 실패"
-        }
-        revision={systemPromptQuery.data?.revision}
-        activeVersionName={systemPromptQuery.data?.activeVersion.name}
-        activeVersionId={systemPromptQuery.data?.activeVersion.id}
-        isDirty={isSystemPromptDirty}
-        canSave={canSaveSystemPrompt}
-        isSaving={saveSystemPrompt.isPending}
-        conflictLatest={conflictLatest}
-        lastSyncState={lastSyncState}
-        showRemoteAdvancedNotice={
-          remoteAdvanced && isSystemPromptDirty && !hasUserEditedSystemPrompt
-        }
-        onSave={() => void handleSaveSystemPrompt()}
-        onReloadRemote={() => void handleReloadRemote()}
-        onUseRemoteValue={() => {
-          if (!conflictLatest) return;
-          setSystemPromptDraft(conflictLatest.systemPrompt);
-          setDraftBaseRevision(conflictLatest.revision);
-          setConflictLatest(null);
-          setHasUserEditedSystemPrompt(false);
-        }}
-        onRetryWithLatest={() => {
-          if (!conflictLatest) return;
-          void handleSaveSystemPrompt(conflictLatest.revision);
-        }}
-      />
+      {/* 모바일: 접이식 요약 카드 + 풀스크린 편집 Dialog */}
+      {isMobile ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowMobileEditor(true)}
+            className="mb-4 flex items-center gap-3 w-full rounded-lg border border-primary/30 bg-gradient-to-r from-card to-primary/5 px-4 py-3 text-left transition-colors hover:bg-accent"
+          >
+            <Save className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-sm font-medium truncate flex-1">시스템 프롬프트</span>
+            <span className="text-xs text-muted-foreground shrink-0">
+              rev.{systemPromptQuery.data?.revision ?? "-"}
+            </span>
+            {isSystemPromptDirty && (
+              <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+            )}
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
 
-      {/* 탭 네비게이션 */}
-      <div className="flex overflow-x-auto whitespace-nowrap mb-4">
+          <Dialog open={showMobileEditor} onOpenChange={setShowMobileEditor}>
+            <DialogContent className="max-w-full h-[100dvh] flex flex-col p-0 gap-0 rounded-none border-0 sm:max-w-full">
+              <DialogHeader className="px-4 py-3 border-b shrink-0">
+                <DialogTitle className="flex items-center gap-2 text-sm">
+                  <Save className="w-4 h-4 text-primary" />
+                  시스템 프롬프트 편집
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto p-4">
+                <SystemPromptEditor {...systemPromptEditorProps} />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : (
+        /* 데스크톱: 기존 인라인 편집기 */
+        <SystemPromptEditor {...systemPromptEditorProps} />
+      )}
+
+      {/* 탭 네비게이션 — 모바일에서 sticky */}
+      <div className="flex mb-4 sticky top-14 z-10 bg-background md:static md:z-auto">
         {tabs.map((tab) => (
           <button
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 border-b-2 transition-all duration-200 shrink-0",
+              "flex items-center justify-center gap-1.5 flex-1 min-w-0 px-2 md:px-4 py-2.5 border-b-2 transition-all duration-200",
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-border text-muted-foreground hover:text-foreground",
@@ -366,15 +405,15 @@ function SystemPromptEditor({
   return (
     <Card className="mb-4 border-primary/30 bg-gradient-to-br from-card via-card to-primary/5">
       <CardHeader className="py-3 px-4 border-b">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-sm flex items-center gap-2">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+          <CardTitle className="text-sm flex items-center gap-2 shrink-0">
             <Save className="w-4 h-4 text-primary" />
             시스템 프롬프트 원격 편집
           </CardTitle>
-          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
             <span>revision: {revision ?? "-"}</span>
-            <span>active: {activeVersionName ?? "-"}</span>
-            {activeVersionId && <span className="font-mono text-[11px]">{activeVersionId}</span>}
+            <span className="truncate">active: {activeVersionName ?? "-"}</span>
+            {activeVersionId && <span className="font-mono text-[11px] truncate">{activeVersionId}</span>}
           </div>
         </div>
       </CardHeader>
@@ -405,8 +444,8 @@ function SystemPromptEditor({
               placeholder="원격 systemPrompt를 입력하세요."
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="md:col-span-3">
+            <div className="space-y-3">
+              <div>
                 <label htmlFor="system-prompt-reason" className="text-xs text-muted-foreground">
                   변경 사유 (필수, 새 버전 changelog로 저장)
                 </label>
@@ -419,17 +458,17 @@ function SystemPromptEditor({
                   placeholder="예: 용어 통일, 지시문 간결화"
                 />
               </div>
-              <div className="md:col-span-1 flex items-end gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="shrink-0"
                   onClick={onReloadRemote}
                   disabled={isSaving}
                 >
                   원격 재조회
                 </Button>
-                <Button type="button" className="w-full" onClick={onSave} disabled={!canSave}>
+                <Button type="button" className="shrink-0" onClick={onSave} disabled={!canSave}>
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin mr-1" />
                   ) : (
@@ -538,9 +577,14 @@ function VersionsTab({
   const showDetail = !!selectedVersion;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full grid-rows-[1fr] overflow-hidden">
       {/* 버전 목록 — 모바일: 상세 선택 시 숨김 */}
-      <div className={cn("md:col-span-5 overflow-y-auto", showDetail && "hidden md:block")}>
+      <div
+        className={cn(
+          "md:col-span-5 overflow-y-auto min-h-0 min-w-0",
+          showDetail && "hidden md:block",
+        )}
+      >
         <Card className="h-full">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-sm">버전 목록</CardTitle>
@@ -591,16 +635,16 @@ function VersionsTab({
       </div>
 
       {/* 버전 상세 — 모바일: 전체 너비, 뒤로 버튼 */}
-      <div className={cn("md:col-span-7 overflow-y-auto", !showDetail && "hidden md:block")}>
+      <div className={cn("md:col-span-7 min-h-0 min-w-0", !showDetail && "hidden md:block")}>
         {selectedVersion ? (
-          <Card className="h-full">
-            <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
+          <Card className="h-full flex flex-col overflow-hidden">
+            <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onSelectVersion(null)}
-                  className="md:hidden"
+                  className="md:hidden px-0"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   뒤로
@@ -624,7 +668,7 @@ function VersionsTab({
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-4 space-y-4 flex-1 overflow-y-auto min-h-0">
               {/* 기본 정보 */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">기본 정보</h3>
@@ -659,22 +703,24 @@ function VersionsTab({
               {/* 설정 */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">카드 설정</h3>
-                <div className="grid grid-cols-3 gap-2 text-sm bg-muted p-3 rounded">
-                  <div>
-                    <span className="text-muted-foreground block">Cloze 최대</span>
-                    <span className="font-medium">{selectedVersion.config?.maxClozeChars}자</span>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded bg-muted px-2.5 py-2 text-center">
+                    <div className="text-sm font-semibold tabular-nums">
+                      {selectedVersion.config?.maxClozeChars}자
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Cloze 최대</div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground block">Basic Front</span>
-                    <span className="font-medium">
+                  <div className="rounded bg-muted px-2.5 py-2 text-center">
+                    <div className="text-sm font-semibold tabular-nums">
                       {selectedVersion.config?.maxBasicFrontChars}자
-                    </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Basic Front</div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground block">Basic Back</span>
-                    <span className="font-medium">
+                  <div className="rounded bg-muted px-2.5 py-2 text-center">
+                    <div className="text-sm font-semibold tabular-nums">
                       {selectedVersion.config?.maxBasicBackChars}자
-                    </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Basic Back</div>
                   </div>
                 </div>
               </div>
@@ -705,7 +751,7 @@ function VersionsTab({
               {/* 프롬프트 미리보기 */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">시스템 프롬프트 (미리보기)</h3>
-                <pre className="bg-muted p-3 rounded text-xs overflow-auto max-h-96 whitespace-pre-wrap break-words">
+                <pre className="bg-muted p-3 rounded text-xs whitespace-pre-wrap break-words">
                   {selectedVersion.systemPrompt}
                 </pre>
               </div>
@@ -848,8 +894,8 @@ function MetricsTab({ versions }: MetricsTabProps) {
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm">전체 통계</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <MetricCard label="총 분할 수" value={totalSplits} />
             <MetricCard
               label="평균 승인률"
@@ -867,7 +913,7 @@ function MetricsTab({ versions }: MetricsTabProps) {
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm">버전별 성능 비교</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="px-4 overflow-x-auto">
           {versions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">버전 데이터가 없습니다</div>
           ) : (
