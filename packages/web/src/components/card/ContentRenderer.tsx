@@ -64,7 +64,7 @@ export function ContentRenderer({
       )}
 
       {/* 콘텐츠 */}
-      <div className="pt-10">
+      <div className={showToggle ? "pt-10" : ""}>
         {view === "raw" ? (
           <pre className="text-sm bg-muted p-4 rounded overflow-x-auto whitespace-pre-wrap font-mono">
             {content}

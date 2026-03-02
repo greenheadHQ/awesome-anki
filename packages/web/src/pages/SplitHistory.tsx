@@ -537,9 +537,7 @@ export function SplitHistory() {
                             </div>
                           </div>
                           <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 text-xs text-muted-foreground items-center">
-                            <span className="truncate">
-                              {item.deckName || "(no deck)"}
-                            </span>
+                            <span className="truncate">{item.deckName || "(no deck)"}</span>
                             <span>{item.cardCount > 0 ? `${item.cardCount}장` : ""}</span>
                             <span className="font-mono">
                               {item.actualCostUsd != null ? formatCostUsd(item.actualCostUsd) : ""}
