@@ -19,12 +19,12 @@ COPY packages/web/ packages/web/
 RUN bun run --cwd packages/web build
 
 # ---- Stage 3: Production runtime ----
-FROM oven/bun:1 AS runtime
+FROM oven/bun:1-slim AS runtime
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup --gid 1001 anki && \
-    adduser --uid 1001 --gid 1001 --disabled-password --gecos "" anki
+# Create non-root user (bun 이미지에 addgroup/adduser/useradd 없음)
+RUN echo 'anki:x:1001:' >> /etc/group && \
+    echo 'anki:x:1001:1001:anki:/nonexistent:/usr/sbin/nologin' >> /etc/passwd
 
 # Copy package manifests and install production-only deps
 COPY package.json bun.lockb ./
