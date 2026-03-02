@@ -300,14 +300,14 @@ export function PromptManager() {
       )}
 
       {/* 탭 네비게이션 — 모바일에서 sticky */}
-      <div className="flex overflow-x-auto whitespace-nowrap mb-4 sticky top-14 z-10 bg-background md:static md:z-auto">
+      <div className="flex mb-4 sticky top-14 z-10 bg-background md:static md:z-auto">
         {tabs.map((tab) => (
           <button
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all duration-200 shrink-0",
+              "flex items-center justify-center gap-1.5 flex-1 min-w-0 px-2 md:px-4 py-2.5 border-b-2 transition-all duration-200",
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-border text-muted-foreground hover:text-foreground",
@@ -635,12 +635,7 @@ function VersionsTab({
       </div>
 
       {/* 버전 상세 — 모바일: 전체 너비, 뒤로 버튼 */}
-      <div
-        className={cn(
-          "md:col-span-7 min-h-0 min-w-0",
-          !showDetail && "hidden md:block",
-        )}
-      >
+      <div className={cn("md:col-span-7 min-h-0 min-w-0", !showDetail && "hidden md:block")}>
         {selectedVersion ? (
           <Card className="h-full flex flex-col overflow-hidden">
             <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between shrink-0">
