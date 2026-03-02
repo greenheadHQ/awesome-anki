@@ -1,12 +1,13 @@
 /**
  * SplitWorkspace - 카드 분할 작업 공간
  * 데스크톱: 3단 레이아웃 (후보 목록 | 원본 카드 | 분할 미리보기)
- * 모바일: 탭 전환 방식
+ * 모바일: list↔detail view transition (후보 목록 ↔ 원본/미리보기 탭)
  */
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   ChevronDown,
   ChevronRight,
@@ -28,7 +29,11 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
-import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -51,10 +56,15 @@ import {
   useSplitPreview,
   useSplitReject,
 } from "../hooks/useSplit";
-import type { CardSummary, DifficultCard, SplitPreviewResult } from "../lib/api";
+import type {
+  CardSummary,
+  DifficultCard,
+  SplitPreviewResult,
+} from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { recordSyncAttempt } from "../lib/sync-status";
 import { cn } from "../lib/utils";
+import { startViewTransition } from "../lib/view-transition";
 
 // NOTE: core의 REJECTION_REASONS는 런타임 import 시 브라우저 번들 경계를 넘기 때문에
 // web 패키지에서 동일 스키마를 로컬 상수로 유지한다.
@@ -69,7 +79,7 @@ const REJECTION_REASONS = [
 
 type WorkspaceMode = "candidates" | "difficult";
 type CardAnalysisStatus = "pending" | "cached" | "error" | "none";
-type MobilePanel = "candidates" | "original" | "preview";
+type MobilePanel = "list" | "detail";
 
 interface SplitCandidate {
   noteId: number;
@@ -235,15 +245,24 @@ export function SplitWorkspace() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
   const [showValidation, setShowValidation] = useState(false);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
+    null,
+  );
   const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
-  const [activePanel, setActivePanel] = useState<MobilePanel>("candidates");
+  const [activePanel, setActivePanel] = useState<MobilePanel>("list");
+  const [detailTab, setDetailTab] = useState<"original" | "preview">(
+    "original",
+  );
   const [showConfigSheet, setShowConfigSheet] = useState(false);
 
   // 분석 상태 추적 — noteId:provider/model 복합 키로 멀티모델 분리
-  const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(new Set());
-  const [errorAnalyses, setErrorAnalyses] = useState<Map<string, string>>(new Map());
+  const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(
+    new Set(),
+  );
+  const [errorAnalyses, setErrorAnalyses] = useState<Map<string, string>>(
+    new Map(),
+  );
 
   const queryClient = useQueryClient();
   const { data: decksData } = useDecks();
@@ -253,12 +272,14 @@ export function SplitWorkspace() {
     filter: "all",
   });
 
-  const { data: difficultData, isLoading: isLoadingDifficult } = useDifficultCards(activeDeck, {
-    limit: 200,
-  });
+  const { data: difficultData, isLoading: isLoadingDifficult } =
+    useDifficultCards(activeDeck, {
+      limit: 200,
+    });
 
   // 프롬프트 버전 관련
-  const { data: promptVersionsData, isLoading: isLoadingVersions } = usePromptVersions();
+  const { data: promptVersionsData, isLoading: isLoadingVersions } =
+    usePromptVersions();
   const activeVersionId =
     selectedVersionId ??
     promptVersionsData?.activeVersionId ??
@@ -312,7 +333,8 @@ export function SplitWorkspace() {
     splitPreview.variables?.model === activeModel;
 
   // 현재 선택된 카드+모델의 에러 메시지 확인
-  const analysisKey = (nid: number) => `${nid}:${activeProvider}/${activeModel}`;
+  const analysisKey = (nid: number) =>
+    `${nid}:${activeProvider}/${activeModel}`;
   const currentCardError = selectedCard
     ? errorAnalyses.get(analysisKey(selectedCard.noteId))
     : undefined;
@@ -338,10 +360,20 @@ export function SplitWorkspace() {
     setSelectedCard(card);
     if (card) {
       splitPreview.reset();
+      setDetailTab("original");
 
-      // 모바일: 원본 탭으로 자동 전환
-      if (isMobile) setActivePanel("original");
+      // 모바일: detail 뷰로 전환
+      if (isMobile) {
+        startViewTransition(() => setActivePanel("detail"));
+      }
     }
+  };
+
+  // 모바일: 리스트로 돌아가기
+  const handleBackToList = () => {
+    startViewTransition(() => {
+      setActivePanel("list");
+    });
   };
 
   // noteId로 카드를 찾아 선택 (toast action에서 사용 — stale closure 방지)
@@ -387,6 +419,8 @@ export function SplitWorkspace() {
             next.delete(key);
             return next;
           });
+          // 모바일: 분석 완료 시 미리보기 탭으로 자동 전환
+          if (isMobile) setDetailTab("preview");
           toast.success(`카드 ${noteId} 분석 완료`, {
             action: {
               label: "보기",
@@ -395,7 +429,8 @@ export function SplitWorkspace() {
           });
         },
         onError: (error) => {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setPendingAnalyses((prev) => {
             const next = new Set(prev);
             next.delete(key);
@@ -416,12 +451,16 @@ export function SplitWorkspace() {
     .map(mapCardSummaryToCandidate)
     .filter((card) => card.analysis.canSplit);
 
-  const difficultCards = (difficultData?.cards || []).map(mapDifficultToCandidate);
+  const difficultCards = (difficultData?.cards || []).map(
+    mapDifficultToCandidate,
+  );
 
   const handleApply = () => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
     if (!previewData.sessionId) {
-      toast.warning("히스토리 세션이 없어 적용할 수 없습니다. 미리보기를 다시 실행해주세요.");
+      toast.warning(
+        "히스토리 세션이 없어 적용할 수 없습니다. 미리보기를 다시 실행해주세요.",
+      );
       return;
     }
 
@@ -453,12 +492,21 @@ export function SplitWorkspace() {
           }
 
           // 성공 후 목록에서 제거하고 다음 카드 선택
-          const activeList = mode === "candidates" ? candidates : difficultCards;
-          const nextCard = activeList.find((c) => c.noteId !== selectedCard.noteId);
-          handleSelectCard(nextCard || null);
+          const activeList =
+            mode === "candidates" ? candidates : difficultCards;
+          const nextCard = activeList.find(
+            (c) => c.noteId !== selectedCard.noteId,
+          );
+          if (nextCard) {
+            handleSelectCard(nextCard);
+          } else {
+            handleSelectCard(null);
+            if (isMobile) setActivePanel("list");
+          }
         },
         onError: (error) => {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           toast.error(`분할 적용 실패: ${message}`);
         },
       },
@@ -468,7 +516,9 @@ export function SplitWorkspace() {
   const handleReject = (rejectionReason: string) => {
     if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
     if (!previewData.sessionId) {
-      toast.warning("히스토리 세션이 없어 반려할 수 없습니다. 미리보기를 다시 실행해주세요.");
+      toast.warning(
+        "히스토리 세션이 없어 반려할 수 없습니다. 미리보기를 다시 실행해주세요.",
+      );
       return;
     }
 
@@ -500,9 +550,11 @@ export function SplitWorkspace() {
     );
   };
 
-  const isLoadingList = mode === "candidates" ? isLoadingCards : isLoadingDifficult;
+  const isLoadingList =
+    mode === "candidates" ? isLoadingCards : isLoadingDifficult;
   const activeList = mode === "candidates" ? candidates : difficultCards;
-  const activeCount = mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
+  const activeCount =
+    mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
 
   const isBusy = splitReject.isPending || splitApply.isPending;
   const canReject =
@@ -573,7 +625,11 @@ export function SplitWorkspace() {
             <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
               <span>lapses: {card.difficulty?.lapses}</span>
               <span>
-                ease: {card.difficulty ? (card.difficulty.easeFactor / 10).toFixed(0) : 0}%
+                ease:{" "}
+                {card.difficulty
+                  ? (card.difficulty.easeFactor / 10).toFixed(0)
+                  : 0}
+                %
               </span>
             </div>
           </div>
@@ -608,7 +664,7 @@ export function SplitWorkspace() {
             onClick={() => {
               setMode("candidates");
               handleSelectCard(null);
-              if (isMobile) setActivePanel("candidates");
+              if (isMobile) setActivePanel("list");
             }}
             className={cn(
               "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
@@ -625,7 +681,7 @@ export function SplitWorkspace() {
             onClick={() => {
               setMode("difficult");
               handleSelectCard(null);
-              if (isMobile) setActivePanel("candidates");
+              if (isMobile) setActivePanel("list");
             }}
             className={cn(
               "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
@@ -646,12 +702,16 @@ export function SplitWorkspace() {
           </div>
         ) : activeList.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {mode === "candidates" ? "분할 후보가 없습니다" : "재분할 대상이 없습니다"}
+            {mode === "candidates"
+              ? "분할 후보가 없습니다"
+              : "재분할 대상이 없습니다"}
           </div>
         ) : mode === "candidates" ? (
           <div className="divide-y">{candidates.map(renderCardListItem)}</div>
         ) : (
-          <div className="divide-y">{difficultCards.map(renderDifficultCardListItem)}</div>
+          <div className="divide-y">
+            {difficultCards.map(renderDifficultCardListItem)}
+          </div>
         )}
       </div>
     </>
@@ -660,28 +720,32 @@ export function SplitWorkspace() {
   /** 원본 카드 패널 */
   const renderOriginalCard = () => (
     <>
-      <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-        <span className="text-sm font-semibold">원본 카드</span>
-        {selectedCard && (
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowValidation(!showValidation)}
-              className={cn(
-                "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
-                showValidation
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-muted/80",
-              )}
-            >
-              <Shield className="w-3 h-3" />
-              검증
-            </button>
-            <span className="text-xs text-muted-foreground">NID: {selectedCard.noteId}</span>
-          </div>
-        )}
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
+      {!isMobile && (
+        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
+          <span className="text-sm font-semibold">원본 카드</span>
+          {selectedCard && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowValidation(!showValidation)}
+                className={cn(
+                  "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
+                  showValidation
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80",
+                )}
+              >
+                <Shield className="w-3 h-3" />
+                검증
+              </button>
+              <span className="text-xs text-muted-foreground">
+                NID: {selectedCard.noteId}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto py-4">
         {selectedCard ? (
           isLoadingDetail ? (
             <div className="flex items-center justify-center h-full">
@@ -701,7 +765,8 @@ export function SplitWorkspace() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-amber-700">
                     <span>실패 횟수: {selectedCard.difficulty.lapses}회</span>
                     <span>
-                      Ease Factor: {(selectedCard.difficulty.easeFactor / 10).toFixed(0)}%
+                      Ease Factor:{" "}
+                      {(selectedCard.difficulty.easeFactor / 10).toFixed(0)}%
                     </span>
                     <span>복습 간격: {selectedCard.difficulty.interval}일</span>
                     <span>총 복습: {selectedCard.difficulty.reps}회</span>
@@ -727,7 +792,10 @@ export function SplitWorkspace() {
               />
               {/* 검증 패널 */}
               {showValidation && activeDeck && (
-                <ValidationPanel noteId={selectedCard.noteId} deckName={activeDeck} />
+                <ValidationPanel
+                  noteId={selectedCard.noteId}
+                  deckName={activeDeck}
+                />
               )}
             </div>
           )
@@ -735,7 +803,7 @@ export function SplitWorkspace() {
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
               <ChevronRight className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>{isMobile ? "후보 탭에서 카드를 선택하세요" : "왼쪽에서 카드를 선택하세요"}</p>
+              <p>왼쪽에서 카드를 선택하세요</p>
             </div>
           </div>
         )}
@@ -746,11 +814,13 @@ export function SplitWorkspace() {
   /** 분할 미리보기 패널 (반려 Popover 포함) */
   const renderPreviewContent = () => (
     <>
-      <div className="py-3 px-4 border-b shrink-0">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">분할 미리보기</span>
+      {!isMobile && (
+        <div className="py-3 px-4 border-b shrink-0">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold">분할 미리보기</span>
+          </div>
         </div>
-      </div>
+      )}
       <div className="flex-1 overflow-y-auto p-4">
         {!selectedCard ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -767,7 +837,12 @@ export function SplitWorkspace() {
             <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
               {currentCardError}
             </p>
-            <Button onClick={handleRequestSplit} variant="outline" size="sm" className="mt-3">
+            <Button
+              onClick={handleRequestSplit}
+              variant="outline"
+              size="sm"
+              className="mt-3"
+            >
               다시 시도
             </Button>
           </div>
@@ -785,7 +860,12 @@ export function SplitWorkspace() {
                   : String(splitPreview.error)}
               </p>
             )}
-            <Button onClick={handleRequestSplit} variant="outline" size="sm" className="mt-3">
+            <Button
+              onClick={handleRequestSplit}
+              variant="outline"
+              size="sm"
+              className="mt-3"
+            >
               다시 시도
             </Button>
           </div>
@@ -801,13 +881,20 @@ export function SplitWorkspace() {
             {/* 분할 요약 */}
             <div className="p-3 bg-muted rounded-lg text-sm">
               <div className="flex items-center gap-2 mb-1">
-                <p className="font-medium">{previewData.splitCards.length}개 카드로 분할</p>
+                <p className="font-medium">
+                  {previewData.splitCards.length}개 카드로 분할
+                </p>
                 {previewData.provider && (
-                  <ModelBadge provider={previewData.provider} model={previewData.aiModel} />
+                  <ModelBadge
+                    provider={previewData.provider}
+                    model={previewData.aiModel}
+                  />
                 )}
               </div>
               {previewData.splitReason && (
-                <p className="text-muted-foreground text-xs">{previewData.splitReason}</p>
+                <p className="text-muted-foreground text-xs">
+                  {previewData.splitReason}
+                </p>
               )}
               <p className="text-muted-foreground text-xs mt-1">
                 {previewData.executionTimeMs != null &&
@@ -822,16 +909,15 @@ export function SplitWorkspace() {
             {/* 분할 카드 미리보기 */}
             <div className="space-y-3">
               {previewData.splitCards.map((card, idx) => (
-                <SplitPreviewCard key={`split-${card.title}-${idx}`} card={card} index={idx} />
+                <SplitPreviewCard
+                  key={`split-${card.title}-${idx}`}
+                  card={card}
+                  index={idx}
+                />
               ))}
             </div>
 
-            {/* 모바일: 반려 Popover를 미리보기 콘텐츠 내 표시 */}
-            {isMobile && (
-              <div className="pt-2">
-                <RejectPopover canReject={canReject} onReject={handleReject} />
-              </div>
-            )}
+            {/* 데스크톱에서만 미리보기 내 반려 Popover 표시 (모바일은 footer에 표시) */}
           </div>
         ) : (
           // 분석 요청 필요
@@ -846,7 +932,9 @@ export function SplitWorkspace() {
                 </span>
               )}
               <br />
-              <span className="text-xs text-muted-foreground">API 비용이 발생할 수 있습니다.</span>
+              <span className="text-xs text-muted-foreground">
+                API 비용이 발생할 수 있습니다.
+              </span>
             </p>
             <Button
               onClick={handleRequestSplit}
@@ -867,22 +955,17 @@ export function SplitWorkspace() {
     </>
   );
 
-  // --- 모바일 탭 정의 ---
-  const mobileTabs: { id: MobilePanel; label: string }[] = [
-    { id: "candidates", label: "후보 목록" },
-    { id: "original", label: "원본" },
-    { id: "preview", label: "미리보기" },
-  ];
-
   // CompactSelector 아이템 빌드
-  const promptSelectorItems: CompactSelectorItem[] = (promptVersionsData?.versions || []).map(
-    (v) => ({
-      key: v.id,
-      label: `${v.name}${v.id === promptVersionsData?.activeVersionId ? " \u2713" : ""}`,
-    }),
-  );
+  const promptSelectorItems: CompactSelectorItem[] = (
+    promptVersionsData?.versions || []
+  ).map((v) => ({
+    key: v.id,
+    label: `${v.name}${v.id === promptVersionsData?.activeVersionId ? " \u2713" : ""}`,
+  }));
 
-  const modelSelectorItems: CompactSelectorItem[] = (llmModelsData?.models || []).map((m) => {
+  const modelSelectorItems: CompactSelectorItem[] = (
+    llmModelsData?.models || []
+  ).map((m) => {
     const key = `${m.provider}/${m.model}`;
     const isDefault =
       m.provider === llmModelsData?.defaultModelId.provider &&
@@ -899,7 +982,7 @@ export function SplitWorkspace() {
     <div className="h-[calc(100dvh-5rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
       {/* ===== 모바일 헤더 (< lg) ===== */}
       {isMobile ? (
-        <div className="flex flex-col gap-3 mb-4 overflow-hidden">
+        <div className="flex flex-col gap-3 overflow-hidden">
           {/* Row 1: 제목 + 카운트 배지 */}
           <div className="flex items-center gap-2.5">
             <h1 className="typo-h1">분할 작업</h1>
@@ -937,7 +1020,8 @@ export function SplitWorkspace() {
               <div className="flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span className="text-sm truncate">
-                  {promptSelectorItems.find((i) => i.key === activeVersionId)?.label ||
+                  {promptSelectorItems.find((i) => i.key === activeVersionId)
+                    ?.label ||
                     (isLoadingVersions ? "로딩 중..." : "프롬프트 선택")}
                 </span>
               </div>
@@ -948,13 +1032,18 @@ export function SplitWorkspace() {
                   <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 )}
                 <span className="text-xs text-muted-foreground truncate">
-                  {modelSelectorItems.find((i) => i.key === activeModelKey)?.label || "모델 선택"}
+                  {modelSelectorItems.find((i) => i.key === activeModelKey)
+                    ?.label || "모델 선택"}
                 </span>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </button>
-          <BottomSheet open={showConfigSheet} onOpenChange={setShowConfigSheet} title="분할 설정">
+          <BottomSheet
+            open={showConfigSheet}
+            onOpenChange={setShowConfigSheet}
+            title="분할 설정"
+          >
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">
@@ -971,7 +1060,8 @@ export function SplitWorkspace() {
                       }}
                       className={cn(
                         "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
-                        item.key === activeVersionId && "bg-primary/10 font-medium",
+                        item.key === activeVersionId &&
+                          "bg-primary/10 font-medium",
                       )}
                     >
                       {item.label}
@@ -980,7 +1070,9 @@ export function SplitWorkspace() {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">
+                  LLM 모델
+                </p>
                 <div className="divide-y rounded-lg border overflow-hidden">
                   {modelSelectorItems.map((item) => (
                     <button
@@ -992,7 +1084,8 @@ export function SplitWorkspace() {
                       }}
                       className={cn(
                         "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
-                        item.key === activeModelKey && "bg-primary/10 font-medium",
+                        item.key === activeModelKey &&
+                          "bg-primary/10 font-medium",
                       )}
                     >
                       <div>{item.label}</div>
@@ -1048,13 +1141,16 @@ export function SplitWorkspace() {
                 }
               >
                 <SelectTrigger className="min-w-0 text-sm lg:min-w-[220px]">
-                  <SelectValue placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"} />
+                  <SelectValue
+                    placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {promptVersionsData?.versions?.map((version) => (
                     <SelectItem key={version.id} value={version.id}>
                       {version.name}
-                      {version.id === promptVersionsData.activeVersionId && " \u2713"}
+                      {version.id === promptVersionsData.activeVersionId &&
+                        " \u2713"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1067,30 +1163,40 @@ export function SplitWorkspace() {
                 onValueChange={(value) => setSelectedModelKey(value || null)}
                 disabled={!llmModelsData?.models?.length}
               >
-                <SelectTrigger size="sm" className="min-w-0 text-sm lg:min-w-[200px]">
+                <SelectTrigger
+                  size="sm"
+                  className="min-w-0 text-sm lg:min-w-[200px]"
+                >
                   <SelectValue placeholder="모델 선택" />
                 </SelectTrigger>
                 <SelectContent>
                   {llmModelsData?.availableProviders?.map((provider) => (
                     <SelectGroup key={provider}>
                       <SelectLabel>
-                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
+                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ??
+                          provider}
                       </SelectLabel>
                       {llmModelsData.models
                         .filter((m) => m.provider === provider)
                         .map((m) => {
                           const key = `${m.provider}/${m.model}`;
                           const isDefault =
-                            m.provider === llmModelsData.defaultModelId.provider &&
+                            m.provider ===
+                              llmModelsData.defaultModelId.provider &&
                             m.model === llmModelsData.defaultModelId.model;
                           return (
                             <SelectItem key={key} value={key}>
                               <span className="flex items-center gap-2">
                                 <span>{m.displayName}</span>
                                 <span className="text-[10px] text-muted-foreground font-mono">
-                                  ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
+                                  ${m.inputPricePerMillionTokens}/
+                                  {m.outputPricePerMillionTokens}
                                 </span>
-                                {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
+                                {isDefault && (
+                                  <span className="text-[10px]">
+                                    {"\u2713"}
+                                  </span>
+                                )}
                               </span>
                             </SelectItem>
                           );
@@ -1101,71 +1207,124 @@ export function SplitWorkspace() {
               </Select>
             </div>
             <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {activeCount}개 {mode === "candidates" ? "분할 후보" : "재분할 대상"}
+              {activeCount}개{" "}
+              {mode === "candidates" ? "분할 후보" : "재분할 대상"}
             </span>
           </div>
         </div>
       )}
 
-      {/* 모바일: 탭 전환 레이아웃 */}
+      {/* 모바일: list↔detail 뷰 전환 */}
       {isMobile ? (
         <div className="flex-1 flex flex-col min-h-0">
-          {/* 탭 바 — py-3 for 44px touch target */}
-          <div role="tablist" className="flex border-b shrink-0">
-            {mobileTabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-selected={activePanel === tab.id}
-                aria-controls="mobile-tabpanel"
-                onClick={() => setActivePanel(tab.id)}
-                className={cn(
-                  "flex-1 py-3 text-sm font-medium transition-all duration-200",
-                  activePanel === tab.id
-                    ? "border-b-2 border-primary text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* 패널 콘텐츠 */}
-          <div
-            role="tabpanel"
-            id="mobile-tabpanel"
-            aria-labelledby={`tab-${activePanel}`}
-            className="flex-1 min-h-0 overflow-hidden"
-          >
+          {activePanel === "list" ? (
             <div
-              key={activePanel}
-              className="h-full flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-right-2 duration-200"
+              key="list"
+              className="vt-list flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-left-2 duration-200"
             >
-              {activePanel === "candidates" && renderCandidatesList()}
-              {activePanel === "original" && renderOriginalCard()}
-              {activePanel === "preview" && renderPreviewContent()}
+              {renderCandidatesList()}
             </div>
-          </div>
-
-          {/* Sticky footer — 분할 적용 버튼 */}
-          {selectedCard && previewData?.splitCards && (
-            <div className="border-t p-3 shrink-0">
-              <Button onClick={handleApply} disabled={isBusy} className="w-full">
-                {splitApply.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    적용 중...
-                  </>
-                ) : (
-                  <>
-                    <Scissors className="w-4 h-4 mr-2" />
-                    분할 적용
-                  </>
+          ) : (
+            <div
+              key="detail"
+              className="vt-detail flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-right-2 duration-200"
+            >
+              {/* 뒤로 헤더 */}
+              <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
+                <Button variant="ghost" size="sm" onClick={handleBackToList}>
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  뒤로
+                </Button>
+                {selectedCard && (
+                  <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                    {selectedCard.noteId}
+                  </span>
                 )}
-              </Button>
+                {/* 검증 토글 */}
+                {selectedCard && (
+                  <button
+                    type="button"
+                    onClick={() => setShowValidation(!showValidation)}
+                    className={cn(
+                      "ml-auto flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
+                      showValidation
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80",
+                    )}
+                  >
+                    <Shield className="w-3 h-3" />
+                    검증
+                  </button>
+                )}
+              </div>
+
+              {/* 원본/미리보기 탭 */}
+              <div role="tablist" className="flex border-b shrink-0">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === "original"}
+                  onClick={() => setDetailTab("original")}
+                  className={cn(
+                    "flex-1 py-2.5 text-sm font-medium transition-all duration-200",
+                    detailTab === "original"
+                      ? "border-b-2 border-primary text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  원본
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === "preview"}
+                  onClick={() => setDetailTab("preview")}
+                  className={cn(
+                    "flex-1 py-2.5 text-sm font-medium transition-all duration-200",
+                    detailTab === "preview"
+                      ? "border-b-2 border-primary text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  미리보기
+                </button>
+              </div>
+
+              {/* 탭 콘텐츠 */}
+              <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+                {detailTab === "original"
+                  ? renderOriginalCard()
+                  : renderPreviewContent()}
+              </div>
+
+              {/* Sticky footer — 적용/반려 버튼 */}
+              {selectedCard && previewData?.splitCards && (
+                <div className="border-t p-3 shrink-0">
+                  <div className="flex gap-2">
+                    <RejectPopover
+                      canReject={canReject}
+                      onReject={handleReject}
+                    />
+                    <Button
+                      onClick={handleApply}
+                      disabled={isBusy}
+                      className="flex-1"
+                    >
+                      {splitApply.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          적용 중...
+                        </>
+                      ) : (
+                        <>
+                          <Scissors className="w-4 h-4 mr-2" />
+                          분할 적용
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1174,7 +1333,9 @@ export function SplitWorkspace() {
         <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
           {/* 왼쪽: 후보 목록 */}
           <div className="col-span-3 flex flex-col min-h-0">
-            <Card className="flex-1 flex flex-col min-h-0">{renderCandidatesList()}</Card>
+            <Card className="flex-1 flex flex-col min-h-0">
+              {renderCandidatesList()}
+            </Card>
           </div>
 
           {/* 중앙: 원본 카드 */}
@@ -1194,10 +1355,17 @@ export function SplitWorkspace() {
                 <div className="px-4 py-3 border-t shrink-0">
                   <div className="flex gap-2">
                     {/* 반려 버튼 */}
-                    <RejectPopover canReject={canReject} onReject={handleReject} />
+                    <RejectPopover
+                      canReject={canReject}
+                      onReject={handleReject}
+                    />
 
                     {/* 적용 버튼 */}
-                    <Button onClick={handleApply} disabled={isBusy} className="flex-1">
+                    <Button
+                      onClick={handleApply}
+                      disabled={isBusy}
+                      className="flex-1"
+                    >
                       {splitApply.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
