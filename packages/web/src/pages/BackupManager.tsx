@@ -222,7 +222,7 @@ function BackupListItem({
   const relativeTime = getRelativeTime(new Date(backup.timestamp));
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
+    <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 hover:bg-muted/50 transition-colors">
       <code className="text-xs font-mono text-foreground shrink-0">{backup.originalNoteId}</code>
       <span className="text-xs text-muted-foreground shrink-0">{relativeTime}</span>
       <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
@@ -293,9 +293,9 @@ export function BackupManager() {
   const backups = data?.backups || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {/* 헤더 — 인라인 배지로 통계 표시 */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="typo-h1 flex items-center gap-2">
             <History className="h-8 w-8" />

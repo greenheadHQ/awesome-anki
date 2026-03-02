@@ -529,20 +529,22 @@ export function SplitHistory() {
                           onClick={() => handleSelectSession(item.sessionId)}
                           className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors touch-target"
                         >
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center justify-between mb-1">
                             <span className="font-mono text-xs">{item.noteId}</span>
-                            <StatusBadge status={item.status} />
-                            {item.provider && <ModelBadge provider={item.provider} />}
+                            <div className="flex items-center gap-1.5">
+                              <StatusBadge status={item.status} />
+                              {item.provider && <ModelBadge provider={item.provider} />}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="truncate max-w-[180px]">
+                          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 text-xs text-muted-foreground items-center">
+                            <span className="truncate">
                               {item.deckName || "(no deck)"}
                             </span>
-                            {item.cardCount > 0 && <span>{item.cardCount}장</span>}
-                            {item.actualCostUsd != null && (
-                              <span className="font-mono">{formatCostUsd(item.actualCostUsd)}</span>
-                            )}
-                            <span className="ml-auto shrink-0">
+                            <span>{item.cardCount > 0 ? `${item.cardCount}장` : ""}</span>
+                            <span className="font-mono">
+                              {item.actualCostUsd != null ? formatCostUsd(item.actualCostUsd) : ""}
+                            </span>
+                            <span className="text-right">
                               {new Date(item.createdAt).toLocaleDateString()}
                             </span>
                           </div>
