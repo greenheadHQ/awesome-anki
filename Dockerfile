@@ -20,7 +20,7 @@ COPY tsconfig.json ./
 RUN bun run --cwd packages/web build
 
 # ---- Stage 3: Production runtime ----
-FROM oven/bun:1-slim AS runtime
+FROM oven/bun:1 AS runtime
 WORKDIR /app
 
 # Create non-root user
