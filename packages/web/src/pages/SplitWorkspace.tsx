@@ -23,8 +23,8 @@ import { toast } from "sonner";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
-import { Button } from "../components/ui/button";
 import { BottomSheet } from "../components/ui/bottom-sheet";
+import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
@@ -954,11 +954,7 @@ export function SplitWorkspace() {
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </button>
-          <BottomSheet
-            open={showConfigSheet}
-            onOpenChange={setShowConfigSheet}
-            title="분할 설정"
-          >
+          <BottomSheet open={showConfigSheet} onOpenChange={setShowConfigSheet} title="분할 설정">
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">
