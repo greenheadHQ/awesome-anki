@@ -579,7 +579,12 @@ function VersionsTab({
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full grid-rows-[1fr] overflow-hidden">
       {/* 버전 목록 — 모바일: 상세 선택 시 숨김 */}
-      <div className={cn("md:col-span-5 overflow-y-auto min-h-0 min-w-0", showDetail && "hidden md:block")}>
+      <div
+        className={cn(
+          "md:col-span-5 overflow-y-auto min-h-0 min-w-0",
+          showDetail && "hidden md:block",
+        )}
+      >
         <Card className="h-full">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-sm">버전 목록</CardTitle>
@@ -631,11 +636,14 @@ function VersionsTab({
 
       {/* 버전 상세 — 모바일: 전체 너비, 뒤로 버튼 */}
       <div
-        className={cn("md:col-span-7 overflow-y-auto min-h-0 min-w-0", !showDetail && "hidden md:block")}
+        className={cn(
+          "md:col-span-7 min-h-0 min-w-0",
+          !showDetail && "hidden md:block",
+        )}
       >
         {selectedVersion ? (
-          <Card className="h-full">
-            <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
+          <Card className="h-full flex flex-col overflow-hidden">
+            <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -665,7 +673,7 @@ function VersionsTab({
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-4 space-y-4 flex-1 overflow-y-auto min-h-0">
               {/* 기본 정보 */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">기본 정보</h3>
@@ -746,7 +754,7 @@ function VersionsTab({
               {/* 프롬프트 미리보기 */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">시스템 프롬프트 (미리보기)</h3>
-                <pre className="bg-muted p-3 rounded text-xs overflow-auto max-h-96 whitespace-pre-wrap break-words">
+                <pre className="bg-muted p-3 rounded text-xs whitespace-pre-wrap break-words">
                   {selectedVersion.systemPrompt}
                 </pre>
               </div>
