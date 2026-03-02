@@ -24,8 +24,8 @@ import { ContentRenderer } from "../components/card/ContentRenderer";
 import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/button";
+import { BottomSheet } from "../components/ui/bottom-sheet";
 import { Card } from "../components/ui/card";
-import { CompactSelector } from "../components/ui/compact-selector";
 import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
@@ -239,6 +239,7 @@ export function SplitWorkspace() {
   const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
   const [activePanel, setActivePanel] = useState<MobilePanel>("candidates");
+  const [showConfigSheet, setShowConfigSheet] = useState(false);
 
   // 분석 상태 추적 — noteId:provider/model 복합 키로 멀티모델 분리
   const [pendingAnalyses, setPendingAnalyses] = useState<Set<string>>(new Set());
@@ -898,11 +899,11 @@ export function SplitWorkspace() {
     <div className="h-[calc(100dvh-5rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
       {/* ===== 모바일 헤더 (< lg) ===== */}
       {isMobile ? (
-        <div className="flex flex-col gap-2 mb-4">
+        <div className="flex flex-col gap-3 mb-4 overflow-hidden">
           {/* Row 1: 제목 + 카운트 배지 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="typo-h1">분할 작업</h1>
-            <span className="bg-muted px-2 py-0.5 rounded-full text-sm text-muted-foreground">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary tabular-nums">
               {activeCount}개
             </span>
           </div>
@@ -915,7 +916,7 @@ export function SplitWorkspace() {
             }}
             disabled={!decksData?.decks?.length}
           >
-            <SelectTrigger className="w-full text-base">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="덱 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -926,33 +927,90 @@ export function SplitWorkspace() {
               ))}
             </SelectContent>
           </Select>
-          {/* Row 3: CompactSelector 프롬프트 + 모델 */}
-          <div className="flex items-center gap-2">
-            <CompactSelector
-              icon={<FileText className="w-4 h-4" />}
-              label={isLoadingVersions ? "로딩 중..." : "프롬프트"}
-              items={promptSelectorItems}
-              selectedKey={activeVersionId}
-              onSelect={(key) => setSelectedVersionId(key)}
-              disabled={isLoadingVersions || promptSelectorItems.length === 0}
-              sheetTitle="프롬프트 버전 선택"
-            />
-            <CompactSelector
-              icon={
-                activeProvider ? (
-                  <ModelBadge provider={activeProvider} model={activeModel} />
+          {/* Row 3: 설정 요약 바 — 터치 시 설정 시트 열림 */}
+          <button
+            type="button"
+            onClick={() => setShowConfigSheet(true)}
+            className="flex items-center gap-3 w-full rounded-lg border border-primary/20 bg-gradient-to-r from-card to-primary/5 px-3.5 py-2.5 text-left transition-colors hover:bg-accent"
+          >
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-sm truncate">
+                  {promptSelectorItems.find((i) => i.key === activeVersionId)?.label ||
+                    (isLoadingVersions ? "로딩 중..." : "프롬프트 선택")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {activeProvider ? (
+                  <ModelBadge provider={activeProvider} />
                 ) : (
-                  <Sparkles className="w-4 h-4" />
-                )
-              }
-              label="모델 선택"
-              items={modelSelectorItems}
-              selectedKey={activeModelKey}
-              onSelect={(key) => setSelectedModelKey(key)}
-              disabled={!llmModelsData?.models?.length}
-              sheetTitle="LLM 모델 선택"
-            />
-          </div>
+                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                )}
+                <span className="text-xs text-muted-foreground truncate">
+                  {modelSelectorItems.find((i) => i.key === activeModelKey)?.label || "모델 선택"}
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
+          <BottomSheet
+            open={showConfigSheet}
+            onOpenChange={setShowConfigSheet}
+            title="분할 설정"
+          >
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">
+                  프롬프트 버전
+                </p>
+                <div className="divide-y rounded-lg border overflow-hidden">
+                  {promptSelectorItems.map((item) => (
+                    <button
+                      type="button"
+                      key={item.key}
+                      onClick={() => {
+                        setSelectedVersionId(item.key);
+                        setShowConfigSheet(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
+                        item.key === activeVersionId && "bg-primary/10 font-medium",
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
+                <div className="divide-y rounded-lg border overflow-hidden">
+                  {modelSelectorItems.map((item) => (
+                    <button
+                      type="button"
+                      key={item.key}
+                      onClick={() => {
+                        setSelectedModelKey(item.key);
+                        setShowConfigSheet(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
+                        item.key === activeModelKey && "bg-primary/10 font-medium",
+                      )}
+                    >
+                      <div>{item.label}</div>
+                      {item.description && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {item.description}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </BottomSheet>
         </div>
       ) : (
         /* ===== 데스크톱 헤더 (lg+) — 기존 구조 유지 ===== */
