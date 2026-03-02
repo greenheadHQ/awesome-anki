@@ -36,10 +36,12 @@ function BottomSheet({ open, onOpenChange, title, children }: BottomSheetProps) 
             <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
-          {title && (
+          {title ? (
             <DialogPrimitive.Title className="px-4 pb-2 text-sm font-semibold">
               {title}
             </DialogPrimitive.Title>
+          ) : (
+            <DialogPrimitive.Title className="sr-only">메뉴</DialogPrimitive.Title>
           )}
 
           <div className="overflow-y-auto px-4 pb-6">{children}</div>

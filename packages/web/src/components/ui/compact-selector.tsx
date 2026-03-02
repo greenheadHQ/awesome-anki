@@ -46,11 +46,10 @@ function CompactSelector({
     setOpen(false);
   };
 
-  const trigger = (
+  const triggerContent = (
     <button
       type="button"
       disabled={disabled}
-      onClick={() => setOpen(!open)}
       className={cn(
         "flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-md border bg-background text-sm",
         "hover:bg-accent transition-colors",
@@ -90,7 +89,7 @@ function CompactSelector({
   if (isMobile) {
     return (
       <>
-        {trigger}
+        <div onClick={() => !disabled && setOpen(true)}>{triggerContent}</div>
         <BottomSheet open={open} onOpenChange={setOpen} title={sheetTitle || label}>
           {itemList}
         </BottomSheet>
@@ -100,7 +99,7 @@ function CompactSelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverTrigger asChild>{triggerContent}</PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-0 max-h-80 overflow-y-auto">
         {itemList}
       </PopoverContent>

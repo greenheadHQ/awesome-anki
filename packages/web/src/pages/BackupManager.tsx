@@ -233,7 +233,7 @@ function BackupListItem({
         variant="ghost"
         size="icon"
         onClick={() => onRollback(backup)}
-        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-orange-600 hover:bg-orange-50"
+        className="touch-target shrink-0 text-muted-foreground hover:text-orange-600 hover:bg-orange-50"
       >
         <RotateCcw className="h-4 w-4" />
         <span className="sr-only">롤백</span>
