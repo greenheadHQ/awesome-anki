@@ -16,7 +16,7 @@ import {
 import { useState } from "react";
 
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -210,68 +210,35 @@ function RollbackResultDialog({
 }
 
 /**
- * 백업 항목 카드
+ * 백업 리스트 아이템 — 한 줄 컴팩트 레이아웃
  */
-function BackupCard({
+function BackupListItem({
   backup,
   onRollback,
 }: {
   backup: BackupEntry;
   onRollback: (backup: BackupEntry) => void;
 }) {
-  const date = new Date(backup.timestamp);
-  const formattedDate = date.toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const relativeTime = getRelativeTime(date);
+  const relativeTime = getRelativeTime(new Date(backup.timestamp));
 
   return (
-    <Card className="hover:border-primary/50 transition-colors">
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{relativeTime}</span>
-            </div>
-
-            <div className="text-sm space-y-1">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span>원본 노트: </span>
-                <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-                  {backup.originalNoteId}
-                </code>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Plus className="h-4 w-4 text-muted-foreground" />
-                <span>생성된 카드: {backup.createdNoteIds.length}개</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span className="text-xs">{formattedDate}</span>
-              </div>
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onRollback(backup)}
-            className="hover:border-orange-500 hover:text-orange-600"
-          >
-            <RotateCcw className="h-4 w-4 mr-1" />
-            롤백
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
+      <code className="text-xs font-mono text-foreground shrink-0">{backup.originalNoteId}</code>
+      <span className="text-xs text-muted-foreground shrink-0">{relativeTime}</span>
+      <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
+        {backup.createdNoteIds.length}장
+      </span>
+      <div className="flex-1" />
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => onRollback(backup)}
+        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-orange-600 hover:bg-orange-50"
+      >
+        <RotateCcw className="h-4 w-4" />
+        <span className="sr-only">롤백</span>
+      </Button>
+    </div>
   );
 }
 
@@ -326,15 +293,18 @@ export function BackupManager() {
   const backups = data?.backups || [];
 
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4">
+      {/* 헤더 — 인라인 배지로 통계 표시 */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <div>
           <h1 className="typo-h1 flex items-center gap-2">
             <History className="h-8 w-8" />
             백업 관리
+            <span className="bg-muted px-2 py-0.5 rounded-full text-sm font-normal">
+              {data?.total || 0}건
+            </span>
           </h1>
-          <p className="typo-body text-muted-foreground mt-1">
+          <p className="typo-body text-muted-foreground mt-1 hidden md:block">
             분할 작업 기록을 관리하고 필요시 롤백할 수 있습니다.
           </p>
         </div>
@@ -345,31 +315,15 @@ export function BackupManager() {
         </Button>
       </div>
 
-      {/* 통계 카드 */}
+      {/* 백업 목록 — 컴팩트 리스트 */}
       <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">총 백업</p>
-              <p className="text-2xl font-bold">{data?.total || 0}</p>
-            </div>
-            <History className="h-8 w-8 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 백업 목록 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>백업 기록</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : error ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 px-4">
               <XCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
               <p className="text-muted-foreground">백업 목록을 불러오는데 실패했습니다.</p>
               <Button variant="outline" onClick={() => refetch()} className="mt-4">
@@ -377,7 +331,7 @@ export function BackupManager() {
               </Button>
             </div>
           ) : backups.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 px-4">
               <History className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
               <p className="text-muted-foreground">백업 기록이 없습니다.</p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -385,9 +339,9 @@ export function BackupManager() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y">
               {backups.map((backup) => (
-                <BackupCard key={backup.id} backup={backup} onRollback={setSelectedBackup} />
+                <BackupListItem key={backup.id} backup={backup} onRollback={setSelectedBackup} />
               ))}
             </div>
           )}

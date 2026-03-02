@@ -17,7 +17,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { ContentRenderer } from "../components/card/ContentRenderer";
@@ -37,9 +37,12 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { ValidationPanel } from "../components/validation/ValidationPanel";
+import { CompactSelector } from "../components/ui/compact-selector";
+import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useDifficultCards } from "../hooks/useDifficultCards";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { usePromptVersions } from "../hooks/usePrompts";
 import {
   getCachedSplitPreview,
@@ -83,18 +86,6 @@ interface SplitCandidate {
     reps: number;
     reasons: string[];
   };
-}
-
-function useIsMobile() {
-  // SplitWorkspace는 3열 그리드에 충분한 너비가 필요하므로 lg: (1024px) 사용
-  const [isMobile, setIsMobile] = useState(() => !window.matchMedia("(min-width: 1024px)").matches);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const handler = (e: MediaQueryListEvent) => setIsMobile(!e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return isMobile;
 }
 
 function mapDifficultToCandidate(card: DifficultCard): SplitCandidate {
@@ -239,7 +230,7 @@ function RejectPopover({
 }
 
 export function SplitWorkspace() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile("lg");
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
@@ -882,13 +873,40 @@ export function SplitWorkspace() {
     { id: "preview", label: "미리보기" },
   ];
 
+  // CompactSelector 아이템 빌드
+  const promptSelectorItems: CompactSelectorItem[] = (promptVersionsData?.versions || []).map(
+    (v) => ({
+      key: v.id,
+      label: `${v.name}${v.id === promptVersionsData?.activeVersionId ? " \u2713" : ""}`,
+    }),
+  );
+
+  const modelSelectorItems: CompactSelectorItem[] = (llmModelsData?.models || []).map((m) => {
+    const key = `${m.provider}/${m.model}`;
+    const isDefault =
+      m.provider === llmModelsData?.defaultModelId.provider &&
+      m.model === llmModelsData?.defaultModelId.model;
+    return {
+      key,
+      label: `${m.displayName}${isDefault ? " \u2713" : ""}`,
+      description: `$${m.inputPricePerMillionTokens}/$${m.outputPricePerMillionTokens} per 1M tokens`,
+    };
+  });
+
   // 높이: 모바일/태블릿 dvh-5rem (h-14 헤더 + p-3 x2), 데스크톱(lg) vh-4rem (p-6 x2)
   return (
     <div className="h-[calc(100dvh-5rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
-      {/* 헤더 — md:text-sm은 iOS 줌 방지용으로 레이아웃 breakpoint(lg:)와 별도 */}
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-4">
-        <div className="flex items-center gap-2 lg:gap-4">
-          <h1 className="typo-h1">분할 작업</h1>
+      {/* ===== 모바일 헤더 (< lg) ===== */}
+      {isMobile ? (
+        <div className="flex flex-col gap-2 mb-4">
+          {/* Row 1: 제목 + 카운트 배지 */}
+          <div className="flex items-center gap-2">
+            <h1 className="typo-h1">분할 작업</h1>
+            <span className="bg-muted px-2 py-0.5 rounded-full text-sm text-muted-foreground">
+              {activeCount}개
+            </span>
+          </div>
+          {/* Row 2: 덱 셀렉터 (full-width) */}
           <Select
             value={activeDeck ?? undefined}
             onValueChange={(value) => {
@@ -897,7 +915,7 @@ export function SplitWorkspace() {
             }}
             disabled={!decksData?.decks?.length}
           >
-            <SelectTrigger className="min-w-0 flex-1 text-base md:text-sm lg:flex-initial lg:min-w-[180px]">
+            <SelectTrigger className="w-full text-base">
               <SelectValue placeholder="덱 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -908,84 +926,137 @@ export function SplitWorkspace() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex items-center gap-2 lg:gap-4">
-          {/* 프롬프트 버전 선택 */}
-          <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
-            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-            <HelpTooltip helpKey="promptVersionSelect" />
-            <Select
-              value={activeVersionId ?? undefined}
-              onValueChange={(value) => setSelectedVersionId(value || null)}
-              disabled={
-                isLoadingVersions ||
-                !promptVersionsData?.versions ||
-                promptVersionsData.versions.length === 0
+          {/* Row 3: CompactSelector 프롬프트 + 모델 */}
+          <div className="flex items-center gap-2">
+            <CompactSelector
+              icon={<FileText className="w-4 h-4" />}
+              label={isLoadingVersions ? "로딩 중..." : "프롬프트"}
+              items={promptSelectorItems}
+              selectedKey={activeVersionId}
+              onSelect={(key) => setSelectedVersionId(key)}
+              disabled={isLoadingVersions || promptSelectorItems.length === 0}
+              sheetTitle="프롬프트 버전 선택"
+            />
+            <CompactSelector
+              icon={
+                activeProvider ? (
+                  <ModelBadge provider={activeProvider} model={activeModel} />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )
               }
+              label="모델 선택"
+              items={modelSelectorItems}
+              selectedKey={activeModelKey}
+              onSelect={(key) => setSelectedModelKey(key)}
+              disabled={!llmModelsData?.models?.length}
+              sheetTitle="LLM 모델 선택"
+            />
+          </div>
+        </div>
+      ) : (
+        /* ===== 데스크톱 헤더 (lg+) — 기존 구조 유지 ===== */
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <h1 className="typo-h1">분할 작업</h1>
+            <Select
+              value={activeDeck ?? undefined}
+              onValueChange={(value) => {
+                setSelectedDeck(value || null);
+                handleSelectCard(null);
+              }}
+              disabled={!decksData?.decks?.length}
             >
-              <SelectTrigger className="min-w-0 text-base md:text-sm lg:min-w-[220px]">
-                <SelectValue placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"} />
+              <SelectTrigger className="min-w-0 text-sm lg:min-w-[180px]">
+                <SelectValue placeholder="덱 선택" />
               </SelectTrigger>
               <SelectContent>
-                {promptVersionsData?.versions?.map((version) => (
-                  <SelectItem key={version.id} value={version.id}>
-                    {version.name}
-                    {version.id === promptVersionsData.activeVersionId && " \u2713"}
+                {decksData?.decks?.map((deck) => (
+                  <SelectItem key={deck} value={deck}>
+                    {deck}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          {/* LLM 모델 선택 */}
-          <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
-            <Select
-              value={activeModelKey ?? undefined}
-              onValueChange={(value) => setSelectedModelKey(value || null)}
-              disabled={!llmModelsData?.models?.length}
-            >
-              <SelectTrigger size="sm" className="min-w-0 text-base md:text-sm lg:min-w-[200px]">
-                <SelectValue placeholder="모델 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {llmModelsData?.availableProviders?.map((provider) => (
-                  <SelectGroup key={provider}>
-                    <SelectLabel>
-                      {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
-                    </SelectLabel>
-                    {llmModelsData.models
-                      .filter((m) => m.provider === provider)
-                      .map((m) => {
-                        const key = `${m.provider}/${m.model}`;
-                        const isDefault =
-                          m.provider === llmModelsData.defaultModelId.provider &&
-                          m.model === llmModelsData.defaultModelId.model;
-                        return (
-                          <SelectItem key={key} value={key}>
-                            <span className="flex items-center gap-2">
-                              <span>{m.displayName}</span>
-                              <span className="text-[10px] text-muted-foreground font-mono">
-                                ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
+          <div className="flex items-center gap-4">
+            {/* 프롬프트 버전 선택 */}
+            <div className="flex items-center gap-2 min-w-0">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              <HelpTooltip helpKey="promptVersionSelect" />
+              <Select
+                value={activeVersionId ?? undefined}
+                onValueChange={(value) => setSelectedVersionId(value || null)}
+                disabled={
+                  isLoadingVersions ||
+                  !promptVersionsData?.versions ||
+                  promptVersionsData.versions.length === 0
+                }
+              >
+                <SelectTrigger className="min-w-0 text-sm lg:min-w-[220px]">
+                  <SelectValue placeholder={isLoadingVersions ? "로딩 중..." : "버전 없음"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {promptVersionsData?.versions?.map((version) => (
+                    <SelectItem key={version.id} value={version.id}>
+                      {version.name}
+                      {version.id === promptVersionsData.activeVersionId && " \u2713"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* LLM 모델 선택 */}
+            <div className="flex items-center gap-2 min-w-0">
+              <Select
+                value={activeModelKey ?? undefined}
+                onValueChange={(value) => setSelectedModelKey(value || null)}
+                disabled={!llmModelsData?.models?.length}
+              >
+                <SelectTrigger size="sm" className="min-w-0 text-sm lg:min-w-[200px]">
+                  <SelectValue placeholder="모델 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {llmModelsData?.availableProviders?.map((provider) => (
+                    <SelectGroup key={provider}>
+                      <SelectLabel>
+                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
+                      </SelectLabel>
+                      {llmModelsData.models
+                        .filter((m) => m.provider === provider)
+                        .map((m) => {
+                          const key = `${m.provider}/${m.model}`;
+                          const isDefault =
+                            m.provider === llmModelsData.defaultModelId.provider &&
+                            m.model === llmModelsData.defaultModelId.model;
+                          return (
+                            <SelectItem key={key} value={key}>
+                              <span className="flex items-center gap-2">
+                                <span>{m.displayName}</span>
+                                <span className="text-[10px] text-muted-foreground font-mono">
+                                  ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
+                                </span>
+                                {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
                               </span>
-                              {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
-                            </span>
-                          </SelectItem>
-                        );
-                      })}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
+                            </SelectItem>
+                          );
+                        })}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {activeCount}개 {mode === "candidates" ? "분할 후보" : "재분할 대상"}
+            </span>
           </div>
-          <span className="text-xs lg:text-sm text-muted-foreground whitespace-nowrap">
-            {activeCount}개 {mode === "candidates" ? "분할 후보" : "재분할 대상"}
-          </span>
         </div>
-      </div>
+      )}
 
       {/* 모바일: 탭 전환 레이아웃 */}
       {isMobile ? (
         <div className="flex-1 flex flex-col min-h-0">
-          {/* 탭 바 */}
+          {/* 탭 바 — py-3 for 44px touch target */}
           <div role="tablist" className="flex border-b shrink-0">
             {mobileTabs.map((tab) => (
               <button
@@ -997,7 +1068,7 @@ export function SplitWorkspace() {
                 aria-controls="mobile-tabpanel"
                 onClick={() => setActivePanel(tab.id)}
                 className={cn(
-                  "flex-1 py-2.5 text-sm font-medium transition-all duration-200",
+                  "flex-1 py-3 text-sm font-medium transition-all duration-200",
                   activePanel === tab.id
                     ? "border-b-2 border-primary text-foreground"
                     : "text-muted-foreground",

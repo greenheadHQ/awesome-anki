@@ -598,3 +598,19 @@
   background-color: color-mix(in oklab, var(--destructive) 25%, transparent);
   text-decoration: line-through;
 }
+
+/* View Transition */
+@supports (view-transition-name: auto) {
+  .vt-list {
+    view-transition-name: list-panel;
+  }
+  .vt-detail {
+    view-transition-name: detail-panel;
+  }
+}
+
+/* Touch target 유틸리티 */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}

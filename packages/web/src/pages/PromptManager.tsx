@@ -24,6 +24,13 @@ import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { useIsMobile } from "../hooks/useMediaQuery";
+import {
   Table,
   TableBody,
   TableCell,
@@ -52,6 +59,7 @@ type TabType = "versions" | "experiments" | "metrics";
 
 export function PromptManager() {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile("md");
   const [activeTab, setActiveTab] = useState<TabType>("versions");
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
   const [systemPromptDraft, setSystemPromptDraft] = useState("");
@@ -64,6 +72,7 @@ export function PromptManager() {
     syncedAt?: string;
     error?: string;
   } | null>(null);
+  const [showMobileEditor, setShowMobileEditor] = useState(false);
 
   const { data: versionsData, isLoading: isLoadingVersions } = usePromptVersions();
   const { data: experimentsData, isLoading: isLoadingExperiments } = useExperiments();
@@ -212,6 +221,43 @@ export function PromptManager() {
     toast.success("원격 systemPrompt를 다시 불러왔습니다.");
   };
 
+  const systemPromptEditorProps = {
+    systemPromptDraft,
+    setSystemPromptDraft: (value: string) => {
+      setSystemPromptDraft(value);
+      setHasUserEditedSystemPrompt(true);
+    },
+    saveReason,
+    setSaveReason,
+    isLoading: systemPromptQuery.isLoading,
+    isError: systemPromptQuery.isError,
+    errorMessage: systemPromptQuery.error instanceof Error
+      ? systemPromptQuery.error.message
+      : "원격 systemPrompt 조회 실패",
+    revision: systemPromptQuery.data?.revision,
+    activeVersionName: systemPromptQuery.data?.activeVersion.name,
+    activeVersionId: systemPromptQuery.data?.activeVersion.id,
+    isDirty: isSystemPromptDirty,
+    canSave: canSaveSystemPrompt,
+    isSaving: saveSystemPrompt.isPending,
+    conflictLatest,
+    lastSyncState,
+    showRemoteAdvancedNotice: remoteAdvanced && isSystemPromptDirty && !hasUserEditedSystemPrompt,
+    onSave: () => void handleSaveSystemPrompt(),
+    onReloadRemote: () => void handleReloadRemote(),
+    onUseRemoteValue: () => {
+      if (!conflictLatest) return;
+      setSystemPromptDraft(conflictLatest.systemPrompt);
+      setDraftBaseRevision(conflictLatest.revision);
+      setConflictLatest(null);
+      setHasUserEditedSystemPrompt(false);
+    },
+    onRetryWithLatest: () => {
+      if (!conflictLatest) return;
+      void handleSaveSystemPrompt(conflictLatest.revision);
+    },
+  };
+
   return (
     <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* 헤더 */}
@@ -219,56 +265,53 @@ export function PromptManager() {
         <h1 className="typo-h1">프롬프트 관리</h1>
       </div>
 
-      <SystemPromptEditor
-        systemPromptDraft={systemPromptDraft}
-        setSystemPromptDraft={(value) => {
-          setSystemPromptDraft(value);
-          setHasUserEditedSystemPrompt(true);
-        }}
-        saveReason={saveReason}
-        setSaveReason={setSaveReason}
-        isLoading={systemPromptQuery.isLoading}
-        isError={systemPromptQuery.isError}
-        errorMessage={
-          systemPromptQuery.error instanceof Error
-            ? systemPromptQuery.error.message
-            : "원격 systemPrompt 조회 실패"
-        }
-        revision={systemPromptQuery.data?.revision}
-        activeVersionName={systemPromptQuery.data?.activeVersion.name}
-        activeVersionId={systemPromptQuery.data?.activeVersion.id}
-        isDirty={isSystemPromptDirty}
-        canSave={canSaveSystemPrompt}
-        isSaving={saveSystemPrompt.isPending}
-        conflictLatest={conflictLatest}
-        lastSyncState={lastSyncState}
-        showRemoteAdvancedNotice={
-          remoteAdvanced && isSystemPromptDirty && !hasUserEditedSystemPrompt
-        }
-        onSave={() => void handleSaveSystemPrompt()}
-        onReloadRemote={() => void handleReloadRemote()}
-        onUseRemoteValue={() => {
-          if (!conflictLatest) return;
-          setSystemPromptDraft(conflictLatest.systemPrompt);
-          setDraftBaseRevision(conflictLatest.revision);
-          setConflictLatest(null);
-          setHasUserEditedSystemPrompt(false);
-        }}
-        onRetryWithLatest={() => {
-          if (!conflictLatest) return;
-          void handleSaveSystemPrompt(conflictLatest.revision);
-        }}
-      />
+      {/* 모바일: 접이식 요약 카드 + 풀스크린 편집 Dialog */}
+      {isMobile ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowMobileEditor(true)}
+            className="mb-4 flex items-center gap-3 w-full rounded-lg border border-primary/30 bg-gradient-to-r from-card to-primary/5 px-4 py-3 text-left transition-colors hover:bg-accent"
+          >
+            <Save className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-sm font-medium truncate flex-1">시스템 프롬프트</span>
+            <span className="text-xs text-muted-foreground shrink-0">
+              rev.{systemPromptQuery.data?.revision ?? "-"}
+            </span>
+            {isSystemPromptDirty && (
+              <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+            )}
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
 
-      {/* 탭 네비게이션 */}
-      <div className="flex overflow-x-auto whitespace-nowrap mb-4">
+          <Dialog open={showMobileEditor} onOpenChange={setShowMobileEditor}>
+            <DialogContent className="max-w-full h-[100dvh] flex flex-col p-0 gap-0 rounded-none border-0 sm:max-w-full">
+              <DialogHeader className="px-4 py-3 border-b shrink-0">
+                <DialogTitle className="flex items-center gap-2 text-sm">
+                  <Save className="w-4 h-4 text-primary" />
+                  시스템 프롬프트 편집
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto p-4">
+                <SystemPromptEditor {...systemPromptEditorProps} />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : (
+        /* 데스크톱: 기존 인라인 편집기 */
+        <SystemPromptEditor {...systemPromptEditorProps} />
+      )}
+
+      {/* 탭 네비게이션 — 모바일에서 sticky */}
+      <div className="flex overflow-x-auto whitespace-nowrap mb-4 sticky top-14 z-10 bg-background md:static md:z-auto">
         {tabs.map((tab) => (
           <button
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 border-b-2 transition-all duration-200 shrink-0",
+              "flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all duration-200 shrink-0",
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-border text-muted-foreground hover:text-foreground",
