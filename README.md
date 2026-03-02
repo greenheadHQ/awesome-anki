@@ -456,7 +456,7 @@ podman run -d --name awesome-anki \
 
 Caddy 사이트블록 예시 (NixOS 등에서 관리):
 
-```
+```caddyfile
 anki.greenhead.dev {
   reverse_proxy localhost:3100
 }
