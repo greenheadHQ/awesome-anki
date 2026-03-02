@@ -15,7 +15,6 @@ WORKDIR /app
 
 COPY packages/core/ packages/core/
 COPY packages/web/ packages/web/
-COPY tsconfig.json ./
 
 RUN bun run --cwd packages/web build
 
@@ -38,7 +37,6 @@ RUN bun install --frozen-lockfile --production
 # Copy source (core + server)
 COPY packages/core/ packages/core/
 COPY packages/server/ packages/server/
-COPY tsconfig.json ./
 
 # Copy built web SPA from builder stage
 COPY --from=web-builder /app/packages/web/dist/ packages/web/dist/
