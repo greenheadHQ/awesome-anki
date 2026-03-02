@@ -7,7 +7,7 @@ node_modules/
 
 # Runtime data (mounted as volumes)
 data/
-output/
+output/*
 !output/prompts/
 
 # Build artifacts

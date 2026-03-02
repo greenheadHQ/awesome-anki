@@ -209,13 +209,13 @@
 
 원인:
 
-- 이미지에 `output/prompts/` 기본 파일이 포함되지만, 볼륨 마운트가 이를 덮어씀
+- 호스트 output 디렉토리에 프롬프트 파일이 없음
 
 해결:
 
-1. 최초 실행 시 호스트 output 디렉토리에 프롬프트 파일 복사:
-   `podman cp <container>:/app/output/prompts/ <host-output>/prompts/`
-2. 또는 기존 운영 데이터를 호스트 디렉토리에 배치
+- 일반적으로 entrypoint가 자동으로 시드 파일을 복사함
+- 자동 시드가 실패한 경우: `podman cp <container>:/app/.seed/prompts/ <host-output>/prompts/`
+- 또는 기존 운영 데이터를 호스트 디렉토리에 배치
 
 ---
 
@@ -228,7 +228,7 @@ podman rm awesome-anki
 # 기존 run 명령 재실행
 ```
 
-롤백: `:latest` 대신 특정 버전 태그(`:v1.0.0`) 사용
+롤백: `:latest` 대신 특정 버전 태그(`:1.0.0`) 사용
 
 ---
 
