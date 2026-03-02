@@ -25,6 +25,8 @@ import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { CompactSelector } from "../components/ui/compact-selector";
+import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { formatCostUsd, ModelBadge } from "../components/ui/model-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import {
@@ -37,8 +39,6 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { ValidationPanel } from "../components/validation/ValidationPanel";
-import { CompactSelector } from "../components/ui/compact-selector";
-import type { CompactSelectorItem } from "../components/ui/compact-selector";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useDifficultCards } from "../hooks/useDifficultCards";

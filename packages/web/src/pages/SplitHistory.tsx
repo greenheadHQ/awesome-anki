@@ -33,11 +33,11 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { useDecks } from "../hooks/useDecks";
-import { useIsMobile } from "../hooks/useMediaQuery";
 import { useHistoryDetail, useHistoryList, useHistorySyncHealth } from "../hooks/useHistory";
-import { startViewTransition } from "../lib/view-transition";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import type { SplitHistoryStatus } from "../lib/api";
 import { cn } from "../lib/utils";
+import { startViewTransition } from "../lib/view-transition";
 
 const STATUS_OPTIONS: Array<{ value: SplitHistoryStatus; label: string }> = [
   { value: "generating", label: "Generating" },
@@ -188,13 +188,19 @@ export function SplitHistory() {
   if (deckName !== "all") {
     activeFilters.push({
       label: deckName.length > 20 ? `${deckName.slice(0, 20)}...` : deckName,
-      onRemove: () => { setDeckName("all"); setPage(1); },
+      onRemove: () => {
+        setDeckName("all");
+        setPage(1);
+      },
     });
   }
   if (status !== "all") {
     activeFilters.push({
       label: STATUS_OPTIONS.find((s) => s.value === status)?.label || status,
-      onRemove: () => { setStatus("all"); setPage(1); },
+      onRemove: () => {
+        setStatus("all");
+        setPage(1);
+      },
     });
   }
 
@@ -216,7 +222,10 @@ export function SplitHistory() {
     <div className="grid grid-cols-2 gap-3">
       <Select
         value={deckName}
-        onValueChange={(value) => { setDeckName(value); setPage(1); }}
+        onValueChange={(value) => {
+          setDeckName(value);
+          setPage(1);
+        }}
       >
         <SelectTrigger>
           <SelectValue placeholder="덱" />
@@ -224,14 +233,19 @@ export function SplitHistory() {
         <SelectContent>
           <SelectItem value="all">All Decks</SelectItem>
           {decksData?.decks?.map((deck) => (
-            <SelectItem key={deck} value={deck}>{deck}</SelectItem>
+            <SelectItem key={deck} value={deck}>
+              {deck}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
       <Select
         value={status}
-        onValueChange={(value) => { setStatus(value); setPage(1); }}
+        onValueChange={(value) => {
+          setStatus(value);
+          setPage(1);
+        }}
       >
         <SelectTrigger>
           <SelectValue placeholder="상태" />
@@ -239,7 +253,9 @@ export function SplitHistory() {
         <SelectContent>
           <SelectItem value="all">All Status</SelectItem>
           {STATUS_OPTIONS.map((item) => (
-            <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -247,14 +263,20 @@ export function SplitHistory() {
       <input
         type="date"
         value={startDate}
-        onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+        onChange={(e) => {
+          setStartDate(e.target.value);
+          setPage(1);
+        }}
         className="h-9 rounded-md border bg-background px-3 text-sm"
       />
 
       <input
         type="date"
         value={endDate}
-        onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+        onChange={(e) => {
+          setEndDate(e.target.value);
+          setPage(1);
+        }}
         className="h-9 rounded-md border bg-background px-3 text-sm"
       />
     </div>
@@ -281,10 +303,7 @@ export function SplitHistory() {
           <div className="flex flex-wrap gap-2">
             <StatusBadge status={detail.data.status} />
             {detail.data.aiModel && (
-              <ModelBadge
-                provider={detail.data.provider ?? "gemini"}
-                model={detail.data.aiModel}
-              />
+              <ModelBadge provider={detail.data.provider ?? "gemini"} model={detail.data.aiModel} />
             )}
             {detail.data.executionTimeMs != null && (
               <span className="text-xs bg-muted px-2 py-0.5 rounded flex items-center gap-1">
@@ -323,10 +342,7 @@ export function SplitHistory() {
             </h3>
             <div className="space-y-2">
               {detail.data.splitCards.map((card, index) => (
-                <div
-                  key={`${detail.data.sessionId}-card-${index}`}
-                  className="border rounded"
-                >
+                <div key={`${detail.data.sessionId}-card-${index}`} className="border rounded">
                   <div className="px-3 py-2 border-b bg-muted/40 text-xs font-medium flex items-center justify-between">
                     <span>
                       #{index + 1} {card.title}
@@ -354,9 +370,7 @@ export function SplitHistory() {
                 <div key={event.eventId} className="border rounded p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {event.status === "applied" && (
-                        <Check className="w-4 h-4 text-green-600" />
-                      )}
+                      {event.status === "applied" && <Check className="w-4 h-4 text-green-600" />}
                       {event.status === "error" && <X className="w-4 h-4 text-red-600" />}
                       <span className="text-sm font-medium">{event.eventType}</span>
                       <StatusBadge status={event.status} />
@@ -380,11 +394,7 @@ export function SplitHistory() {
                   {showFullAiResponse ? aiResponseFullText : aiResponsePreviewText}
                 </pre>
                 {!showFullAiResponse && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowFullAiResponse(true)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => setShowFullAiResponse(true)}>
                     전체 응답 보기
                   </Button>
                 )}
@@ -447,16 +457,17 @@ export function SplitHistory() {
                 </Button>
                 <span className="text-sm font-semibold">상세</span>
               </div>
-              <div className="flex-1 overflow-y-auto">
-                {renderDetailContent()}
-              </div>
+              <div className="flex-1 overflow-y-auto">{renderDetailContent()}</div>
             </div>
           ) : (
             <div className="vt-list flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-left-2 duration-200">
               {/* 모바일 필터: 칩 + 필터 버튼 */}
               <div className="flex items-center gap-2 mb-3 flex-wrap shrink-0">
                 {activeFilters.map((f) => (
-                  <span key={f.label} className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full">
+                  <span
+                    key={f.label}
+                    className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full"
+                  >
                     {f.label}
                     <button type="button" onClick={f.onRemove} className="hover:text-destructive">
                       <X className="w-3 h-3" />
@@ -479,7 +490,11 @@ export function SplitHistory() {
                   disabled={historyList.isFetching}
                   className="shrink-0 ml-auto"
                 >
-                  {historyList.isFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
+                  {historyList.isFetching ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <RotateCw className="w-3.5 h-3.5" />
+                  )}
                 </Button>
               </div>
 
@@ -518,9 +533,7 @@ export function SplitHistory() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-mono text-xs">{item.noteId}</span>
                             <StatusBadge status={item.status} />
-                            {item.provider && (
-                              <ModelBadge provider={item.provider} />
-                            )}
+                            {item.provider && <ModelBadge provider={item.provider} />}
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="truncate max-w-[180px]">
@@ -554,7 +567,10 @@ export function SplitHistory() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 <Select
                   value={deckName}
-                  onValueChange={(value) => { setDeckName(value); setPage(1); }}
+                  onValueChange={(value) => {
+                    setDeckName(value);
+                    setPage(1);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="덱" />
@@ -562,14 +578,19 @@ export function SplitHistory() {
                   <SelectContent>
                     <SelectItem value="all">All Decks</SelectItem>
                     {decksData?.decks?.map((deck) => (
-                      <SelectItem key={deck} value={deck}>{deck}</SelectItem>
+                      <SelectItem key={deck} value={deck}>
+                        {deck}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
                 <Select
                   value={status}
-                  onValueChange={(value) => { setStatus(value); setPage(1); }}
+                  onValueChange={(value) => {
+                    setStatus(value);
+                    setPage(1);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="상태" />
@@ -577,7 +598,9 @@ export function SplitHistory() {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     {STATUS_OPTIONS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -585,14 +608,20 @@ export function SplitHistory() {
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setPage(1);
+                  }}
                   className="h-9 rounded-md border bg-background px-3 text-sm"
                 />
 
                 <input
                   type="date"
                   value={endDate}
-                  onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setPage(1);
+                  }}
                   className="h-9 rounded-md border bg-background px-3 text-sm"
                 />
 
@@ -601,7 +630,11 @@ export function SplitHistory() {
                   onClick={() => historyList.refetch()}
                   disabled={historyList.isFetching}
                 >
-                  {historyList.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : "새로고침"}
+                  {historyList.isFetching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "새로고침"
+                  )}
                 </Button>
               </div>
             </CardHeader>

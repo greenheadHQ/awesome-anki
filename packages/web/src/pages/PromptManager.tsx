@@ -23,13 +23,7 @@ import { toast } from "sonner";
 import { HelpTooltip } from "../components/help/HelpTooltip";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../components/ui/dialog";
-import { useIsMobile } from "../hooks/useMediaQuery";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -38,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import {
   useActivatePrompt,
   useExperiments,
@@ -231,9 +226,10 @@ export function PromptManager() {
     setSaveReason,
     isLoading: systemPromptQuery.isLoading,
     isError: systemPromptQuery.isError,
-    errorMessage: systemPromptQuery.error instanceof Error
-      ? systemPromptQuery.error.message
-      : "원격 systemPrompt 조회 실패",
+    errorMessage:
+      systemPromptQuery.error instanceof Error
+        ? systemPromptQuery.error.message
+        : "원격 systemPrompt 조회 실패",
     revision: systemPromptQuery.data?.revision,
     activeVersionName: systemPromptQuery.data?.activeVersion.name,
     activeVersionId: systemPromptQuery.data?.activeVersion.id,
