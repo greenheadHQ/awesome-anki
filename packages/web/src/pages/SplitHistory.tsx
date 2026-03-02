@@ -645,7 +645,7 @@ export function SplitHistory() {
                   <p>조회된 이력이 없습니다</p>
                 </div>
               ) : (
-                <Table>
+                <Table className="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4">
                   <TableHeader className="bg-muted sticky top-0 z-10">
                     <TableRow>
                       <TableHead>Note</TableHead>
