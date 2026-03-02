@@ -251,101 +251,97 @@ export function CardBrowser() {
           <Loader2 className="w-5 h-5 animate-spin" />
         </div>
       ) : (
-        <div className="space-y-3">
-          {/* ── 헤더: Note ID + 스탯 칩 ── */}
-          <div className="space-y-2.5">
-            <p className="font-mono text-lg tabular-nums tracking-tight">{cardDetail.noteId}</p>
-            <div className="flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
-                Cloze
-                <span className="text-foreground">{cardDetail.clozeStats.totalClozes}</span>
+        <div className="space-y-4">
+          {/* ── 인라인 배지 (SplitHistory 패턴) ── */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs bg-muted px-2 py-0.5 rounded flex items-center gap-1">
+              Cloze <span className="font-medium">{cardDetail.clozeStats.totalClozes}</span>
+            </span>
+            {cardDetail.analysis.canSplit && (
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                분할 가능
               </span>
-              {cardDetail.analysis.canSplit && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 text-xs font-medium text-purple-700 dark:text-purple-300">
-                  분할 가능
-                </span>
-              )}
-              {cardDetail.nidLinks.length > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
-                  nid {cardDetail.nidLinks.length}
-                </span>
-              )}
-              {cardDetail.tags.length > 0 &&
-                cardDetail.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                  >
-                    {tag}
-                  </span>
-                ))}
-            </div>
-          </div>
-
-          {/* ── 검증 상태 ── */}
-          <div
-            className={cn(
-              "rounded-lg border-l-[3px] bg-muted/40 p-3",
-              !selectedCardValidation && "border-l-muted-foreground/30",
-              selectedCardValidation?.status === "valid" && "border-l-green-500",
-              selectedCardValidation?.status === "warning" && "border-l-yellow-500",
-              selectedCardValidation?.status === "error" && "border-l-red-500",
-              selectedCardValidation?.status === "unknown" && "border-l-muted-foreground/30",
             )}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ValidationIcon status={selectedCardValidation?.status ?? null} size="md" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {!selectedCardValidation && "미검증"}
-                    {selectedCardValidation?.status === "valid" && "검증 통과"}
-                    {selectedCardValidation?.status === "warning" && "검토 필요"}
-                    {selectedCardValidation?.status === "error" && "문제 발견"}
-                    {selectedCardValidation?.status === "unknown" && "검증 불가"}
-                  </p>
-                  {selectedCardValidation && (
-                    <p className="text-[11px] text-muted-foreground">
-                      {new Date(selectedCardValidation.validatedAt).toLocaleString("ko-KR")}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => validateMutation.mutate(selectedNoteId)}
-                disabled={validateMutation.isPending}
-              >
-                {validateMutation.isPending ? (
-                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                ) : (
-                  <Shield className="w-3 h-3 mr-1" />
-                )}
-                {selectedCardValidation ? "재검증" : "검증"}
-              </Button>
-            </div>
+            {cardDetail.nidLinks.length > 0 && (
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                nid {cardDetail.nidLinks.length}
+              </span>
+            )}
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1",
+                !selectedCardValidation &&
+                  "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+                selectedCardValidation?.status === "valid" &&
+                  "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+                selectedCardValidation?.status === "warning" &&
+                  "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+                selectedCardValidation?.status === "error" &&
+                  "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+                selectedCardValidation?.status === "unknown" &&
+                  "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+              )}
+            >
+              <ValidationIcon status={selectedCardValidation?.status ?? null} />
+              {!selectedCardValidation && "미검증"}
+              {selectedCardValidation?.status === "valid" && "통과"}
+              {selectedCardValidation?.status === "warning" && "검토 필요"}
+              {selectedCardValidation?.status === "error" && "문제 발견"}
+              {selectedCardValidation?.status === "unknown" && "검증 불가"}
+            </span>
             {selectedCardValidation?.results && (
-              <div className="grid grid-cols-3 gap-2 mt-2.5 pt-2.5 border-t border-border/50">
-                <div className="flex items-center gap-1.5 text-xs">
+              <>
+                <div className="flex items-center gap-1 text-xs">
                   <ValidationIcon status={selectedCardValidation.results.factCheck.status} />
                   <span className="text-muted-foreground">팩트</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs">
+                <div className="flex items-center gap-1 text-xs">
                   <ValidationIcon status={selectedCardValidation.results.freshness.status} />
                   <span className="text-muted-foreground">최신성</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs">
+                <div className="flex items-center gap-1 text-xs">
                   <ValidationIcon status={selectedCardValidation.results.similarity.status} />
                   <span className="text-muted-foreground">유사성</span>
                 </div>
-              </div>
+              </>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-xs px-2"
+              onClick={() => validateMutation.mutate(selectedNoteId)}
+              disabled={validateMutation.isPending}
+            >
+              {validateMutation.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+              ) : (
+                <Shield className="w-3 h-3 mr-1" />
+              )}
+              검증
+            </Button>
           </div>
 
+          {/* ── 태그 ── */}
+          {cardDetail.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {cardDetail.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* ── 카드 내용 ── */}
-          <ContentRenderer content={cardDetail.text} />
+          <section>
+            <h3 className="text-sm font-semibold mb-2">카드 내용</h3>
+            <div className="border rounded p-3 bg-background">
+              <ContentRenderer content={cardDetail.text} showToggle className="text-sm" />
+            </div>
+          </section>
         </div>
       )}
     </>
@@ -398,7 +394,9 @@ export function CardBrowser() {
                   <ArrowLeft className="w-4 h-4 mr-1" />
                   뒤로
                 </Button>
-                <span className="text-sm font-semibold">카드 상세</span>
+                <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                  {selectedNoteId}
+                </span>
               </div>
               <div className="flex-1 overflow-y-auto">{renderDetailContent()}</div>
             </div>
@@ -605,7 +603,13 @@ export function CardBrowser() {
 
           <Card className="xl:col-span-6 flex flex-col min-h-0 overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">카드 상세</CardTitle>
+              <CardTitle className="text-base">
+                {selectedNoteId ? (
+                  <span className="font-mono tabular-nums">{selectedNoteId}</span>
+                ) : (
+                  "카드 상세"
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-4">
               {renderDetailContent()}
