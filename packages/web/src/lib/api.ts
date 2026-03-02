@@ -1,7 +1,36 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
-async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
-  const { headers: optionHeaders, ...restOptions } = options ?? {};
+function extractErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") {
+    return fallback;
+  }
+
+  const maybeError = (payload as { error?: unknown }).error;
+  if (typeof maybeError === "string") {
+    return maybeError;
+  }
+
+  if (maybeError && typeof maybeError === "object") {
+    const message = (maybeError as { message?: unknown }).message;
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+
+  const message = (payload as { message?: unknown }).message;
+  if (typeof message === "string") {
+    return message;
+  }
+
+  return fallback;
+}
+
+interface FetchJsonOptions extends RequestInit {
+  allowErrorEnvelope?: boolean;
+}
+
+async function fetchJson<T>(path: string, options?: FetchJsonOptions): Promise<T> {
+  const { allowErrorEnvelope = false, headers: optionHeaders, ...restOptions } = options ?? {};
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(optionHeaders || {}),
@@ -12,8 +41,13 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     headers,
   });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(error.error || `API Error: ${res.status}`);
+    const errorPayload = await res
+      .json()
+      .catch(() => ({ error: `API Error: ${res.status} ${res.statusText}` }));
+    if (allowErrorEnvelope) {
+      return errorPayload as T;
+    }
+    throw new Error(extractErrorMessage(errorPayload, `API Error: ${res.status}`));
   }
   return res.json();
 }
@@ -210,26 +244,141 @@ export interface DifficultCard {
 }
 
 // Embedding types
+export interface EmbeddingError {
+  code:
+    | "VALIDATION_ERROR"
+    | "DECK_NOT_FOUND"
+    | "EMBEDDING_PROVIDER_ERROR"
+    | "RATE_LIMITED"
+    | "CACHE_IO_ERROR"
+    | "INTERNAL_ERROR";
+  message: string;
+  retryable: boolean;
+  details?: Record<string, unknown>;
+}
+
+export interface EmbeddingSuccessEnvelope<T> {
+  ok: true;
+  requestId: string;
+  timestamp: string;
+  schemaVersion: number;
+  data: T;
+}
+
+export interface EmbeddingErrorEnvelope {
+  ok: false;
+  requestId: string;
+  timestamp: string;
+  schemaVersion: number;
+  error: EmbeddingError;
+}
+
+export type EmbeddingApiResponse<T> = EmbeddingSuccessEnvelope<T> | EmbeddingErrorEnvelope;
+
 export interface EmbeddingStatus {
-  exists: boolean;
   deckName: string;
-  dimension: number;
-  totalEmbeddings: number;
-  totalNotes: number;
+  provider: string;
+  model: string;
+  jaccardFallbackEnabled: boolean;
+  notes: {
+    total: number;
+  };
   coverage: number;
-  lastUpdated: string | null;
-  cacheFilePath: string;
+  dimension: {
+    detected: number;
+    expected: number;
+  };
+  cache: {
+    exists: boolean;
+    count: number;
+    lastUpdated: string | null;
+    path: string;
+    schemaVersion: number | null;
+    provider: string | null;
+    model: string | null;
+    health:
+      | "missing"
+      | "schema_version_mismatch"
+      | "provider_mismatch"
+      | "model_mismatch"
+      | "dimension_unexpected"
+      | "ok";
+  };
 }
 
 export interface EmbeddingGenerateResult {
+  status: "completed" | "completed_with_errors";
   deckName: string;
-  totalNotes: number;
-  cachedCount: number;
-  generatedCount: number;
-  skippedCount: number;
-  removedCount: number;
-  errorCount: number;
+  provider: string;
+  model: string;
+  jaccardFallbackEnabled: boolean;
+  forceRegenerate: boolean;
+  durationMs: number;
+  dimension: {
+    detected: number;
+    expected: number;
+  };
+  notes: {
+    total: number;
+    processed: number;
+    generated: number;
+    skipped: number;
+    failed: number;
+  };
+  cache: {
+    beforeCount: number;
+    afterCount: number;
+    removed: number;
+    migration: {
+      applied: boolean;
+      reason:
+        | "none"
+        | "cache_missing"
+        | "force_regenerate"
+        | "schema_version_mismatch"
+        | "provider_mismatch"
+        | "model_mismatch";
+      from: {
+        provider: string;
+        model: string;
+        dimension: number;
+        count: number;
+      } | null;
+    };
+  };
+  failures: Array<{
+    noteId: number;
+    code: EmbeddingError["code"];
+    message: string;
+  }>;
   lastUpdated: string;
+}
+
+export interface EmbeddingDeleteResult {
+  deckName: string;
+  deleted: boolean;
+  deletedCount: number;
+  message: string;
+}
+
+export class EmbeddingApiError extends Error {
+  readonly code: EmbeddingError["code"];
+  readonly retryable: boolean;
+  readonly requestId: string;
+  readonly schemaVersion: number;
+  readonly details?: Record<string, unknown>;
+  readonly originalResponse: EmbeddingErrorEnvelope;
+
+  constructor(response: EmbeddingErrorEnvelope) {
+    super(response.error.message);
+    this.name = "EmbeddingApiError";
+    this.code = response.error.code;
+    this.retryable = response.error.retryable;
+    this.requestId = response.requestId;
+    this.schemaVersion = response.schemaVersion;
+    this.details = response.error.details;
+    this.originalResponse = response;
+  }
 }
 
 // Prompt Version types
@@ -440,6 +589,22 @@ export interface AllValidationResult {
   validatedAt: string;
 }
 
+function unwrapEmbeddingResponse<T>(response: EmbeddingApiResponse<T>): T {
+  if (response && typeof response === "object") {
+    const maybeResponse = response as Partial<EmbeddingApiResponse<T>>;
+    if (typeof maybeResponse.ok === "boolean") {
+      if (maybeResponse.ok === true && "data" in maybeResponse) {
+        return (maybeResponse as EmbeddingSuccessEnvelope<T>).data;
+      }
+      if (maybeResponse.ok === false && "error" in maybeResponse) {
+        throw new EmbeddingApiError(maybeResponse as EmbeddingErrorEnvelope);
+      }
+    }
+  }
+
+  throw new Error(extractErrorMessage(response, "임베딩 API 응답 형식이 올바르지 않습니다."));
+}
+
 // API Functions
 export const api = {
   decks: {
@@ -584,17 +749,30 @@ export const api = {
   },
 
   embedding: {
-    status: (deckName: string) =>
-      fetchJson<EmbeddingStatus>(`/embedding/status/${encodeURIComponent(deckName)}`),
-    generate: (deckName: string, forceRegenerate = false) =>
-      fetchJson<EmbeddingGenerateResult>("/embedding/generate", {
-        method: "POST",
-        body: JSON.stringify({ deckName, forceRegenerate }),
-      }),
-    deleteCache: (deckName: string) =>
-      fetchJson<{ deckName: string; deleted: boolean; message: string }>(
-        `/embedding/cache/${encodeURIComponent(deckName)}`,
-        { method: "DELETE" },
+    status: async (deckName: string) =>
+      unwrapEmbeddingResponse(
+        await fetchJson<EmbeddingApiResponse<EmbeddingStatus>>(
+          `/embedding/status/${encodeURIComponent(deckName)}`,
+          { allowErrorEnvelope: true },
+        ),
+      ),
+    generate: async (deckName: string, forceRegenerate = false) =>
+      unwrapEmbeddingResponse(
+        await fetchJson<EmbeddingApiResponse<EmbeddingGenerateResult>>("/embedding/generate", {
+          method: "POST",
+          allowErrorEnvelope: true,
+          body: JSON.stringify({ deckName, forceRegenerate }),
+        }),
+      ),
+    deleteCache: async (deckName: string) =>
+      unwrapEmbeddingResponse(
+        await fetchJson<EmbeddingApiResponse<EmbeddingDeleteResult>>(
+          `/embedding/cache/${encodeURIComponent(deckName)}`,
+          {
+            method: "DELETE",
+            allowErrorEnvelope: true,
+          },
+        ),
       ),
   },
 

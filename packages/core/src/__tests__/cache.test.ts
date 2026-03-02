@@ -1,24 +1,31 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
 import {
+  EMBEDDING_CACHE_SCHEMA_VERSION,
   cleanupCache,
   createCache,
   type EmbeddingCache,
+  getCacheIncompatibilityReason,
   getCachedEmbedding,
   getTextHash,
+  isCacheCompatible,
   setCachedEmbedding,
 } from "../embedding/cache.js";
+import { EMBEDDING_MODEL, EMBEDDING_PROVIDER } from "../embedding/client.js";
 
 describe("EmbeddingCache", () => {
   let cache: EmbeddingCache;
 
   beforeEach(() => {
-    cache = createCache("test-deck", 768);
+    cache = createCache("test-deck", { dimension: 3072 });
   });
 
   test("새 캐시 생성", () => {
     expect(cache.deckName).toBe("test-deck");
-    expect(cache.dimension).toBe(768);
+    expect(cache.schemaVersion).toBe(EMBEDDING_CACHE_SCHEMA_VERSION);
+    expect(cache.provider).toBe(EMBEDDING_PROVIDER);
+    expect(cache.model).toBe(EMBEDDING_MODEL);
+    expect(cache.dimension).toBe(3072);
     expect(Object.keys(cache.embeddings)).toHaveLength(0);
   });
 
@@ -61,6 +68,33 @@ describe("EmbeddingCache", () => {
     expect(getCachedEmbedding(cache, 1, getTextHash("1"))).toEqual([0.1]);
     expect(getCachedEmbedding(cache, 2, getTextHash("2"))).toBeNull();
     expect(getCachedEmbedding(cache, 3, getTextHash("3"))).toEqual([0.3]);
+  });
+
+  test("호환 캐시는 incompatibility가 null", () => {
+    expect(getCacheIncompatibilityReason(cache)).toBeNull();
+    expect(isCacheCompatible(cache)).toBe(true);
+  });
+
+  test("provider/model 불일치 감지", () => {
+    const providerMismatch = {
+      ...cache,
+      provider: "gemini",
+    };
+    expect(getCacheIncompatibilityReason(providerMismatch)).toBe("provider_mismatch");
+
+    const modelMismatch = {
+      ...cache,
+      model: "text-embedding-3-small",
+    };
+    expect(getCacheIncompatibilityReason(modelMismatch)).toBe("model_mismatch");
+  });
+
+  test("schema 버전 불일치 감지", () => {
+    const legacyCache = {
+      ...cache,
+      schemaVersion: EMBEDDING_CACHE_SCHEMA_VERSION - 1,
+    };
+    expect(getCacheIncompatibilityReason(legacyCache)).toBe("schema_version_mismatch");
   });
 });
 
