@@ -59,8 +59,8 @@ Awesome Anki는 Anki 노트를 학습 효율이 높은 원자 카드(Atomic Card
 | 의존 | 용도 | 기본값 |
 |------|------|--------|
 | AnkiConnect | 노트 조회/수정/삭제 | `$ANKI_CONNECT_URL` (MiniPC headless Anki) |
-| Gemini API | split / validation / embedding | `GEMINI_API_KEY` 필요 |
-| OpenAI API | split / validation (선택) | `OPENAI_API_KEY` (미설정 시 비활성) |
+| Gemini API | split / validation | `GEMINI_API_KEY` (Gemini 경로 사용 시) |
+| OpenAI API | split / validation / embedding | `OPENAI_API_KEY` (임베딩 필수) |
 
 ### 5.1 LLM 추상화 계층
 

@@ -27,7 +27,7 @@ export const helpContent: Record<string, HelpItem> = {
   embedding: {
     title: "임베딩",
     description:
-      "텍스트를 768차원의 숫자 벡터로 변환합니다. 이를 통해 카드 간 의미적 유사도를 계산할 수 있습니다.",
+      "OpenAI 임베딩 모델(text-embedding-3-large)로 텍스트를 숫자 벡터로 변환합니다. 이를 통해 카드 간 의미적 유사도를 계산할 수 있습니다.",
     learnMore: "/help#embedding",
   },
   embeddingCoverage: {

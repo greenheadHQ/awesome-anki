@@ -1,37 +1,116 @@
 /**
- * Gemini 임베딩 API 클라이언트
+ * OpenAI 임베딩 API 클라이언트
  *
- * 모델: gemini-embedding-001 (GA, MTEB 상위권)
- * 차원: 768 (기본값)
+ * 모델: text-embedding-3-large
+ * 기본 차원: 3072
  * 입력 한도: 8K 토큰
  *
- * @see https://ai.google.dev/gemini-api/docs/embeddings
+ * @see https://platform.openai.com/docs/guides/embeddings
  */
 
-import { GoogleGenAI } from "@google/genai";
+import type OpenAI from "openai";
 
-const EMBEDDING_MODEL = "gemini-embedding-001";
-const DEFAULT_DIMENSION = 768;
+import { cosineSimilarity } from "./cosine.js";
 
-let genAI: GoogleGenAI | null = null;
+export const EMBEDDING_PROVIDER = "openai";
+export const EMBEDDING_MODEL = "text-embedding-3-large";
+export const EMBEDDING_EXPECTED_DIMENSION = 3072;
 
-function getClient(): GoogleGenAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY;
+const EMBEDDING_BATCH_SIZE = 100;
+const EMBEDDING_RETRY_DELAY_MS = 350;
+const EMBEDDING_BATCH_DELAY_MS = 350;
+const EMBEDDING_MAX_ATTEMPTS = 2;
+
+let openaiClient: OpenAI | null = null;
+
+async function getClient(): Promise<OpenAI> {
+  if (!openaiClient) {
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.");
+      throw new Error("OPENAI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.");
     }
-    genAI = new GoogleGenAI({ apiKey });
+    const { default: OpenAI } = await import("openai");
+    openaiClient = new OpenAI({ apiKey });
   }
-  return genAI;
+  return openaiClient;
 }
 
 export interface EmbeddingOptions {
   /**
-   * 출력 차원 (기본: 768)
-   * 작을수록 저장 공간 절약, 클수록 정밀도 향상
+   * text-embedding-3 모델 계열에서 지원하는 선택적 차원 축소 옵션.
+   * 지정하지 않으면 모델 기본 차원(3072)을 사용한다.
    */
-  dimension?: number;
+  dimensions?: number;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableEmbeddingError(error: unknown): boolean {
+  if (error && typeof error === "object") {
+    const err = error as { status?: number; code?: string };
+    if (
+      typeof err.status === "number" &&
+      [408, 409, 425, 429, 500, 502, 503, 504].includes(err.status)
+    ) {
+      return true;
+    }
+
+    if (
+      typeof err.code === "string" &&
+      ["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"].includes(err.code)
+    ) {
+      return true;
+    }
+  }
+
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /timeout|temporar|rate limit|network/i.test(message);
+}
+
+async function requestEmbeddings(
+  input: string | string[],
+  options: EmbeddingOptions = {},
+): Promise<number[][]> {
+  if (
+    options.dimensions !== undefined &&
+    (!Number.isInteger(options.dimensions) ||
+      options.dimensions < 1 ||
+      options.dimensions > EMBEDDING_EXPECTED_DIMENSION)
+  ) {
+    throw new Error(`dimensions는 1 이상 ${EMBEDDING_EXPECTED_DIMENSION} 이하의 정수여야 합니다.`);
+  }
+
+  const client = await getClient();
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= EMBEDDING_MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await client.embeddings.create({
+        model: EMBEDDING_MODEL,
+        input,
+        ...(typeof options.dimensions === "number" && options.dimensions > 0
+          ? { dimensions: options.dimensions }
+          : {}),
+      });
+
+      const vectors = response.data.map((item) => item.embedding);
+      if (vectors.length === 0 || vectors.some((vector) => vector.length === 0)) {
+        throw new Error("임베딩 응답이 비어있습니다");
+      }
+      return vectors;
+    } catch (error) {
+      lastError = error;
+      if (attempt < EMBEDDING_MAX_ATTEMPTS && isRetryableEmbeddingError(error)) {
+        await sleep(EMBEDDING_RETRY_DELAY_MS);
+        continue;
+      }
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("임베딩 생성에 실패했습니다.");
 }
 
 /**
@@ -59,25 +138,13 @@ export async function getEmbedding(
   text: string,
   options: EmbeddingOptions = {},
 ): Promise<number[]> {
-  const client = getClient();
-  const dimension = options.dimension ?? DEFAULT_DIMENSION;
-
   const processedText = preprocessTextForEmbedding(text);
 
   if (!processedText) {
     throw new Error("전처리 후 텍스트가 비어있습니다");
   }
 
-  const response = await client.models.embedContent({
-    model: EMBEDDING_MODEL,
-    contents: processedText,
-    config: {
-      taskType: "SEMANTIC_SIMILARITY",
-      outputDimensionality: dimension,
-    },
-  });
-
-  const embedding = response.embeddings?.[0]?.values;
+  const [embedding] = await requestEmbeddings(processedText, options);
 
   if (!embedding || embedding.length === 0) {
     throw new Error("임베딩 응답이 비어있습니다");
@@ -99,9 +166,6 @@ export async function getEmbeddings(
   options: EmbeddingOptions = {},
   onProgress?: (completed: number, total: number) => void,
 ): Promise<number[][]> {
-  const client = getClient();
-  const dimension = options.dimension ?? DEFAULT_DIMENSION;
-
   // 빈 텍스트 필터링 및 전처리
   const processedTexts = texts.map((text) => preprocessTextForEmbedding(text));
 
@@ -123,41 +187,33 @@ export async function getEmbeddings(
     return texts.map(() => []);
   }
 
-  // 배치 처리 (API rate limit 대응)
-  const BATCH_SIZE = 100; // Gemini 배치 제한
-  const DELAY_MS = 500;
-
-  const allEmbeddings: number[][] = new Array(texts.length).fill([]);
+  const allEmbeddings: number[][] = Array.from({ length: texts.length }, () => []);
   let processedCount = 0;
 
-  for (let i = 0; i < validTexts.length; i += BATCH_SIZE) {
-    const batchTexts = validTexts.slice(i, i + BATCH_SIZE);
-    const batchIndices = validIndices.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < validTexts.length; i += EMBEDDING_BATCH_SIZE) {
+    const batchTexts = validTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
+    const batchIndices = validIndices.slice(i, i + EMBEDDING_BATCH_SIZE);
 
     // 배치 임베딩 요청
-    const response = await client.models.embedContent({
-      model: EMBEDDING_MODEL,
-      contents: batchTexts,
-      config: {
-        taskType: "SEMANTIC_SIMILARITY",
-        outputDimensionality: dimension,
-      },
-    });
+    const embeddings = await requestEmbeddings(batchTexts, options);
+    if (embeddings.length !== batchIndices.length) {
+      throw new Error(
+        `임베딩 응답 개수가 일치하지 않습니다: expected=${batchIndices.length}, actual=${embeddings.length}`,
+      );
+    }
 
     // 결과 매핑
-    const embeddings = response.embeddings ?? [];
     for (let j = 0; j < batchIndices.length; j++) {
       const originalIndex = batchIndices[j];
-      const embedding = embeddings[j]?.values ?? [];
-      allEmbeddings[originalIndex] = embedding;
+      allEmbeddings[originalIndex] = embeddings[j] ?? [];
     }
 
     processedCount += batchTexts.length;
     onProgress?.(processedCount, validTexts.length);
 
     // Rate limit 대응
-    if (i + BATCH_SIZE < validTexts.length) {
-      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+    if (i + EMBEDDING_BATCH_SIZE < validTexts.length) {
+      await sleep(EMBEDDING_BATCH_DELAY_MS);
     }
   }
 
@@ -179,26 +235,5 @@ export async function getSemanticSimilarity(
   if (embedding1.length === 0 || embedding2.length === 0) {
     return 0;
   }
-
-  // 코사인 유사도 계산
-  let dotProduct = 0;
-  let norm1 = 0;
-  let norm2 = 0;
-
-  for (let i = 0; i < embedding1.length; i++) {
-    dotProduct += embedding1[i] * embedding2[i];
-    norm1 += embedding1[i] * embedding1[i];
-    norm2 += embedding2[i] * embedding2[i];
-  }
-
-  const magnitude = Math.sqrt(norm1) * Math.sqrt(norm2);
-
-  if (magnitude === 0) {
-    return 0;
-  }
-
-  const similarity = dotProduct / magnitude;
-
-  // 0~1을 0~100으로 변환 (임베딩은 보통 양수)
-  return Math.round(Math.max(0, similarity) * 100);
+  return cosineSimilarity(embedding1, embedding2);
 }

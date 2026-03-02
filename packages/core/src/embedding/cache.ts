@@ -2,18 +2,29 @@
  * 파일 기반 임베딩 캐시
  *
  * 저장 위치: output/embeddings/{deckNameHash}.json
- * 구조: { [noteId]: { embedding, textHash, timestamp } }
+ * 구조:
+ * {
+ *   schemaVersion,
+ *   provider,
+ *   model,
+ *   dimension,
+ *   embeddings: { [noteId]: { embedding, textHash, timestamp } }
+ * }
  *
  * 증분 업데이트: 텍스트 변경된 카드만 재생성
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 import { atomicWriteFileSync } from "../utils/atomic-write.js";
+import { EMBEDDING_MODEL, EMBEDDING_PROVIDER } from "./client.js";
 
 const CACHE_DIR = "output/embeddings";
+export const EMBEDDING_CACHE_SCHEMA_VERSION = 1;
+export const LEGACY_EMBEDDING_PROVIDER = "gemini";
+export const LEGACY_EMBEDDING_MODEL = "gemini-embedding-001";
 
 export interface CachedEmbedding {
   /** 임베딩 벡터 */
@@ -25,14 +36,88 @@ export interface CachedEmbedding {
 }
 
 export interface EmbeddingCache {
+  /** 캐시 스키마 버전 */
+  schemaVersion: number;
   /** 덱 이름 */
   deckName: string;
+  /** 임베딩 제공자 */
+  provider: string;
+  /** 임베딩 모델 */
+  model: string;
   /** 임베딩 차원 */
   dimension: number;
   /** 마지막 업데이트 */
   lastUpdated: number;
   /** 노트별 임베딩 */
   embeddings: Record<string, CachedEmbedding>;
+}
+
+function parseCache(deckName: string, raw: string): EmbeddingCache | null {
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  const embeddingsRaw = parsed.embeddings;
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    typeof parsed.deckName !== "string" ||
+    typeof parsed.dimension !== "number" ||
+    typeof parsed.lastUpdated !== "number" ||
+    typeof embeddingsRaw !== "object" ||
+    embeddingsRaw === null ||
+    Array.isArray(embeddingsRaw)
+  ) {
+    return null;
+  }
+
+  const cache: EmbeddingCache = {
+    schemaVersion:
+      typeof parsed.schemaVersion === "number"
+        ? parsed.schemaVersion
+        : EMBEDDING_CACHE_SCHEMA_VERSION,
+    deckName: parsed.deckName,
+    provider: typeof parsed.provider === "string" ? parsed.provider : LEGACY_EMBEDDING_PROVIDER,
+    model: typeof parsed.model === "string" ? parsed.model : LEGACY_EMBEDDING_MODEL,
+    dimension: parsed.dimension,
+    lastUpdated: parsed.lastUpdated,
+    embeddings: {},
+  };
+
+  for (const [noteId, entry] of Object.entries(embeddingsRaw)) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+
+    const typedEntry = entry as Record<string, unknown>;
+    const embeddingRaw = typedEntry.embedding;
+    if (!Array.isArray(embeddingRaw)) {
+      continue;
+    }
+
+    const embedding = embeddingRaw.filter((value): value is number => typeof value === "number");
+    const textHash = typedEntry.textHash;
+    const timestamp = typedEntry.timestamp;
+
+    if (!textHash || typeof textHash !== "string" || embedding.length === 0) {
+      continue;
+    }
+
+    cache.embeddings[noteId] = {
+      embedding,
+      textHash,
+      timestamp: typeof timestamp === "number" ? timestamp : cache.lastUpdated,
+    };
+  }
+
+  if (cache.deckName !== deckName) {
+    cache.deckName = deckName;
+  }
+
+  if (cache.dimension <= 0) {
+    const firstEmbedding = Object.values(cache.embeddings)[0]?.embedding;
+    cache.dimension = firstEmbedding?.length ?? 0;
+  }
+
+  return cache;
 }
 
 /**
@@ -78,11 +163,46 @@ export function loadCache(deckName: string): EmbeddingCache | null {
 
   try {
     const data = readFileSync(path, "utf-8");
-    return JSON.parse(data) as EmbeddingCache;
+    return parseCache(deckName, data);
   } catch (error) {
     console.error(`캐시 로드 실패 (${deckName}):`, error);
     return null;
   }
+}
+
+export type CacheIncompatibilityReason =
+  | "schema_version_mismatch"
+  | "provider_mismatch"
+  | "model_mismatch"
+  | null;
+
+export function getCacheIncompatibilityReason(
+  cache: EmbeddingCache,
+  expected: { provider?: string; model?: string } = {},
+): CacheIncompatibilityReason {
+  const provider = expected.provider ?? EMBEDDING_PROVIDER;
+  const model = expected.model ?? EMBEDDING_MODEL;
+
+  if (cache.schemaVersion !== EMBEDDING_CACHE_SCHEMA_VERSION) {
+    return "schema_version_mismatch";
+  }
+
+  if (cache.provider !== provider) {
+    return "provider_mismatch";
+  }
+
+  if (cache.model !== model) {
+    return "model_mismatch";
+  }
+
+  return null;
+}
+
+export function isCacheCompatible(
+  cache: EmbeddingCache,
+  expected: { provider?: string; model?: string } = {},
+): boolean {
+  return getCacheIncompatibilityReason(cache, expected) === null;
 }
 
 /**
@@ -104,10 +224,19 @@ export function saveCache(cache: EmbeddingCache): void {
 /**
  * 새 캐시 생성
  */
-export function createCache(deckName: string, dimension: number): EmbeddingCache {
+export interface CreateCacheOptions {
+  provider?: string;
+  model?: string;
+  dimension?: number;
+}
+
+export function createCache(deckName: string, options: CreateCacheOptions = {}): EmbeddingCache {
   return {
+    schemaVersion: EMBEDDING_CACHE_SCHEMA_VERSION,
     deckName,
-    dimension,
+    provider: options.provider ?? EMBEDDING_PROVIDER,
+    model: options.model ?? EMBEDDING_MODEL,
+    dimension: options.dimension ?? 0,
     lastUpdated: Date.now(),
     embeddings: {},
   };
@@ -150,6 +279,7 @@ export function setCachedEmbedding(
     textHash,
     timestamp: Date.now(),
   };
+  cache.dimension = embedding.length;
   cache.lastUpdated = Date.now();
 }
 
@@ -179,10 +309,14 @@ export function cleanupCache(cache: EmbeddingCache, validNoteIds: Set<number>): 
 export interface CacheStatus {
   exists: boolean;
   deckName: string;
+  schemaVersion: number | null;
+  provider: string | null;
+  model: string | null;
   dimension: number;
   totalEmbeddings: number;
   lastUpdated: string | null;
   cacheFilePath: string;
+  health: "missing" | "compatible" | "legacy";
 }
 
 /**
@@ -196,20 +330,30 @@ export function getCacheStatus(deckName: string): CacheStatus {
     return {
       exists: false,
       deckName,
+      schemaVersion: null,
+      provider: null,
+      model: null,
       dimension: 0,
       totalEmbeddings: 0,
       lastUpdated: null,
       cacheFilePath: path,
+      health: "missing",
     };
   }
+
+  const incompatibility = getCacheIncompatibilityReason(cache);
 
   return {
     exists: true,
     deckName: cache.deckName,
+    schemaVersion: cache.schemaVersion,
+    provider: cache.provider,
+    model: cache.model,
     dimension: cache.dimension,
     totalEmbeddings: Object.keys(cache.embeddings).length,
     lastUpdated: new Date(cache.lastUpdated).toISOString(),
     cacheFilePath: path,
+    health: incompatibility ? "legacy" : "compatible",
   };
 }
 
@@ -224,8 +368,7 @@ export function deleteCache(deckName: string): boolean {
   }
 
   try {
-    const fs = require("node:fs");
-    fs.unlinkSync(path);
+    unlinkSync(path);
     return true;
   } catch (error) {
     console.error(`캐시 삭제 실패 (${deckName}):`, error);
