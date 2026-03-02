@@ -25,8 +25,12 @@ function extractErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
-  const { headers: optionHeaders, ...restOptions } = options ?? {};
+interface FetchJsonOptions extends RequestInit {
+  allowErrorEnvelope?: boolean;
+}
+
+async function fetchJson<T>(path: string, options?: FetchJsonOptions): Promise<T> {
+  const { allowErrorEnvelope = false, headers: optionHeaders, ...restOptions } = options ?? {};
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(optionHeaders || {}),
@@ -40,6 +44,9 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     const errorPayload = await res
       .json()
       .catch(() => ({ error: `API Error: ${res.status} ${res.statusText}` }));
+    if (allowErrorEnvelope) {
+      return errorPayload as T;
+    }
     throw new Error(extractErrorMessage(errorPayload, `API Error: ${res.status}`));
   }
   return res.json();
@@ -354,6 +361,26 @@ export interface EmbeddingDeleteResult {
   message: string;
 }
 
+export class EmbeddingApiError extends Error {
+  readonly code: EmbeddingError["code"];
+  readonly retryable: boolean;
+  readonly requestId: string;
+  readonly schemaVersion: number;
+  readonly details?: Record<string, unknown>;
+  readonly originalResponse: EmbeddingErrorEnvelope;
+
+  constructor(response: EmbeddingErrorEnvelope) {
+    super(response.error.message);
+    this.name = "EmbeddingApiError";
+    this.code = response.error.code;
+    this.retryable = response.error.retryable;
+    this.requestId = response.requestId;
+    this.schemaVersion = response.schemaVersion;
+    this.details = response.error.details;
+    this.originalResponse = response;
+  }
+}
+
 // Prompt Version types
 export interface PromptVersion {
   id: string;
@@ -563,10 +590,19 @@ export interface AllValidationResult {
 }
 
 function unwrapEmbeddingResponse<T>(response: EmbeddingApiResponse<T>): T {
-  if (response.ok) {
-    return response.data;
+  if (response && typeof response === "object") {
+    const maybeResponse = response as Partial<EmbeddingApiResponse<T>>;
+    if (typeof maybeResponse.ok === "boolean") {
+      if (maybeResponse.ok === true && "data" in maybeResponse) {
+        return (maybeResponse as EmbeddingSuccessEnvelope<T>).data;
+      }
+      if (maybeResponse.ok === false && "error" in maybeResponse) {
+        throw new EmbeddingApiError(maybeResponse as EmbeddingErrorEnvelope);
+      }
+    }
   }
-  throw new Error(response.error.message);
+
+  throw new Error(extractErrorMessage(response, "임베딩 API 응답 형식이 올바르지 않습니다."));
 }
 
 // API Functions
@@ -717,12 +753,14 @@ export const api = {
       unwrapEmbeddingResponse(
         await fetchJson<EmbeddingApiResponse<EmbeddingStatus>>(
           `/embedding/status/${encodeURIComponent(deckName)}`,
+          { allowErrorEnvelope: true },
         ),
       ),
     generate: async (deckName: string, forceRegenerate = false) =>
       unwrapEmbeddingResponse(
         await fetchJson<EmbeddingApiResponse<EmbeddingGenerateResult>>("/embedding/generate", {
           method: "POST",
+          allowErrorEnvelope: true,
           body: JSON.stringify({ deckName, forceRegenerate }),
         }),
       ),
@@ -732,6 +770,7 @@ export const api = {
           `/embedding/cache/${encodeURIComponent(deckName)}`,
           {
             method: "DELETE",
+            allowErrorEnvelope: true,
           },
         ),
       ),

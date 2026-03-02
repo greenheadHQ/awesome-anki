@@ -114,6 +114,17 @@ function mapError(error: unknown): MappedError {
   }
 
   if (error instanceof AppError) {
+    if (error.statusCode === 429) {
+      return {
+        status: 429,
+        payload: {
+          code: "RATE_LIMITED",
+          message: error.message,
+          retryable: true,
+        },
+      };
+    }
+
     if (error.statusCode === 502 || error.statusCode === 504) {
       return {
         status: error.statusCode,
@@ -425,13 +436,13 @@ embedding.post("/single", async (c) => {
   const requestId = getRequestId(c);
   try {
     const { text, preprocess, includeFullEmbedding } = await c.req.json<{
-      text: string;
+      text?: unknown;
       preprocess?: boolean;
       includeFullEmbedding?: boolean;
     }>();
 
-    if (!text) {
-      throw new ValidationError("text가 필요합니다");
+    if (typeof text !== "string" || text.trim().length === 0) {
+      throw new ValidationError("text는 비어있지 않은 문자열이어야 합니다");
     }
 
     const preprocessApplied = preprocess !== false;

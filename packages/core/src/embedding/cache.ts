@@ -183,7 +183,7 @@ export function getCacheIncompatibilityReason(
   const provider = expected.provider ?? EMBEDDING_PROVIDER;
   const model = expected.model ?? EMBEDDING_MODEL;
 
-  if (cache.schemaVersion < EMBEDDING_CACHE_SCHEMA_VERSION) {
+  if (cache.schemaVersion !== EMBEDDING_CACHE_SCHEMA_VERSION) {
     return "schema_version_mismatch";
   }
 

@@ -71,17 +71,17 @@ Awesome Anki는 **Anki 노트를 학습 효율이 높은 원자 카드(Atomic Ca
 
 ## 3. 기술 스택
 
-| 영역 | 기술 |
-|------|------|
-| 런타임 | [Bun](https://bun.sh/) |
-| 언어 | TypeScript |
-| 서버 | [Hono](https://hono.dev/) |
-| 웹 | React 19 + Vite |
-| 상태 관리 | [TanStack Query](https://tanstack.com/query) |
-| 스타일링 | Tailwind CSS v4 |
-| 렌더링 | markdown-it + KaTeX |
-| LLM | [Google Gemini](https://ai.google.dev/) + [OpenAI](https://platform.openai.com/) |
-| 연동 | [AnkiConnect](https://ankiweb.net/shared/info/2055492159) |
+| 영역      | 기술                                                                             |
+| --------- | -------------------------------------------------------------------------------- |
+| 런타임    | [Bun](https://bun.sh/)                                                           |
+| 언어      | TypeScript                                                                       |
+| 서버      | [Hono](https://hono.dev/)                                                        |
+| 웹        | React 19 + Vite                                                                  |
+| 상태 관리 | [TanStack Query](https://tanstack.com/query)                                     |
+| 스타일링  | Tailwind CSS v4                                                                  |
+| 렌더링    | markdown-it + KaTeX                                                              |
+| LLM       | [Google Gemini](https://ai.google.dev/) + [OpenAI](https://platform.openai.com/) |
+| 연동      | [AnkiConnect](https://ankiweb.net/shared/info/2055492159)                        |
 
 ## 4. 모노레포 구조
 
@@ -163,30 +163,30 @@ bun run cli rollback <backupId>
 
 ### 7.1 핵심 서버/도메인 변수
 
-| 변수 | 설명 |
-|------|------|
-| `GEMINI_API_KEY` | Gemini API 키 (split/validation에서 Gemini 사용 시 필요) |
-| `OPENAI_API_KEY` | OpenAI API 키 (임베딩 필수, split/validation에서 OpenAI 사용 시 필요) |
-| `ANKI_SPLITTER_API_KEY` | 서버 API 인증 키 |
-| `ANKI_CONNECT_URL` | AnkiConnect URL |
-| `ANKI_CONNECT_VERSION` | AnkiConnect 버전(기본 6) |
-| `TARGET_DECK` | 기본 대상 덱 |
-| `SPLIT_HISTORY_DB_PATH` | 분할 이력 SQLite 파일 경로 (기본 `data/split-history.db`) |
-| `HISTORY_SYNC_MODE` | 히스토리 동기화 모드 (`local` / `remote`) |
-| `ANKI_SPLITTER_DEFAULT_LLM_PROVIDER` | 기본 LLM 프로바이더 (`gemini` / `openai`, 기본 `gemini`) |
-| `ANKI_SPLITTER_DEFAULT_LLM_MODEL` | 기본 LLM 모델 (기본 `gemini-3-flash-preview`) |
-| `ANKI_SPLITTER_BUDGET_CAP_USD` | 서버 사이드 예산 상한 USD (기본 `1.0`) |
+| 변수                                 | 설명                                                                  |
+| ------------------------------------ | --------------------------------------------------------------------- |
+| `GEMINI_API_KEY`                     | Gemini API 키 (split/validation에서 Gemini 사용 시 필요)              |
+| `OPENAI_API_KEY`                     | OpenAI API 키 (임베딩 필수, split/validation에서 OpenAI 사용 시 필요) |
+| `ANKI_SPLITTER_API_KEY`              | 서버 API 인증 키                                                      |
+| `ANKI_CONNECT_URL`                   | AnkiConnect URL                                                       |
+| `ANKI_CONNECT_VERSION`               | AnkiConnect 버전(기본 6)                                              |
+| `TARGET_DECK`                        | 기본 대상 덱                                                          |
+| `SPLIT_HISTORY_DB_PATH`              | 분할 이력 SQLite 파일 경로 (기본 `data/split-history.db`)             |
+| `HISTORY_SYNC_MODE`                  | 히스토리 동기화 모드 (`local` / `remote`)                             |
+| `ANKI_SPLITTER_DEFAULT_LLM_PROVIDER` | 기본 LLM 프로바이더 (`gemini` / `openai`, 기본 `gemini`)              |
+| `ANKI_SPLITTER_DEFAULT_LLM_MODEL`    | 기본 LLM 모델 (기본 `gemini-3-flash-preview`)                         |
+| `ANKI_SPLITTER_BUDGET_CAP_USD`       | 서버 사이드 예산 상한 USD (기본 `1.0`)                                |
 
 ### 7.2 웹/개발 변수
 
-| 변수 | 설명 |
-|------|------|
-| `VITE_API_URL` | 웹에서 직접 호출할 API 베이스 URL |
-| `VITE_API_PROXY_TARGET` | Vite dev 프록시 타깃(기본 `http://localhost:3000`) |
-| `VITE_LOCATOR_TARGET` | Locator 에디터 타깃 (`cursor`/`vscode`) |
-| `VITE_DISABLE_LOCATOR` | Locator 강제 비활성화 |
-| `VITE_DISABLE_REACT_SCAN` | React Scan 강제 비활성화 |
-| `VITE_DISABLE_REACT_GRAB` | React Grab 강제 비활성화 |
+| 변수                      | 설명                                               |
+| ------------------------- | -------------------------------------------------- |
+| `VITE_API_URL`            | 웹에서 직접 호출할 API 베이스 URL                  |
+| `VITE_API_PROXY_TARGET`   | Vite dev 프록시 타깃(기본 `http://localhost:3000`) |
+| `VITE_LOCATOR_TARGET`     | Locator 에디터 타깃 (`cursor`/`vscode`)            |
+| `VITE_DISABLE_LOCATOR`    | Locator 강제 비활성화                              |
+| `VITE_DISABLE_REACT_SCAN` | React Scan 강제 비활성화                           |
+| `VITE_DISABLE_REACT_GRAB` | React Grab 강제 비활성화                           |
 
 ## 8. 개발 DX 도구
 
@@ -293,80 +293,82 @@ bun run cli rollback <backupId>
 
 ### 9.2 공통
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| GET | `/api/health` | 서버 헬스 체크 |
+| 메서드 | 경로          | 설명           |
+| ------ | ------------- | -------------- |
+| GET    | `/api/health` | 서버 헬스 체크 |
 
 ### 9.3 Deck / Card
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| GET | `/api/decks` | 덱 목록 |
-| GET | `/api/decks/:name/stats` | 덱 통계 |
-| GET | `/api/cards/deck/:name` | 덱 카드 목록 |
-| GET | `/api/cards/deck/:name/difficult` | 어려운 카드 목록 |
-| GET | `/api/cards/:noteId` | 단일 카드 상세 |
+| 메서드 | 경로                              | 설명             |
+| ------ | --------------------------------- | ---------------- |
+| GET    | `/api/decks`                      | 덱 목록          |
+| GET    | `/api/decks/:name/stats`          | 덱 통계          |
+| GET    | `/api/cards/deck/:name`           | 덱 카드 목록     |
+| GET    | `/api/cards/deck/:name/difficult` | 어려운 카드 목록 |
+| GET    | `/api/cards/:noteId`              | 단일 카드 상세   |
 
 ### 9.4 Split / History / Backup / Media
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| GET | `/api/llm/models` | 사용 가능 LLM 모델/가격 조회 |
-| POST | `/api/split/preview` | 분할 미리보기 (provider/model/budgetUsdCap 선택 가능, 예산 초과 시 HTTP 402) |
-| POST | `/api/split/apply` | 분할 적용 |
-| POST | `/api/split/reject` | 분할 반려 처리 |
-| GET | `/api/history` | 분할 이력 목록 조회 |
-| GET | `/api/history/:sessionId` | 분할 이력 상세 조회 |
-| GET | `/api/history/sync/health` | 히스토리 동기화 상태 |
-| GET | `/api/backup` | 백업 목록 |
-| GET | `/api/backup/latest` | 최신 백업 ID |
-| POST | `/api/backup/:id/rollback` | 롤백 실행 |
-| GET | `/api/media/:filename` | Anki 미디어 프록시 |
+| 메서드 | 경로                       | 설명                                                                         |
+| ------ | -------------------------- | ---------------------------------------------------------------------------- |
+| GET    | `/api/llm/models`          | 사용 가능 LLM 모델/가격 조회                                                 |
+| POST   | `/api/split/preview`       | 분할 미리보기 (provider/model/budgetUsdCap 선택 가능, 예산 초과 시 HTTP 402) |
+| POST   | `/api/split/apply`         | 분할 적용                                                                    |
+| POST   | `/api/split/reject`        | 분할 반려 처리                                                               |
+| GET    | `/api/history`             | 분할 이력 목록 조회                                                          |
+| GET    | `/api/history/:sessionId`  | 분할 이력 상세 조회                                                          |
+| GET    | `/api/history/sync/health` | 히스토리 동기화 상태                                                         |
+| GET    | `/api/backup`              | 백업 목록                                                                    |
+| GET    | `/api/backup/latest`       | 최신 백업 ID                                                                 |
+| POST   | `/api/backup/:id/rollback` | 롤백 실행                                                                    |
+| GET    | `/api/media/:filename`     | Anki 미디어 프록시                                                           |
 
 ### 9.5 Validation
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| POST | `/api/validate/fact-check` | 팩트 체크 |
-| POST | `/api/validate/freshness` | 최신성 검사 |
-| POST | `/api/validate/similarity` | 유사성 검사 |
-| POST | `/api/validate/context` | 문맥 검사 |
-| POST | `/api/validate/all` | 통합 검증 |
+| 메서드 | 경로                       | 설명        |
+| ------ | -------------------------- | ----------- |
+| POST   | `/api/validate/fact-check` | 팩트 체크   |
+| POST   | `/api/validate/freshness`  | 최신성 검사 |
+| POST   | `/api/validate/similarity` | 유사성 검사 |
+| POST   | `/api/validate/context`    | 문맥 검사   |
+| POST   | `/api/validate/all`        | 통합 검증   |
 
 ### 9.6 Embedding
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| POST | `/api/embedding/generate` | 덱 임베딩 생성/갱신 |
-| GET | `/api/embedding/status/:deckName` | 임베딩 캐시 상태 |
-| DELETE | `/api/embedding/cache/:deckName` | 캐시 삭제 |
-| POST | `/api/embedding/single` | 단일 텍스트 임베딩(디버그용) |
+| 메서드 | 경로                              | 설명                         |
+| ------ | --------------------------------- | ---------------------------- |
+| POST   | `/api/embedding/generate`         | 덱 임베딩 생성/갱신          |
+| GET    | `/api/embedding/status/:deckName` | 임베딩 캐시 상태             |
+| DELETE | `/api/embedding/cache/:deckName`  | 캐시 삭제                    |
+| POST   | `/api/embedding/single`           | 단일 텍스트 임베딩(디버그용) |
 
 임베딩 API 응답은 공통 envelope를 사용합니다:
-- 성공: `ok=true`, `schemaVersion`, `requestId`, `data`
-- 실패: `ok=false`, `schemaVersion`, `requestId`, `error.code/message/retryable`
+
+- 성공: `ok=true`, `schemaVersion`, `requestId`, `timestamp`(ISO 8601), `data`
+- 실패: `ok=false`, `schemaVersion`, `requestId`, `timestamp`(ISO 8601), `error.code/message/retryable`
 - `POST /api/embedding/generate`는 부분 실패 시에도 HTTP 200을 유지하고 `data.status=completed_with_errors`와 `data.failures[]`로 상세를 반환합니다.
 
 ### 9.7 Prompt Ops
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| GET | `/api/prompts/system` | 원격 systemPrompt + revision 조회 |
-| POST | `/api/prompts/system` | CAS 기반 systemPrompt 저장 + sync |
-| GET | `/api/prompts/versions` | 프롬프트 버전 목록 |
-| GET | `/api/prompts/versions/:id` | 버전 상세 |
-| POST | `/api/prompts/versions` | 버전 생성 |
-| PUT | `/api/prompts/versions/:id` | 버전 수정 (systemPrompt 수정 불가) |
-| DELETE | `/api/prompts/versions/:id` | 버전 삭제 |
-| POST | `/api/prompts/versions/:id/activate` | 버전 활성화 |
-| GET | `/api/prompts/active` | 현재 활성 버전 조회 |
-| GET | `/api/prompts/versions/:id/failure-patterns` | 실패 패턴 분석 |
-| GET | `/api/prompts/experiments` | 실험 목록 |
-| GET | `/api/prompts/experiments/:id` | 실험 상세 |
-| POST | `/api/prompts/experiments` | 실험 생성 |
-| POST | `/api/prompts/experiments/:id/complete` | 실험 완료 |
+| 메서드 | 경로                                         | 설명                               |
+| ------ | -------------------------------------------- | ---------------------------------- |
+| GET    | `/api/prompts/system`                        | 원격 systemPrompt + revision 조회  |
+| POST   | `/api/prompts/system`                        | CAS 기반 systemPrompt 저장 + sync  |
+| GET    | `/api/prompts/versions`                      | 프롬프트 버전 목록                 |
+| GET    | `/api/prompts/versions/:id`                  | 버전 상세                          |
+| POST   | `/api/prompts/versions`                      | 버전 생성                          |
+| PUT    | `/api/prompts/versions/:id`                  | 버전 수정 (systemPrompt 수정 불가) |
+| DELETE | `/api/prompts/versions/:id`                  | 버전 삭제                          |
+| POST   | `/api/prompts/versions/:id/activate`         | 버전 활성화                        |
+| GET    | `/api/prompts/active`                        | 현재 활성 버전 조회                |
+| GET    | `/api/prompts/versions/:id/failure-patterns` | 실패 패턴 분석                     |
+| GET    | `/api/prompts/experiments`                   | 실험 목록                          |
+| GET    | `/api/prompts/experiments/:id`               | 실험 상세                          |
+| POST   | `/api/prompts/experiments`                   | 실험 생성                          |
+| POST   | `/api/prompts/experiments/:id/complete`      | 실험 완료                          |
 
 추가 정책:
+
 - systemPrompt SoT는 Git tracked file이 아닌 miniPC AnkiConnect config다.
 - 로컬 파일 fallback 저장은 금지되며, sync 실패 시 저장 요청은 실패 처리된다.
 

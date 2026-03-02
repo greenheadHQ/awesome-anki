@@ -18,6 +18,7 @@ export const EMBEDDING_EXPECTED_DIMENSION = 3072;
 
 const EMBEDDING_BATCH_SIZE = 100;
 const EMBEDDING_RETRY_DELAY_MS = 350;
+const EMBEDDING_BATCH_DELAY_MS = 350;
 const EMBEDDING_MAX_ATTEMPTS = 2;
 
 let openaiClient: OpenAI | null = null;
@@ -72,6 +73,15 @@ async function requestEmbeddings(
   input: string | string[],
   options: EmbeddingOptions = {},
 ): Promise<number[][]> {
+  if (
+    options.dimensions !== undefined &&
+    (!Number.isInteger(options.dimensions) ||
+      options.dimensions < 1 ||
+      options.dimensions > EMBEDDING_EXPECTED_DIMENSION)
+  ) {
+    throw new Error(`dimensions는 1 이상 ${EMBEDDING_EXPECTED_DIMENSION} 이하의 정수여야 합니다.`);
+  }
+
   const client = await getClient();
   let lastError: unknown;
 
@@ -177,9 +187,6 @@ export async function getEmbeddings(
     return texts.map(() => []);
   }
 
-  // 배치 처리 (API rate limit 대응)
-  const DELAY_MS = 350;
-
   const allEmbeddings: number[][] = Array.from({ length: texts.length }, () => []);
   let processedCount = 0;
 
@@ -206,7 +213,7 @@ export async function getEmbeddings(
 
     // Rate limit 대응
     if (i + EMBEDDING_BATCH_SIZE < validTexts.length) {
-      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+      await sleep(EMBEDDING_BATCH_DELAY_MS);
     }
   }
 
