@@ -3,6 +3,8 @@
  */
 import "dotenv/config";
 import { timingSafeEqual } from "node:crypto";
+import { unlinkSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import {
   AppError,
@@ -29,6 +31,8 @@ import validate from "./routes/validate.js";
 
 const app = new Hono();
 const API_KEY = process.env.ANKI_SPLITTER_API_KEY;
+const REQUIRE_API_KEY =
+  (process.env.ANKI_SPLITTER_REQUIRE_API_KEY ?? "true").toLowerCase() !== "false";
 
 function timingSafeKeyEqual(left: string, right: string): boolean {
   const leftBytes = Buffer.from(left, "utf8");
@@ -45,10 +49,16 @@ function timingSafeKeyEqual(left: string, right: string): boolean {
 
 // Middleware
 app.use("*", logger());
+const CORS_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : ["http://localhost:5173", "http://127.0.0.1:5173"];
+
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: CORS_ORIGINS,
     allowMethods: ["GET", "POST", "PUT", "DELETE"],
     allowHeaders: ["Content-Type", "X-API-Key", "Authorization"],
   }),
@@ -56,6 +66,11 @@ app.use(
 
 app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/health") {
+    await next();
+    return;
+  }
+
+  if (!REQUIRE_API_KEY) {
     await next();
     return;
   }
@@ -99,6 +114,26 @@ app.route("/api/llm", llm);
 app.route("/api/embedding", embedding);
 app.route("/api/prompts", prompts);
 app.route("/api/history", history);
+
+// Production SPA serving
+if (process.env.NODE_ENV === "production") {
+  const { serveStatic } = await import("hono/bun");
+  const webDist = resolve(import.meta.dir, "../../web/dist");
+
+  app.use("/*", serveStatic({ root: webDist }));
+
+  app.get("/*", async (c) => {
+    const path = c.req.path;
+    if (path === "/api" || path.startsWith("/api/")) {
+      return c.json({ error: "Not found" }, 404);
+    }
+    if (/\.\w+$/.test(path)) {
+      return c.notFound();
+    }
+    const html = await Bun.file(resolve(webDist, "index.html")).text();
+    return c.html(html);
+  });
+}
 
 // Error handler
 app.onError((err, c) => {
@@ -144,7 +179,22 @@ function validateLLMProviders(): void {
   }
 }
 
+function checkVolumeWritability(): void {
+  for (const dir of ["data", "output"]) {
+    const testFile = join(dir, `.writecheck-${Date.now()}`);
+    try {
+      writeFileSync(testFile, "");
+      unlinkSync(testFile);
+    } catch {
+      console.warn(
+        `⚠️ ${dir}/ 디렉토리에 쓰기 권한이 없습니다. 볼륨 마운트 후 호스트에서 chown 1001:1001 을 실행하세요.`,
+      );
+    }
+  }
+}
+
 async function runStartupTasks(): Promise<void> {
+  checkVolumeWritability();
   validateLLMProviders();
 
   const [historyResult, migrationResult] = await Promise.allSettled([
@@ -186,7 +236,11 @@ async function runStartupTasks(): Promise<void> {
 
 await runStartupTasks();
 
-if (!API_KEY) {
+if (!REQUIRE_API_KEY) {
+  console.warn(
+    "⚠️  인증이 비활성화되었습니다 (ANKI_SPLITTER_REQUIRE_API_KEY=false). Tailscale/VPN 등 네트워크 격리 환경에서만 사용하세요.",
+  );
+} else if (!API_KEY) {
   console.warn(
     "⚠️  ANKI_SPLITTER_API_KEY가 설정되지 않았습니다. /api/health를 제외한 모든 API 요청은 503으로 거부됩니다.",
   );

@@ -54,9 +54,7 @@ export function ContentRenderer({
             onClick={() => setView("raw")}
             className={cn(
               "p-1.5 rounded transition-colors",
-              view === "raw"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted hover:bg-muted/80",
+              view === "raw" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80",
             )}
             title="원본 텍스트"
           >
@@ -84,21 +82,12 @@ export function ContentRenderer({
 }
 
 // 컴팩트 버전 (토글 없이 렌더링만)
-export function ContentPreview({
-  content,
-  className,
-}: {
-  content: string;
-  className?: string;
-}) {
+export function ContentPreview({ content, className }: { content: string; className?: string }) {
   const processedContent = useMemo(() => renderAnkiContent(content), [content]);
 
   return (
     <div
-      className={cn(
-        "prose prose-sm dark:prose-invert max-w-none content-rendered",
-        className,
-      )}
+      className={cn("prose prose-sm dark:prose-invert max-w-none content-rendered", className)}
       // SAFETY: 사용자 로컬 Anki DB에서 AnkiConnect로 가져온 HTML
       dangerouslySetInnerHTML={{ __html: processedContent }}
     />

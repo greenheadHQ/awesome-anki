@@ -145,7 +145,94 @@
 
 ---
 
-## 3. 운영 체크리스트
+## 3. 컨테이너 관련 문제
+
+### 3.1 컨테이너 시작 실패 (LLM 키 누락)
+
+원인:
+
+- `GEMINI_API_KEY` 또는 `OPENAI_API_KEY`가 env에 전달되지 않음
+
+해결:
+
+1. env 파일 또는 `-e` 플래그로 최소 1개 LLM API 키 전달
+2. `podman logs <container>` 에서 시작 로그 확인
+
+---
+
+### 3.2 AnkiConnect 연결 실패 (컨테이너)
+
+원인:
+
+- `--network=host` 미사용 시 localhost가 컨테이너 자체를 가리킴
+
+해결:
+
+1. `--network=host` 사용 또는 `ANKI_CONNECT_URL`을 호스트 IP로 설정
+2. MiniPC에서는 `http://100.79.80.95:8765` (Tailscale IP) 사용
+
+---
+
+### 3.3 볼륨 권한 오류
+
+증상:
+
+- `⚠️ data/ 디렉토리에 쓰기 권한이 없습니다` 경고
+- SQLite DB 초기화 실패
+
+원인:
+
+- 컨테이너 내부 사용자(UID 1001)와 호스트 디렉토리 소유자 불일치
+
+해결:
+
+1. 호스트에서 `chown 1001:1001 <data-dir> <output-dir>` 실행
+2. 컨테이너 재시작
+
+---
+
+### 3.4 Health check 실패
+
+증상:
+
+- `podman ps`에서 unhealthy 표시
+
+해결:
+
+1. `podman logs <container>`로 시작 오류 확인
+2. `curl http://localhost:<PORT>/api/health` 로 직접 확인
+3. LLM 키 누락 시 서버가 exit(1)하므로 키 설정 확인
+
+---
+
+### 3.5 프롬프트 버전 없음 (fresh container)
+
+원인:
+
+- 호스트 output 디렉토리에 프롬프트 파일이 없음
+
+해결:
+
+- 일반적으로 entrypoint가 자동으로 시드 파일을 복사함
+- 자동 시드가 실패한 경우: `podman cp <container>:/app/.seed/prompts/ <host-output>/prompts/`
+- 또는 기존 운영 데이터를 호스트 디렉토리에 배치
+
+---
+
+### 3.6 이미지 업데이트
+
+```bash
+podman pull ghcr.io/greenheadhq/awesome-anki:latest
+podman stop awesome-anki
+podman rm awesome-anki
+# 기존 run 명령 재실행
+```
+
+롤백: `:latest` 대신 특정 버전 태그(`:1.0.0`) 사용
+
+---
+
+## 4. 운영 체크리스트
 
 - `.env` 필수 값이 설정되어 있는가?
 - API 키가 일치하는가?
