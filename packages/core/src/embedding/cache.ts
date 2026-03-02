@@ -312,7 +312,6 @@ export interface CacheStatus {
   dimension: number;
   totalEmbeddings: number;
   lastUpdated: string | null;
-  cacheFilePath: string;
   health: "missing" | "compatible" | "legacy";
 }
 
@@ -321,7 +320,6 @@ export interface CacheStatus {
  */
 export function getCacheStatus(deckName: string): CacheStatus {
   const cache = loadCache(deckName);
-  const path = getCachePath(deckName);
 
   if (!cache) {
     return {
@@ -333,7 +331,6 @@ export function getCacheStatus(deckName: string): CacheStatus {
       dimension: 0,
       totalEmbeddings: 0,
       lastUpdated: null,
-      cacheFilePath: path,
       health: "missing",
     };
   }
@@ -349,7 +346,6 @@ export function getCacheStatus(deckName: string): CacheStatus {
     dimension: cache.dimension,
     totalEmbeddings: Object.keys(cache.embeddings).length,
     lastUpdated: new Date(cache.lastUpdated).toISOString(),
-    cacheFilePath: path,
     health: incompatibility ? "legacy" : "compatible",
   };
 }

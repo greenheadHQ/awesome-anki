@@ -36,17 +36,25 @@ const sim = fastCosineSimilarity(normVec1, normVec2);
 ### cache.ts
 
 ```typescript
-// 캐시 구조
+// 캐시 구조 (EmbeddingCache)
 interface EmbeddingCache {
-  [noteId: string]: {
-    embedding: number[];
-    textHash: string;    // MD5
-    timestamp: number;
+  schemaVersion: number;    // EMBEDDING_CACHE_SCHEMA_VERSION (현재 1)
+  deckName: string;
+  provider: string;         // "openai"
+  model: string;            // "text-embedding-3-large"
+  dimension: number;        // 3072
+  lastUpdated: number;      // epoch ms
+  embeddings: {
+    [noteId: string]: {
+      embedding: number[];
+      textHash: string;     // MD5
+      timestamp: number;
+    }
   }
 }
 
 // 저장 위치: output/embeddings/{deckNameHash}.json
-// 덱 이름 → MD5 해시로 파일명 생성
+// 덱 이름 → MD5 해시(12자)로 파일명 생성
 ```
 
 ## 캐시 증분 업데이트 흐름

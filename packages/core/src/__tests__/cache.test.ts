@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   EMBEDDING_CACHE_SCHEMA_VERSION,
@@ -9,6 +12,7 @@ import {
   getCachedEmbedding,
   getTextHash,
   isCacheCompatible,
+  loadCache,
   setCachedEmbedding,
 } from "../embedding/cache.js";
 import { EMBEDDING_MODEL, EMBEDDING_PROVIDER } from "../embedding/client.js";
@@ -119,5 +123,44 @@ describe("getTextHash", () => {
 
   test("해시는 32자 (MD5)", () => {
     expect(getTextHash("아무 텍스트")).toHaveLength(32);
+  });
+});
+
+describe("parseCache via loadCache (fixture)", () => {
+  const CACHE_DIR = "output/embeddings";
+  const fixtureDeckName = "__parseCache_fixture_test__";
+  const deckHash = createHash("md5").update(fixtureDeckName).digest("hex").slice(0, 12);
+  const cachePath = join(CACHE_DIR, `${deckHash}.json`);
+
+  afterEach(() => {
+    if (existsSync(cachePath)) {
+      unlinkSync(cachePath);
+    }
+  });
+
+  test("schemaVersion 누락 raw JSON → schemaVersion=0 폴백 → schema_version_mismatch", () => {
+    mkdirSync(CACHE_DIR, { recursive: true });
+    writeFileSync(
+      cachePath,
+      JSON.stringify({
+        deckName: fixtureDeckName,
+        dimension: 3072,
+        lastUpdated: Date.now(),
+        embeddings: {
+          "100": {
+            embedding: [0.1, 0.2, 0.3],
+            textHash: "abc123",
+            timestamp: Date.now(),
+          },
+        },
+      }),
+    );
+
+    const loaded = loadCache(fixtureDeckName);
+    expect(loaded).not.toBeNull();
+    expect(loaded!.schemaVersion).toBe(0);
+    expect(loaded!.provider).toBe("gemini"); // LEGACY_EMBEDDING_PROVIDER fallback
+    expect(loaded!.model).toBe("gemini-embedding-001"); // LEGACY_EMBEDDING_MODEL fallback
+    expect(getCacheIncompatibilityReason(loaded!)).toBe("schema_version_mismatch");
   });
 });

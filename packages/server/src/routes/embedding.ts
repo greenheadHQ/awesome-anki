@@ -29,7 +29,7 @@ import {
 } from "@anki-splitter/core";
 import { Hono, type Context } from "hono";
 
-const EMBEDDING_ROUTE_SCHEMA_VERSION = 1;
+const EMBEDDING_ROUTE_SCHEMA_VERSION = 2;
 const RATE_LIMIT_DELAY_MS = 400;
 
 type EmbeddingErrorCode =
@@ -167,6 +167,17 @@ function mapError(error: unknown): MappedError {
     };
   }
 
+  if (/\bcache\b|EACCES|EPERM|ENOENT|ENOSPC|file.*(read|write)|unlinkSync/i.test(message)) {
+    return {
+      status: 500,
+      payload: {
+        code: "CACHE_IO_ERROR",
+        message,
+        retryable: false,
+      },
+    };
+  }
+
   if (/OPENAI_API_KEY|openai|embedding/i.test(message)) {
     return {
       status: status >= 400 && status < 600 ? status : 502,
@@ -174,17 +185,6 @@ function mapError(error: unknown): MappedError {
         code: "EMBEDDING_PROVIDER_ERROR",
         message,
         retryable: status >= 500,
-      },
-    };
-  }
-
-  if (/\bcache\b|EACCES|EPERM|ENOSPC|file.*(read|write)|unlinkSync/i.test(message)) {
-    return {
-      status: 500,
-      payload: {
-        code: "CACHE_IO_ERROR",
-        message,
-        retryable: false,
       },
     };
   }

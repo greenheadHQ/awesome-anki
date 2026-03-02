@@ -52,8 +52,8 @@ export default {
 - **프로바이더**: Gemini (`@google/genai`), OpenAI (`openai` Responses API)
 - **기본 모델**: Gemini 3 Flash Preview (`gemini-3-flash-preview`), GPT-5 Mini (`gpt-5-mini`)
 - **환경변수**:
-  - `GEMINI_API_KEY` (필수) — Split, 검증, 임베딩용
-  - `OPENAI_API_KEY` (선택) — OpenAI 프로바이더 사용 시
+  - `GEMINI_API_KEY` (필수) — Split, 검증용 (LLM 경로)
+  - `OPENAI_API_KEY` (필수) — 임베딩 생성용, OpenAI LLM 프로바이더 사용 시에도 필요
   - `ANKI_SPLITTER_DEFAULT_LLM_PROVIDER` — 기본 프로바이더 (`gemini` | `openai`)
   - `ANKI_SPLITTER_DEFAULT_LLM_MODEL` — 기본 모델 오버라이드
   - `ANKI_SPLITTER_BUDGET_CAP_USD` — 서버 사이드 예산 상한 (기본 $1.0)
