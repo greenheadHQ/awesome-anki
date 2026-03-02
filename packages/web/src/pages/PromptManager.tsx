@@ -892,8 +892,8 @@ function MetricsTab({ versions }: MetricsTabProps) {
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm">전체 통계</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <MetricCard label="총 분할 수" value={totalSplits} />
             <MetricCard
               label="평균 승인률"
@@ -911,7 +911,7 @@ function MetricsTab({ versions }: MetricsTabProps) {
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm">버전별 성능 비교</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="px-4 overflow-x-auto">
           {versions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">버전 데이터가 없습니다</div>
           ) : (
