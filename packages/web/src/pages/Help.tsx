@@ -91,7 +91,7 @@ export function Help() {
       {/* 기능별 가이드 */}
       <section id="features">
         <h2 className="typo-h2 mb-4">기능별 가이드</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-2">
           {/* Dashboard */}
           <Card>
             <CardHeader className="pb-2">

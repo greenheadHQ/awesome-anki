@@ -558,7 +558,7 @@ export function CardBrowser() {
                     <TableRow>
                       <TableHead>카드</TableHead>
                       <TableHead>검증</TableHead>
-                      <TableHead className="hidden md:table-cell">Cloze</TableHead>
+                      <TableHead className="hidden xl:table-cell">Cloze</TableHead>
                       <TableHead>분할</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -581,7 +581,7 @@ export function CardBrowser() {
                         <TableCell>
                           <ValidationIcon status={validationStatuses.get(card.noteId) || null} />
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-xs">
+                        <TableCell className="hidden xl:table-cell text-xs">
                           {card.clozeStats.totalClozes}
                         </TableCell>
                         <TableCell>
