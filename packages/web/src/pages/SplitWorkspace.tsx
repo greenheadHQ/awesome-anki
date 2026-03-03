@@ -232,7 +232,7 @@ function RejectPopover({
 }
 
 export function SplitWorkspace() {
-  const isMobile = useIsMobile("lg");
+  const isMobile = useIsMobile("xl");
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
@@ -908,7 +908,7 @@ export function SplitWorkspace() {
 
   // 높이: 모바일/태블릿 dvh-5rem (h-14 헤더 + p-3 x2), 데스크톱(lg) vh-4rem (p-6 x2)
   return (
-    <div className="h-[calc(100dvh-5rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* ===== 모바일 헤더 (< lg) ===== */}
       {isMobile ? (
         <div className="flex flex-col gap-3 overflow-hidden">
