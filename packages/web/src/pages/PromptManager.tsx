@@ -54,7 +54,7 @@ type TabType = "versions" | "experiments" | "metrics";
 
 export function PromptManager() {
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile("md");
+  const isMobile = useIsMobile("xl");
   const [activeTab, setActiveTab] = useState<TabType>("versions");
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
   const [systemPromptDraft, setSystemPromptDraft] = useState("");
@@ -300,14 +300,14 @@ export function PromptManager() {
       )}
 
       {/* 탭 네비게이션 — 모바일에서 sticky */}
-      <div className="flex mb-4 sticky top-14 z-10 bg-background md:static md:z-auto">
+      <div className="flex mb-4 sticky top-14 z-10 bg-background xl:static xl:z-auto">
         {tabs.map((tab) => (
           <button
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center justify-center gap-1.5 flex-1 min-w-0 px-2 md:px-4 py-2.5 border-b-2 transition-all duration-200",
+              "flex items-center justify-center gap-1.5 flex-1 min-w-0 px-2 xl:px-4 py-2.5 border-b-2 transition-all duration-200",
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-border text-muted-foreground hover:text-foreground",
@@ -511,7 +511,7 @@ function SystemPromptEditor({
               <AlertTriangle className="w-4 h-4" />
               CAS 충돌 발생: 원격 revision {conflictLatest.revision}
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                   <GitCompareArrows className="w-3.5 h-3.5" />
@@ -579,12 +579,12 @@ function VersionsTab({
   const showDetail = !!selectedVersion;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full grid-rows-[1fr] overflow-hidden">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 h-full grid-rows-[1fr] overflow-hidden">
       {/* 버전 목록 — 모바일: 상세 선택 시 숨김 */}
       <div
         className={cn(
-          "md:col-span-5 overflow-y-auto min-h-0 min-w-0",
-          showDetail && "hidden md:block",
+          "xl:col-span-5 overflow-y-auto min-h-0 min-w-0",
+          showDetail && "hidden xl:block",
         )}
       >
         <Card className="h-full">
@@ -637,7 +637,7 @@ function VersionsTab({
       </div>
 
       {/* 버전 상세 — 모바일: 전체 너비, 뒤로 버튼 */}
-      <div className={cn("md:col-span-7 min-h-0 min-w-0", !showDetail && "hidden md:block")}>
+      <div className={cn("xl:col-span-7 min-h-0 min-w-0", !showDetail && "hidden xl:block")}>
         {selectedVersion ? (
           <Card className="h-full flex flex-col overflow-hidden">
             <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between shrink-0">
@@ -646,7 +646,7 @@ function VersionsTab({
                   variant="ghost"
                   size="sm"
                   onClick={() => onSelectVersion(null)}
-                  className="md:hidden px-0"
+                  className="xl:hidden px-0"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   뒤로
@@ -897,7 +897,7 @@ function MetricsTab({ versions }: MetricsTabProps) {
           <CardTitle className="text-sm">전체 통계</CardTitle>
         </CardHeader>
         <CardContent className="px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 xl:gap-4">
             <MetricCard label="총 분할 수" value={totalSplits} />
             <MetricCard
               label="평균 승인률"
@@ -925,13 +925,13 @@ function MetricsTab({ versions }: MetricsTabProps) {
                   <TableHead className="text-left px-4 py-2">버전</TableHead>
                   <TableHead className="text-right px-4 py-2">분할 수</TableHead>
                   <TableHead className="text-right px-4 py-2">승인률</TableHead>
-                  <TableHead className="hidden md:table-cell text-right px-4 py-2">
+                  <TableHead className="hidden xl:table-cell text-right px-4 py-2">
                     수정률
                   </TableHead>
-                  <TableHead className="hidden md:table-cell text-right px-4 py-2">
+                  <TableHead className="hidden xl:table-cell text-right px-4 py-2">
                     거부율
                   </TableHead>
-                  <TableHead className="hidden md:table-cell text-right px-4 py-2">
+                  <TableHead className="hidden xl:table-cell text-right px-4 py-2">
                     평균 글자
                   </TableHead>
                 </TableRow>
@@ -953,13 +953,13 @@ function MetricsTab({ versions }: MetricsTabProps) {
                         {Math.round((version.metrics?.approvalRate || 0) * 100)}%
                       </span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell px-4 py-2 text-right text-yellow-600">
+                    <TableCell className="hidden xl:table-cell px-4 py-2 text-right text-yellow-600">
                       {Math.round((version.metrics?.modificationRate || 0) * 100)}%
                     </TableCell>
-                    <TableCell className="hidden md:table-cell px-4 py-2 text-right text-red-600">
+                    <TableCell className="hidden xl:table-cell px-4 py-2 text-right text-red-600">
                       {Math.round((version.metrics?.rejectionRate || 0) * 100)}%
                     </TableCell>
-                    <TableCell className="hidden md:table-cell px-4 py-2 text-right">
+                    <TableCell className="hidden xl:table-cell px-4 py-2 text-right">
                       {Math.round(version.metrics?.avgCharCount || 0)}
                     </TableCell>
                   </TableRow>

@@ -650,10 +650,10 @@ export function SplitHistory() {
                     <TableRow>
                       <TableHead>Note</TableHead>
                       <TableHead>상태</TableHead>
-                      <TableHead className="hidden md:table-cell">모델</TableHead>
-                      <TableHead className="hidden md:table-cell">카드수</TableHead>
-                      <TableHead className="hidden lg:table-cell">비용</TableHead>
-                      <TableHead className="hidden md:table-cell">생성일시</TableHead>
+                      <TableHead className="hidden xl:table-cell">모델</TableHead>
+                      <TableHead className="hidden xl:table-cell">카드수</TableHead>
+                      <TableHead className="hidden xl:table-cell">비용</TableHead>
+                      <TableHead className="hidden xl:table-cell">생성일시</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -675,20 +675,20 @@ export function SplitHistory() {
                         <TableCell>
                           <StatusBadge status={item.status} />
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        <TableCell className="hidden xl:table-cell">
                           {item.provider ? (
                             <ModelBadge provider={item.provider} />
                           ) : (
                             <span className="text-xs text-muted-foreground">--</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-xs">
+                        <TableCell className="hidden xl:table-cell text-xs">
                           {item.cardCount}
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell text-xs font-mono text-muted-foreground">
+                        <TableCell className="hidden xl:table-cell text-xs font-mono text-muted-foreground">
                           {item.actualCostUsd != null ? formatCostUsd(item.actualCostUsd) : "--"}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                        <TableCell className="hidden xl:table-cell text-xs text-muted-foreground">
                           {new Date(item.createdAt).toLocaleString()}
                         </TableCell>
                       </TableRow>
