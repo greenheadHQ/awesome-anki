@@ -1,10 +1,8 @@
 ---
 name: validating-cards
-description: |
-  This skill should be used when users request card validation workflows.
-  Triggers: "팩트 체크 결과가", "유사한 카드 찾아줘", "문맥 검증",
-  "검증 캐시", "최신성 검사", "중복 카드", "검증 상태 아이콘".
-  Covers the 4 validation types: fact-check, freshness, similarity, context.
+description: >-
+  Run four card validation checks (fact-check, freshness, similarity, context consistency)
+  via LLM or local Jaccard/embedding analysis. Manages validation caching and status UI.
 ---
 
 # 카드 검증

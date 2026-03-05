@@ -1,10 +1,8 @@
 ---
-description: |
-  This skill should be used when users request LLM provider management.
-  Triggers: "LLM 모델 변경", "프로바이더 추가", "비용 추정", "예산 가드",
-  "pricing table", "모델 비교", "LLM 비용", "토큰 사용량",
-  "모델 추가", "LLM 설정".
-  Covers LLM abstraction layer, provider adapters, pricing, and budget guard.
+name: managing-llm
+description: >-
+  Configure and extend the multi-LLM abstraction layer (Gemini + OpenAI adapters, factory pattern).
+  Covers MODEL_PRICING_TABLE, cost estimation, budget guard, token counting, and the /api/llm/models endpoint.
 ---
 
 # LLM 프로바이더 관리

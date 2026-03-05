@@ -1,11 +1,9 @@
 ---
 name: managing-prompts
-description: |
-  This skill should be used when users request prompt system maintenance.
-  Triggers: "프롬프트 버전 관리", "A/B 테스트 만들어",
-  "SuperMemo 규칙", "Cloze Enhancer", "프롬프트 성능",
-  "카드 길이 기준", "이진 패턴", "실패 패턴 분석".
-  Covers prompt version management, A/B testing, Cloze Enhancer, and SuperMemo rules.
+description: >-
+  Manage split-prompt versions, A/B experiments, and quality tracking.
+  Includes Cloze Enhancer (binary pattern hints), SuperMemo Twenty Rules enforcement,
+  card length limits, and failure pattern analysis.
 ---
 
 # 프롬프트 관리

@@ -1,10 +1,8 @@
 ---
 name: understanding-project
-description: |
-  This skill should be used when users request project architecture guidance.
-  Triggers: "모노레포 구조가 어떻게 돼", "기술 스택", "export 충돌",
-  "패키지 간 의존성", "프로젝트 구조", "어떤 패키지에 있어".
-  Covers the monorepo architecture, package roles, tech stack, and coding conventions.
+description: >-
+  Navigate the monorepo architecture (core/server/web packages), tech stack decisions
+  (Bun, Hono, React 19, Tailwind v4), export conventions, and inter-package dependencies.
 ---
 
 # 프로젝트 이해

@@ -1,11 +1,8 @@
 ---
 name: splitting-cards
-description: |
-  This skill should be used when users request card splitting behavior changes.
-  Triggers: "Split 결과가 이상해", "파서 버그",
-  "분할 미리보기", "nid 승계", "Cloze 번호 리셋", "컨테이너 파서",
-  "카드 분할", "atomic card".
-  Covers Split logic, nid inheritance strategy, and text parsers.
+description: >-
+  Split high-density Anki Cloze cards into atomic units via LLM (Gemini/OpenAI).
+  Covers nid inheritance, Cloze number reset, container/nid/cloze parsers, and style preservation.
 ---
 
 # 카드 분할

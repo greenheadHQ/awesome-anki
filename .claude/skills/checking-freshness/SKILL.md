@@ -1,10 +1,8 @@
 ---
 name: checking-freshness
-description: |
-  This skill should be used when users request documentation freshness checks.
-  Triggers: "문서 오래됐어", "스킬 최신화", "git log 수정일",
-  "코드 문서 동기화", "스킬 업데이트 필요해", "references 최신화".
-  Covers documentation freshness checking using git diff mechanism.
+description: >-
+  Check documentation freshness by comparing source code last-modified dates against
+  corresponding skill files. Uses git log diffing and source-to-skill mapping table.
 ---
 
 # 문서 최신성 확인
