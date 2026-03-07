@@ -1,9 +1,12 @@
 ---
 name: tracking-todo
 description: |
-  This skill should be used when users request roadmap or debt tracking.
+  무엇이 구현되었고 무엇이 남았는지, 기술 부채는 뭔지, 다음에 뭘 해야 하는지 추적.
+  "뭐 남았어", "로드맵", "부채" 같은 질문이면 이 스킬이 정답.
   Triggers: "TODO 뭐 남았어", "미구현 기능", "기술 부채",
-  "다음에 뭐 해", "로드맵", "리팩토링 필요한 거", "Phase 5".
+  "다음에 뭐 해", "로드맵", "리팩토링 필요한 거", "Phase 5",
+  "뭐 구현됐어", "진행 상황", "남은 작업", "완료된 기능",
+  "테스트 현황", "tech debt", "backlog".
   Tracks unimplemented features, tech debt, and future roadmap.
 ---
 
@@ -16,13 +19,16 @@ description: |
 - **Hard Split 제거** — Split 단일화 완료
 - **Privacy 모듈 제거** — YAGNI 기반 전면 제거
 - **Biome → oxc 마이그레이션** — oxlint + oxfmt 전환 완료
+- **LLM 분석 토스트 알림** — sonner v2.0.7 (SplitWorkspace, PromptManager에서 사용)
+- **반응형 레이아웃** — useMediaQuery, BottomSheet, CompactSelector (PR #70+, 태블릿 브레이크포인트 xl 상향)
+- **어려운 카드 탐지** — `difficulty.ts` 구현 (Phase 5 부분 완료)
 
 ## 미구현 기능
 
 ### 높은 우선순위
 
-1. **Phase 5: Recursive Splitting**
-   - 학습 통계 기반 "어려운 카드" 탐지
+1. **Phase 5: Recursive Splitting** (부분 완료)
+   - ~~학습 통계 기반 "어려운 카드" 탐지~~ (완료: `difficulty.ts`, `useDifficultCards`)
    - 추가 분할 필요 카드 자동 제안
    - SplitWorkspace에서 원클릭 재분할
 
@@ -52,21 +58,23 @@ description: |
 7. **다크모드** — CSS 변수 설정 완료 (.dark 클래스), 토글 + 시스템 연동 필요
 8. **임베딩 생성 진행률** — WebSocket or polling
 9. **임베딩 기반 자동 중복 탐지** — 전체 덱 스캔, 병합/삭제 제안
-10. **LLM 분석 토스트 알림** — react-hot-toast 또는 sonner
-11. **반응형 레이아웃** — 모바일/태블릿 대응
-12. **Split 고도화** — 프롬프트 개선, Few-shot, 기준 조정 UI
+10. **Split 고도화** — 프롬프트 개선, Few-shot, 기준 조정 UI
 
 ## 기술 부채
 
 - [ ] ContentRenderer의 컨테이너 파싱 로직을 core 패키지로 이동
 - [x] ~~API 에러 핸들링 통일~~ (완료: AppError 계층 + 글로벌 onError 미들웨어)
 - [ ] 로딩 상태 스켈레톤 UI 추가
-- [ ] output/prompts gitignore 예외 추가
-- [ ] bun:test 타입 선언 문제 (tsconfig에 `"types": ["bun-types"]` 추가)
-- [ ] 파서 단위 테스트
-- [ ] API 통합 테스트
-- [ ] E2E 테스트 (Playwright)
+- [x] ~~output/prompts gitignore 예외~~ (완료: `.gitignore`에 `!output/prompts/` 추가됨)
+- [x] ~~bun:test 타입 선언~~ (완료: `tsconfig.test.json` 분리, `"types": ["bun-types"]`)
 - [ ] API 문서 (OpenAPI/Swagger)
+
+## 테스트 현황
+
+- **core**: 10개 테스트 파일 (anki-client, atomic-write, backup, cache, cosine, difficulty, embedding-client, errors, prompts, prompt-system-remote)
+- **server**: 1개 (history/store.test.ts)
+- **web**: 4개 단위 테스트 (button, card, dialog, prompt-api) + 1개 E2E (smoke.spec.ts) + 1개 lib 테스트 (sync-status)
+- 추가 필요: 파서 단위 테스트, API 통합 테스트
 
 ## 상세 참조
 
