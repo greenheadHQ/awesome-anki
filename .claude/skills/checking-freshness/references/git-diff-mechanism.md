@@ -3,18 +3,23 @@
 ## 소스-스킬 매핑
 
 ```bash
-# packages/core/src/anki/         → working-with-anki
-# packages/core/src/splitter/     → splitting-cards
-# packages/core/src/parser/       → splitting-cards
-# packages/core/src/validator/    → validating-cards
-# packages/core/src/embedding/    → managing-embeddings
-# packages/core/src/prompt-version/ → managing-prompts
-# packages/core/src/gemini/client.ts → understanding-project
-# packages/core/src/gemini/prompts.ts → managing-prompts
-# packages/core/src/gemini/cloze-enhancer.ts → managing-prompts
-# packages/core/src/gemini/validator.ts → splitting-cards
-# packages/server/src/            → developing-web-api
-# packages/web/src/               → developing-web-ui
+# packages/core/src/anki/                     → working-with-anki (difficulty.ts 포함)
+# packages/core/src/splitter/                 → splitting-cards
+# packages/core/src/parser/                   → splitting-cards
+# packages/core/src/validator/                → validating-cards
+# packages/core/src/embedding/                → managing-embeddings
+# packages/core/src/prompt-version/           → managing-prompts
+# packages/core/src/llm/                      → managing-llm, splitting-cards, validating-cards
+# packages/core/src/gemini/client.ts          → understanding-project
+# packages/core/src/gemini/prompts.ts         → managing-prompts
+# packages/core/src/gemini/cloze-enhancer.ts  → managing-prompts
+# packages/core/src/gemini/validator.ts       → splitting-cards
+# packages/server/src/history/                → developing-web-api
+# packages/server/src/lib/                    → developing-web-api
+# packages/server/src/                        → developing-web-api
+# packages/web/src/lib/markdown-renderer.ts   → developing-web-ui
+# packages/web/src/hooks/                     → developing-web-ui
+# packages/web/src/                           → developing-web-ui
 ```
 
 ## 전체 스킬 최신성 확인

@@ -43,22 +43,38 @@ bun run dev
 bun run dev:server   # localhost:3000
 bun run dev:web      # localhost:5173
 
-# CLI
-bun run cli:status   # 연결 확인
-bun run cli:split    # 분할 미리보기
-bun run cli:split -- --apply  # 분할 적용
-bun run cli split --note 1757399484677  # 특정 카드
-
 # 타입체크
-bun run --cwd packages/web tsc --noEmit
-bun run --cwd packages/server tsc --noEmit
+bun run typecheck          # 전체 패키지
+bun run typecheck:core     # core만
+bun run typecheck:server   # server만
+bun run typecheck:web      # web만
 
 # 린트 + 포맷 (oxc)
 bun run lint             # 전체 패키지 린트 (oxlint + oxfmt --check)
 bunx oxlint src          # 개별 패키지에서 직접 실행
 bunx oxfmt --check src   # 포맷 검사
 bunx oxfmt src           # 포맷 적용
+
+# 테스트
+bun run test             # 전체 패키지
+bun run test:core        # core만
+bun run test:server      # server만
+bun run test:web         # web만
+
+# 빌드
+bun run build            # 전체 패키지
+
+# 품질 검증
+bun run check:quick      # lint + typecheck
+bun run check            # lint + typecheck + test + build
 ```
+
+## lefthook (Git hooks)
+
+`lefthook.yml`로 pre-commit / pre-push 훅 관리:
+
+- **pre-commit** (parallel): `oxfmt` 포맷 검사, `gitleaks` 시크릿 스캔, `docs-freshness` 스킬 최신성 경고
+- **pre-push**: `bun run lint && bun run typecheck && bun run test` 품질 게이트
 
 ## 모노레포 설정
 

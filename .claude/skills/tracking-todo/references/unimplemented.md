@@ -1,13 +1,14 @@
 # 미구현 기능 상세
 
-## Phase 5: Recursive Splitting (높은 우선순위)
+## Phase 5: Recursive Splitting (높은 우선순위, 부분 완료)
 
 학습 중 틀린 카드를 추가 분할하는 기능.
 
-- 학습 통계 기반 "어려운 카드" 탐지 (높은 lapses, 낮은 ease factor)
-- 추가 분할 필요 카드 자동 제안
-- SplitWorkspace에서 원클릭 재분할
-- AnkiConnect `cardsInfo`로 학습 데이터 조회 → 필터링
+- ~~학습 통계 기반 "어려운 카드" 탐지~~ (완료: `difficulty.ts` + `useDifficultCards` 훅)
+  - lapses, ease factor, reps 기반 필터링 구현
+  - AnkiConnect `cardsInfo`로 학습 데이터 조회 → 필터링
+- 추가 분할 필요 카드 자동 제안 (미구현)
+- SplitWorkspace에서 원클릭 재분할 (미구현)
 
 ## 전체 Split (보통 우선순위)
 
@@ -54,13 +55,10 @@
 - 응답 속도, 토큰 효율성 비교
 - `packages/core/src/llm/pricing.ts`의 토큰 사용량 데이터 활용
 
-## LLM 분석 토스트 알림 (낮은 우선순위)
+## ~~LLM 분석 토스트 알림~~ (구현 완료)
 
-- react-hot-toast 또는 sonner 사용
-- 분석 시작, 완료, 실패 알림
+sonner v2.0.7 사용. SplitWorkspace, PromptManager에서 toast() 호출.
 
-## 반응형 레이아웃 (낮은 우선순위)
+## ~~반응형 레이아웃~~ (구현 완료)
 
-- 모바일/태블릿 대응 (sm, md, lg breakpoints)
-- SplitWorkspace 3단 → 1단 전환
-- 사이드바 햄버거 메뉴화
+useMediaQuery 훅, BottomSheet, CompactSelector 등 구현. 태블릿 브레이크포인트 xl(1280px) 상향 (PR #76).

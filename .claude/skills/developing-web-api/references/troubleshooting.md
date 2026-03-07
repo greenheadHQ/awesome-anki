@@ -1,16 +1,45 @@
 # API 서버 트러블슈팅
 
+## API 키 인증 문제
+
+### 503: Server API key is not configured
+
+- **문제**: `ANKI_SPLITTER_API_KEY`가 설정되지 않은 상태에서 API 요청
+- **증상**: `/api/health`를 제외한 모든 요청이 503 반환
+- **해결**: 서버 시작 전 `ANKI_SPLITTER_API_KEY` 환경변수 설정
+  ```bash
+  # agenix로 자동 복호화되는 시크릿 확인
+  echo $ANKI_SPLITTER_API_KEY
+  ```
+- **임시 우회**: `ANKI_SPLITTER_REQUIRE_API_KEY=false`로 인증 비활성화 (격리 환경 전용)
+
+### 401: Unauthorized
+
+- **문제**: API 키가 일치하지 않거나 헤더 형식 오류
+- **확인**:
+  ```bash
+  # X-API-Key 헤더
+  curl -s -H "X-API-Key: $ANKI_SPLITTER_API_KEY" http://localhost:3000/api/decks
+
+  # Bearer 토큰
+  curl -s -H "Authorization: Bearer $ANKI_SPLITTER_API_KEY" http://localhost:3000/api/decks
+  ```
+- **주의**: `Bearer` 뒤에 공백 1개 필수, 대소문자 무관 (`bearer`, `Bearer` 모두 허용)
+
 ## API 응답 확인
 
 ```bash
-# 덱 목록
-curl -s http://localhost:3000/api/decks | python3 -m json.tool
+# 헬스 체크 (인증 불필요)
+curl -s http://localhost:3000/api/health | python3 -m json.tool
+
+# 인증이 필요한 엔드포인트
+curl -s -H "X-API-Key: $ANKI_SPLITTER_API_KEY" http://localhost:3000/api/decks | python3 -m json.tool
 
 # 카드 상세
-curl -s http://localhost:3000/api/cards/1757399484677 | python3 -m json.tool
+curl -s -H "X-API-Key: $ANKI_SPLITTER_API_KEY" http://localhost:3000/api/cards/1757399484677 | python3 -m json.tool
 
 # 임베딩 상태
-curl -s "http://localhost:3000/api/embedding/status/덱이름" | python3 -m json.tool
+curl -s -H "X-API-Key: $ANKI_SPLITTER_API_KEY" "http://localhost:3000/api/embedding/status/덱이름" | python3 -m json.tool
 ```
 
 ## AnkiConnect 직접 테스트

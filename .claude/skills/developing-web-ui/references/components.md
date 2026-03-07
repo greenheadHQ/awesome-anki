@@ -1,20 +1,24 @@
 # 핵심 컴포넌트 상세
 
-## ContentRenderer
+## ContentRenderer & ContentPreview
 
-Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
+Markdown + Cloze 렌더링. **markdown-it** 기반 (`packages/web/src/lib/markdown-renderer.ts`).
 
-### 처리 순서
+### 처리 순서 (renderAnkiContent 함수)
 
-1. `preprocessAnkiHtml`: `<br>` → `\n`, `&nbsp;` → ` `
-2. Cloze 구문 → `<span class="cloze">` 변환
-3. 컨테이너 구문 → `<div class="callout-*">` 변환
-4. Markdown → HTML (markdown-it + highlight.js)
-5. KaTeX 수식 렌더링
-6. nid 링크 처리
-7. 이미지 프록시 (AnkiConnect 경유)
+실제 파이프라인 순서. 소스: `packages/web/src/lib/markdown-renderer.ts`의 `renderAnkiContent()`.
 
-### 사용법
+1. `preprocessAnkiHtml`: `&nbsp;` -> ` `, `&lt;br&gt;` -> `\n`, `<br>` -> `\n`, 연속 줄바꿈 정리
+2. `processCloze`: `{{c1::내용::힌트}}` -> `<span class="cloze" data-cloze="1">내용</span>`
+3. `processNidLinks`: `[제목|nid1234567890123]` -> `<a class="nid-link" data-nid="...">제목</a>`
+4. `md.render()`: markdown-it 렌더링 (컨테이너 플러그인 + highlight.js 코드 하이라이팅)
+5. `processImages`: 로컬 이미지 경로 -> `/api/media/` 프록시 경로 변환
+
+**KaTeX 단계는 없다.** Anki 템플릿 측에서 KaTeX가 이미 HTML로 렌더링된 상태로 전달되므로,
+markdown-it의 `html: true` 옵션으로 그대로 통과시킨다. `rehype-katex`는 `package.json`에
+레거시 의존성으로 남아 있을 뿐, 렌더링 파이프라인에서 사용하지 않는다.
+
+### ContentRenderer 사용법
 
 ```tsx
 <ContentRenderer
@@ -24,11 +28,46 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 />
 ```
 
+### ContentPreview
+
+토글 없이 렌더링만 수행하는 컴팩트 버전. `ContentRenderer.tsx`에 같이 정의.
+
+```tsx
+<ContentPreview content={cardText} className="..." />
+```
+
 ### 리팩토링 참고
 
 - ReactMarkdown에서 markdown-it으로 전면 리팩토링된 이력
-- markdown-it-container 플러그인으로 `::: type` 구문 처리
-- 컨테이너 파싱 로직을 core 패키지로 이동 필요 (기술 부채)
+- markdown-it-container 플러그인으로 `::: type` 구문 처리 (tip, warning, error, note, link, toggle)
+- `markdown-it-mark` 플러그인으로 `==highlight==` 구문 처리
+
+## DiffViewer & SplitPreviewCard
+
+**둘 다 `packages/web/src/components/card/DiffViewer.tsx`에 위치.** 별도 파일이 아님.
+
+### DiffViewer
+
+분할 전후 라인 기반 diff 비교 컴포넌트.
+
+- 메인 카드: 원본과의 라인별 diff 표시 (추가/삭제/동일 컬러 코딩)
+- 서브 카드: 새로 생성되는 카드 내용 표시
+- 사용처: SplitWorkspace 미리보기 영역
+
+```tsx
+<DiffViewer
+  original={originalText}
+  splitCards={splitCards}
+/>
+```
+
+### SplitPreviewCard
+
+분할 미리보기 개별 카드. ContentRenderer + Raw/Rendered 토글 + 메인/번호 배지.
+
+```tsx
+<SplitPreviewCard card={card} index={idx} />
+```
 
 ## ValidationPanel
 
@@ -45,12 +84,8 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 - `packages/web/src/components/ui/table.tsx`: CardBrowser/PromptManager 목록
 - `packages/web/src/components/ui/dialog.tsx`: BackupManager 롤백 확인/결과 모달
 - `packages/web/src/components/ui/model-badge.tsx`: LLM 프로바이더/모델 배지 + `formatCostUsd`
-
-## SplitPreviewCard
-
-- 분할 미리보기 개별 카드
-- ContentRenderer + Raw/Rendered 토글
-- "캐시된 결과" 배지 표시
+- `packages/web/src/components/ui/bottom-sheet.tsx`: 모바일 바텀 시트 UI
+- `packages/web/src/components/ui/compact-selector.tsx`: 컴팩트 선택기 UI
 
 ## HelpTooltip
 
@@ -67,7 +102,7 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 
 ### 1단: 최상위 (react-error-boundary)
 
-`ErrorFallback` 컴포넌트 — BrowserRouter/QueryClientProvider 바깥에서 최후 방어선.
+`ErrorFallback` 컴포넌트 -- BrowserRouter/QueryClientProvider 바깥에서 최후 방어선.
 
 ```tsx
 // packages/web/src/components/ErrorFallback.tsx
@@ -78,21 +113,14 @@ Markdown + KaTeX + Cloze 렌더링. **markdown-it** 기반.
 </ErrorBoundary>
 ```
 
-- "예기치 않은 오류가 발생했습니다" + 새로고침 버튼
-- React Router/Provider 레벨 에러 캐치
-
 ### 2단: 라우트별 (React Router v7 errorElement)
 
-`RouteError` 컴포넌트 — 각 Route에 `errorElement` 설정.
+`RouteError` 컴포넌트 -- 각 Route에 `errorElement` 설정.
 
 ```tsx
 // packages/web/src/components/RouteError.tsx
 <Route path="split" element={<SplitWorkspace />} errorElement={<RouteError />} />
 ```
-
-- "페이지 오류" + "홈으로 돌아가기" 링크
-- 한 페이지 에러가 다른 페이지에 영향 안 줌
-- `useRouteError()` 훅으로 에러 정보 접근
 
 ### 새 페이지 추가 시
 
@@ -108,12 +136,6 @@ Route에 `errorElement={<RouteError />}` 반드시 포함:
   - `typo-h1`, `typo-h2`, `typo-h3`, `typo-body`, `typo-body-lg`, `typo-body-sm`, `typo-caption`
   - `--primary`, `--muted`, `--success`, `--warning`, `--info`
 
-## 테스트 컴포넌트
-
-- `packages/web/tests/components/button.test.tsx`
-- `packages/web/tests/components/card.test.tsx`
-- `packages/web/tests/components/dialog.test.tsx`
-
 ## SyncStatusBadge
 
 - `packages/web/src/components/SyncStatusBadge.tsx`
@@ -127,3 +149,9 @@ Route에 `errorElement={<RouteError />}` 반드시 포함:
 - LLM 프로바이더/모델 표시 (Gemini: 파란색, OpenAI: 녹색)
 - `formatCostUsd` 유틸 함수 함께 export
 - SplitWorkspace, SplitHistory 페이지에서 사용
+
+## 테스트 컴포넌트
+
+- `packages/web/tests/components/button.test.tsx`
+- `packages/web/tests/components/card.test.tsx`
+- `packages/web/tests/components/dialog.test.tsx`

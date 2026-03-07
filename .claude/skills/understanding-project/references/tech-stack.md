@@ -67,8 +67,22 @@ export default {
 - 루트 `package.json`에 devDependencies로 `oxlint`, `oxfmt` 설치
 - 각 패키지 `lint` 스크립트: `bunx oxlint src && bunx oxfmt --check src`
 
-## Gemini Embedding (gemini-embedding-001)
+## OpenAI Embedding (text-embedding-3-large)
 
-- 768차원 벡터
-- 8K 토큰 입력 한도
-- `SEMANTIC_SIMILARITY` taskType
+- 3072차원 벡터 (선택적 차원 축소 지원)
+- OpenAI SDK (`openai` 패키지) 사용
+- `OPENAI_API_KEY` 필수
+
+## 추가 의존성 (web)
+
+- **react-router-dom** v7 — 클라이언트 라우팅
+- **sonner** v2 — 토스트 알림 (SplitWorkspace, PromptManager에서 사용)
+- **react-error-boundary** v6 — 에러 바운더리 (ErrorFallback.tsx)
+- **lucide-react** — 아이콘 라이브러리
+
+## 반응형 레이아웃
+
+- `useMediaQuery` 훅으로 디바이스 크기 감지
+- `BottomSheet` — 모바일용 바텀 시트 컴포넌트
+- `CompactSelector` — 모바일용 압축 선택기
+- 브레이크포인트: sm/md/lg/xl, 콘텐츠 멀티컬럼은 xl(1280px)부터

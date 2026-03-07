@@ -15,24 +15,25 @@
 - 현재 단순 로딩 스피너
 - 스켈레톤 UI로 사용자 경험 개선
 
-### output/prompts gitignore 예외
-- `output/` 전체가 gitignore되어 프롬프트 버전 파일이 추적되지 않음
-- `.gitignore`에 `!output/prompts/` 예외 추가 필요
-- **참고**: 이 작업은 스킬 시스템 구축 시 .gitignore 수정에 포함됨
+### ~~output/prompts gitignore 예외~~ (완료)
+- `.gitignore`에 `!output/prompts/` 예외 이미 추가됨
 
-### bun:test 타입 선언 문제
-- `packages/core/src/__tests__/*.ts`에서 `bun:test` 모듈을 찾을 수 없음
-- tsconfig.json에 `"types": ["bun-types"]` 추가 또는 별도 tsconfig 분리
+### ~~bun:test 타입 선언 문제~~ (완료)
+- `packages/core/tsconfig.test.json` 분리 완료
+- `"types": ["bun-types"]` 설정으로 `bun:test` 모듈 인식
 
 ## 테스트
 
 ### 완료
-- 임베딩 모듈 단위 테스트
+- **core** (10개): anki-client, atomic-write, backup, cache, cosine, difficulty, embedding-client, errors, prompts, prompt-system-remote
+- **server** (1개): history/store.test.ts
+- **web** 단위 (4개): button, card, dialog, prompt-api
+- **web** lib (1개): sync-status.test.js
+- **web** E2E (1개): tests/e2e/smoke.spec.ts
 
 ### 미완료
-- 파서 단위 테스트
-- API 통합 테스트
-- E2E 테스트 (Playwright)
+- 파서 단위 테스트 (container-parser, nid-parser, cloze-parser)
+- API 통합 테스트 (라우트별)
 
 ## 문서화
 

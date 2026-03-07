@@ -17,11 +17,16 @@ get_skill_for_path() {
     packages/core/src/validator/*)      echo "validating-cards" ;;
     packages/core/src/embedding/*)      echo "managing-embeddings" ;;
     packages/core/src/prompt-version/*) echo "managing-prompts" ;;
+    packages/core/src/llm/*)            echo "managing-llm" ;;
     packages/core/src/gemini/prompts.ts)        echo "managing-prompts" ;;
     packages/core/src/gemini/cloze-enhancer.ts) echo "managing-prompts" ;;
     packages/core/src/gemini/validator.ts)      echo "splitting-cards" ;;
     packages/core/src/gemini/client.ts)         echo "understanding-project" ;;
+    packages/server/src/history/*)      echo "developing-web-api" ;;
+    packages/server/src/lib/*)          echo "developing-web-api" ;;
     packages/server/src/*)              echo "developing-web-api" ;;
+    packages/web/src/hooks/*)           echo "developing-web-ui" ;;
+    packages/web/src/lib/*)             echo "developing-web-ui" ;;
     packages/web/src/*)                 echo "developing-web-ui" ;;
     *)                                  echo "" ;;
   esac

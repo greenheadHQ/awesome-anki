@@ -2,10 +2,13 @@
 
 ## export 이름 충돌
 
-- **문제**: `getVersion`이 AnkiConnect와 prompt-version 양쪽에 존재
-- **해결**: prompt-version 함수에 접두사 사용
-  - `getVersion` → `getPromptVersion`
-  - `listVersions` → `listPromptVersions`
+- **문제**: `getVersion`이 AnkiConnect(`anki/client.ts`)와 prompt-version(`storage.ts`) 양쪽에 존재
+- **해결**: `packages/core/src/index.ts`에서 re-export 시 `as` 별칭 사용 (함수명 자체는 그대로)
+  - `listVersions as listPromptVersions`
+  - `getVersion as getPromptVersion`
+  - `saveVersion as savePromptVersion`
+  - `deleteVersion as deletePromptVersion`
+  - `createVersion as createPromptVersion`
 
 ## Phase 1 프롬프트 개선 결정사항
 
@@ -33,7 +36,7 @@
 
 - 헤더 드롭다운에서 프롬프트 버전 선택 가능
 - 활성 버전에 ✓ 표시
-- 선택된 버전의 시스템 프롬프트로 Gemini 분석 요청
+- 선택된 버전의 시스템 프롬프트로 LLM 분석 요청
 
 ## 히스토리 자동 기록
 
