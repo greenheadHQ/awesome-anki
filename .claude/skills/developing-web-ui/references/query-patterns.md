@@ -10,7 +10,7 @@ export const queryKeys = {
 
   cards: {
     all: ["cards"] as const,
-    byDeck: (deck: string, opts?: { page?: number; filter?: string }) =>
+    byDeck: (deck: string, opts?: { page?: number; limit?: number; filter?: string }) =>
       ["cards", "deck", deck, opts] as const,
     detail: (noteId: number) => ["cards", "detail", noteId] as const,
     difficult: (deck: string, opts?: { page?: number; limit?: number }) =>
