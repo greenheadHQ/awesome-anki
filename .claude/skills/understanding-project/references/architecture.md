@@ -3,15 +3,16 @@
 ## 패키지 구조
 
 ```
-anki-claude-code/
+awesome-anki/
 ├── packages/
 │   ├── core/                 # 핵심 로직
 │   │   └── src/
 │   │       ├── anki/         # AnkiConnect API 래퍼
-│   │       │   ├── client.ts     # ankiConnect(action, params) 함수
-│   │       │   ├── operations.ts # 카드 CRUD, 분할 적용
-│   │       │   ├── backup.ts     # 백업, 롤백
-│   │       │   └── scheduling.ts # ease factor 복제
+│   │       │   ├── client.ts      # ankiConnect(action, params) 함수
+│   │       │   ├── operations.ts  # 카드 CRUD, 분할 적용
+│   │       │   ├── backup.ts      # 백업, 롤백
+│   │       │   ├── scheduling.ts  # ease factor 복제
+│   │       │   └── difficulty.ts  # 학습 통계 기반 어려운 카드 탐지
 │   │       ├── llm/          # 멀티 LLM 추상화 계층
 │   │       │   ├── factory.ts   # createLLMClient, getDefaultModelId
 │   │       │   ├── gemini.ts    # GeminiAdapter (LLMProvider 구현)
@@ -36,35 +37,58 @@ anki-claude-code/
 │   │       │   ├── freshness-checker.ts # 최신성 검사
 │   │       │   ├── similarity-checker.ts # Jaccard + 임베딩 유사도
 │   │       │   └── context-checker.ts   # nid 기반 문맥 일관성
-│   │       ├── embedding/    # Gemini 임베딩
+│   │       ├── embedding/    # OpenAI 임베딩 (text-embedding-3-large, 3072차원)
 │   │       │   ├── client.ts  # getEmbedding, getEmbeddings
 │   │       │   ├── cosine.ts  # 코사인 유사도
-│   │       │   └── cache.ts   # 파일 기반 증분 캐시
+│   │       │   ├── cache.ts   # 파일 기반 증분 캐시
+│   │       │   └── index.ts   # barrel export
 │   │       ├── prompt-version/ # 프롬프트 버전 관리
 │   │       │   ├── types.ts    # PromptVersion 등 11개 타입
 │   │       │   └── storage.ts  # CRUD, 히스토리, 실험
 │   │       ├── errors.ts      # 커스텀 에러 클래스 (AppError 계층)
 │   │       └── utils/        # 유틸리티
 │   │           ├── formatters.ts    # HTML 스타일 보존, 검증
+│   │           ├── diff-viewer.ts   # diff 비교 뷰어
 │   │           └── atomic-write.ts  # 원자적 파일 쓰기, 뮤텍스
 │   │
 │   ├── server/               # Hono REST API 서버
 │   │   └── src/
-│   │       ├── index.ts      # 서버 진입점 (localhost:3000)
+│   │       ├── index.ts       # 서버 진입점 (localhost:3000)
+│   │       ├── history/       # 분할 이력 관리 (SQLite)
+│   │       │   ├── store.ts       # SplitHistoryStore (CRUD, 검색)
+│   │       │   ├── sync.ts        # MiniPC → 로컬 동기화
+│   │       │   └── types.ts       # SplitRecord 등 타입
+│   │       ├── lib/
+│   │       │   └── resolve-model.ts # 요청별 LLM 모델 해석
+│   │       ├── history-sync.ts  # 동기화 진입점
 │   │       └── routes/       # API 라우트
 │   │           ├── decks.ts, cards.ts, split.ts
 │   │           ├── backup.ts, validate.ts
 │   │           ├── embedding.ts, prompts.ts
-│   │           ├── llm.ts, history.ts, media.ts
+│   │           └── llm.ts, history.ts, media.ts
 │   │
 │   └── web/                  # React 프론트엔드
 │       └── src/
 │           ├── pages/        # Dashboard, SplitWorkspace, CardBrowser,
 │           │                 # BackupManager, PromptManager, SplitHistory, Help
-│           ├── components/   # card/, help/, layout/, ui/, validation/
-│           ├── hooks/        # useCards, useSplit, usePrompts 등
-│           └── lib/          # api.ts, query-keys.ts, helpContent.ts
+│           ├── components/
+│           │   ├── card/          # 카드 렌더링/편집
+│           │   ├── help/          # 도움말 관련
+│           │   ├── layout/        # 레이아웃 (사이드바 등)
+│           │   ├── ui/            # button, card, dialog, select, table,
+│           │   │                  # popover, model-badge, bottom-sheet, compact-selector
+│           │   ├── validation/    # 검증 결과 표시
+│           │   ├── ErrorFallback.tsx    # 에러 바운더리 fallback
+│           │   ├── RouteError.tsx       # 라우트 에러 표시
+│           │   └── SyncStatusBadge.tsx  # MiniPC 동기화 상태
+│           ├── hooks/        # useCards, useSplit, usePrompts, useBackups,
+│           │                 # useDecks, useDifficultCards, useHistory,
+│           │                 # useMediaQuery, useValidationCache
+│           └── lib/          # api.ts, query-keys.ts, helpContent.ts,
+│                             # markdown-renderer.ts, sync-status.ts,
+│                             # constants.ts, utils.ts, view-transition.ts
 │
+├── data/                     # split-history.db (SQLite, SoT는 MiniPC)
 └── output/
     ├── backups/              # 분할 전 상태 백업 (JSON)
     ├── embeddings/           # 임베딩 캐시 (JSON)

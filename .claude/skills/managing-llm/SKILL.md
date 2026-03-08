@@ -1,10 +1,12 @@
 ---
+name: managing-llm
 description: |
-  This skill should be used when users request LLM provider management.
+  LLM 추상화 계층, 프로바이더 어댑터, 가격표, 예산 가드 등 LLM 관련 작업이면 무조건 이 스킬.
+  모델 변경, 프로바이더 추가, 비용 계산, 토큰 카운트 등 모든 LLM 인프라를 다룬다.
   Triggers: "LLM 모델 변경", "프로바이더 추가", "비용 추정", "예산 가드",
   "pricing table", "모델 비교", "LLM 비용", "토큰 사용량",
-  "모델 추가", "LLM 설정".
-  Covers LLM abstraction layer, provider adapters, pricing, and budget guard.
+  "모델 추가", "LLM 설정", "Gemini", "OpenAI", "API key",
+  "model pricing", "budget cap", "token count", "adapter", "factory".
 ---
 
 # LLM 프로바이더 관리
@@ -69,34 +71,23 @@ interface LLMProvider {
 - SDK: `openai` (dynamic import)
 - API: Responses API (`client.responses.create()`)
 - 기본 모델: `gpt-5-mini`
+- **시스템 프롬프트 role**: `developer` (OpenAI Responses API에서 `system` 대신 `developer` 사용)
 - JSON 모드: `text.format.type = "json_object"` + markdown code fence 제거
 - JSON 파싱 실패 시 temperature 0.1로 1회 재시도 (토큰 누적 합산)
 - refusal 체크: `content.type === "refusal"` 감지 시 에러 throw
 - `countTokens`: 휴리스틱 추정 (한국어 보정 x1.5, safety x1.3)
 
+> **getClient() 차이**: GeminiAdapter의 `getClient()`는 동기(sync), OpenAIAdapter의 `getClient()`는 비동기(async) -- dynamic import로 번들 최적화하기 때문.
+
 ## 가격 시스템 (`pricing.ts`)
 
-### MODEL_PRICING_TABLE
+가격표, 비용 계산, 예산 가드 상세는 `references/pricing.md` 참조.
 
-정적 가격표 (공식 문서 기반, 수동 업데이트):
-
-| provider | model | displayName | input $/1M tokens | output $/1M tokens | verifiedAt |
-|----------|-------|-------------|-------|--------|------------|
-| gemini | gemini-3-flash-preview | Gemini 3 Flash Preview | $0.15 | $0.60 | 2025-05-01 |
-| openai | gpt-5-mini | GPT-5 Mini | $0.25 | $2.00 | 2026-03-01 |
-
-### 비용 계산
-
-- `estimateCost(inputTokens, outputTokens, pricing)` -> `CostEstimate` (사전 추정)
-- `computeCost(tokenUsage, pricing)` -> `ActualCost` (실제 사용량 기반)
-- 내부 공통: `calculateCost()` - `(tokens / 1_000_000) * pricePerMillionTokens`
-
-### 예산 가드
-
-`checkBudget(estimatedCostUsd, clientBudgetCapUsd?)`:
-- 서버 캡: `ANKI_SPLITTER_BUDGET_CAP_USD` 환경변수 (기본 $1.0)
-- 클라이언트 캡이 있으면 `Math.min(clientCap, serverCap)` 적용
-- 반환: `{ allowed: boolean, estimatedCostUsd, budgetCapUsd }`
+핵심 함수:
+- `getModelPricing(provider, model)` -- 가격 조회
+- `estimateCost()` / `computeCost()` -- 사전/사후 비용 계산
+- `checkBudget(estimatedCostUsd, clientBudgetCapUsd?)` -- 이중 예산 가드
+- `getServerBudgetCapUsd()` -- 서버 사이드 예산 캡 조회 (env 기본 $1.0)
 
 ## API 엔드포인트
 
@@ -122,6 +113,7 @@ interface LLMProvider {
 
 - API 키가 설정된 provider의 모델만 반환
 - 기본 모델이 가용 목록에 없으면 첫 번째 가용 모델로 대체
+- `budgetCapUsd`는 서버에서 `getServerBudgetCapUsd()` 호출 결과
 
 ## 프론트엔드 컴포넌트
 

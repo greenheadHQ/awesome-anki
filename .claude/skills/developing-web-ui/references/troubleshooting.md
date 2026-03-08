@@ -4,7 +4,7 @@
 
 - **문제**: 커스텀 `.container` 클래스가 Tailwind의 `.container` 유틸리티와 충돌
 - **증상**: 사이드바 오른쪽에 의도치 않은 `border-left` 표시
-- **해결**: `.container-*` → `.callout-*`로 변경
+- **해결**: `.container-*` -> `.callout-*`로 변경
 - **관련 파일**: `packages/web/src/index.css`, `ContentRenderer.tsx`
 
 ## shadcn 파일 casing 충돌
@@ -19,13 +19,13 @@
 ## ContentRenderer `<br>` 태그 처리
 
 - **문제**: Anki 카드의 `<br>` 태그가 렌더링되지 않음
-- **해결**: `preprocessAnkiHtml` 함수에서 `<br>` → `\n`, `&nbsp;` → ` ` 변환
+- **해결**: `preprocessAnkiHtml` 함수에서 `<br>` -> `\n`, `&nbsp;` -> ` ` 변환
 
 ## ContentRenderer 파싱 미스매칭
 
 - **문제**: `::: link`, `::: toggle` 컨테이너/nid 링크가 스타일 없이 표시
 - **원인**: ReactMarkdown + rehypeRaw에서 복잡한 HTML/마크다운 혼합 처리 실패
-- **해결**: ReactMarkdown → **markdown-it** 전면 리팩토링
+- **해결**: ReactMarkdown -> **markdown-it** 전면 리팩토링
   - markdown-it-container 플러그인으로 컨테이너 처리
   - highlight.js로 코드 하이라이팅
   - Cloze, nid 링크, 이미지 프록시 직접 전처리
@@ -63,12 +63,12 @@
 - **문제**: v4에서 `tailwindcss init` 명령어 변경
 - **해결**: `@tailwindcss/postcss` 플러그인 사용 (`postcss.config.js`)
 
-## KaTeX CSS 로딩
+## sonner 토스트 알림 문제
 
-```typescript
-import 'katex/dist/katex.min.css';
-```
-ContentRenderer에서 직접 import.
+- **문제**: 토스트가 표시되지 않음
+- **확인**: `App.tsx`에 `<Toaster position="bottom-right" richColors duration={4000} />` 마운트 여부 확인
+- **사용법**: `import { toast } from "sonner"` 후 `toast.success()`, `toast.error()` 등 호출
+- **주의**: `sonner`의 `Toaster`는 컴포넌트 트리 최상단(`App.tsx`)에 한 번만 마운트해야 함. 중복 마운트 시 토스트가 여러 번 표시될 수 있음
 
 ## React Query 캐시 무효화 누락
 
@@ -78,6 +78,13 @@ queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
 queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
 ```
 
+## useBackups/useRollback 중복 export
+
+- **문제**: `useBackups`와 `useRollback`이 `hooks/useCards.ts`와 `hooks/useBackups.ts` 양쪽에 정의됨
+- **증상**: import 경로에 따라 다른 인스턴스를 참조할 수 있음 (동작은 동일하지만 혼란 유발)
+- **임시 대응**: import 시 `useBackups.ts`를 정규 위치로 사용
+- **근본 해결**: `useCards.ts`에서 중복 제거 (기술 부채)
+
 ## HelpTooltip cursor 누락
 
 - **문제**: (?) 아이콘에 커서 변화 없음
@@ -86,27 +93,9 @@ queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
 ## useMutation 반환값을 useEffect 의존성에 넣으면 무한 루프
 
 - **문제**: SplitWorkspace에서 카드 선택 후 사이드바 네비게이션이 작동하지 않음 (URL만 변경, 페이지 미전환)
-- **원인**: `useMutation()` 반환값(`splitPreview`)을 `useEffect` 의존성 배열에 포함. 이 객체는 매 렌더마다 새 참조를 생성하여 effect → `reset()` → 상태변경 → 재렌더 → effect의 무한 루프 발생. React의 라우트 전환을 방해
+- **원인**: `useMutation()` 반환값(`splitPreview`)을 `useEffect` 의존성 배열에 포함. 이 객체는 매 렌더마다 새 참조를 생성하여 effect -> `reset()` -> 상태변경 -> 재렌더 -> effect의 무한 루프 발생
 - **해결**: `useEffect` 대신 **이벤트 핸들러**에서 직접 처리
-  ```typescript
-  // ❌ 잘못된 패턴
-  useEffect(() => {
-    if (selectedCard) {
-      splitPreview.reset();
-      splitPreview.mutate(...);
-    }
-  }, [selectedCard, splitPreview]); // splitPreview는 매 렌더마다 새 참조
-
-  // ✅ 올바른 패턴
-  const handleSelectCard = (card: SplitCandidate | null) => {
-    setSelectedCard(card);
-    if (card) {
-      splitPreview.reset();
-      splitPreview.mutate(...);
-    }
-  };
-  ```
-- **규칙**: `useMutation` 반환값은 절대 `useEffect` deps에 넣지 말 것. 이벤트 핸들러나 콜백에서 직접 호출
+- **규칙**: `useMutation` 반환값은 절대 `useEffect` deps에 넣지 말 것
 
 ## 포트 충돌 (개발 서버)
 
