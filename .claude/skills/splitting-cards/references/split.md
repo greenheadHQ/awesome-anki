@@ -1,6 +1,6 @@
 # Split 상세
 
-소스: `packages/core/src/gemini/client.ts`, `packages/core/src/gemini/prompts.ts`
+소스: `packages/core/src/gemini/client.ts`, `packages/core/src/gemini/prompts.ts`, `packages/core/src/llm/factory.ts`, `packages/core/src/llm/pricing.ts`
 
 ## 트리거 조건
 
@@ -90,7 +90,8 @@ async function requestBatchCardSplit(
 - `estimateCost()`: 모델별 가격표(`MODEL_PRICING_TABLE`)로 USD 비용 산출
 - `checkBudget()`: 서버 예산 상한(`ANKI_SPLITTER_BUDGET_CAP_USD`, 기본 $1.0)과 클라이언트 예산을 비교, `allowed: boolean` 반환
 - `getModelPricing()`: provider/model 조합의 정적 가격 조회 (수동 업데이트 필요)
-- 미등록 모델 + `budgetUsdCap` 지정 시 400 에러 반환 (예산 가드레일 우회 방지)
+- 미등록 모델 + 예산 지정 시 400 에러 반환 (예산 가드레일 우회 방지)
+- 네이밍 참고: API 계층에서는 `budgetUsdCap`, core의 `checkBudget()`에서는 `clientBudgetCapUsd` 매개변수명 사용
 
 ## 응답 검증 (`packages/core/src/gemini/validator.ts`)
 

@@ -57,7 +57,7 @@ description: |
 ## nid 승계 전략
 
 - **메인 카드** (`mainCardIndex`): `updateNoteFields`로 기존 nid 유지
-- **서브 카드**: `addNotes`로 새 nid 생성 + 원본으로의 역링크 삽입
+- **서브 카드**: `addSplitCards()`로 새 nid 생성 + 원본으로의 역링크 삽입 (`addNotes`는 내부 구현)
 - 기존 nid 링크가 깨지지 않도록 보장
 
 ## Cloze 번호 처리

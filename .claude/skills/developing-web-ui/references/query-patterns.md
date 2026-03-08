@@ -41,7 +41,7 @@ export const queryKeys = {
   },
 
   history: {
-    list: (opts?) => ["history", "list", opts] as const,
+    list: (opts?: { page?: number; limit?: number; deckName?: string; status?: string; startDate?: string; endDate?: string }) => ["history", "list", opts] as const,
     detail: (sessionId: string) => ["history", "detail", sessionId] as const,
     syncHealth: ["history", "sync-health"] as const,
   },
@@ -148,7 +148,10 @@ export function useCards(deckName: string, options: CardOptions) {
 export function useSplitPreview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ noteId, versionId, deckName, provider, model, budgetUsdCap }) =>
+    mutationFn: ({ noteId, versionId, deckName, provider, model, budgetUsdCap }: {
+      noteId: number; versionId?: string; deckName?: string;
+      provider?: string; model?: string; budgetUsdCap?: number;
+    }) =>
       api.split.preview(noteId, { versionId, deckName, provider, model, budgetUsdCap }),
     onSuccess: (data, variables) => {
       const resolvedProvider = data.provider ?? variables.provider;

@@ -8,6 +8,8 @@ WARN_DAYS=30
 SKILL_DIR=".claude/skills"
 
 # 소스 경로 → 스킬 매핑
+# 참고: tracking-todo는 시간축 메타 스킬로 특정 소스 경로에 매핑하지 않음 (수동 관리)
+# 참고: deploying-server, checking-freshness는 코드베이스 외부 지식이므로 매핑하지 않음
 get_skill_for_path() {
   local path="$1"
   case "$path" in
