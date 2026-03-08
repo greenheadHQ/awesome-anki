@@ -7,7 +7,6 @@ const routes = [
   { path: "/browse", heading: /카드 브라우저/ },
   { path: "/backups", heading: /백업 관리/ },
   { path: "/prompts", heading: /프롬프트 관리/ },
-  { path: "/help", heading: /도움말/ },
 ] as const;
 
 for (const route of routes) {

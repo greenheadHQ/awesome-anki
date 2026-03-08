@@ -9,7 +9,6 @@ import { RouteError } from "./components/RouteError";
 import { BackupManager } from "./pages/BackupManager";
 import { CardBrowser } from "./pages/CardBrowser";
 import { Dashboard } from "./pages/Dashboard";
-import { Help } from "./pages/Help";
 import { PromptManager } from "./pages/PromptManager";
 import { SplitHistory } from "./pages/SplitHistory";
 import { SplitWorkspace } from "./pages/SplitWorkspace";
@@ -36,7 +35,6 @@ export default function App() {
               <Route path="backups" element={<BackupManager />} errorElement={<RouteError />} />
               <Route path="prompts" element={<PromptManager />} errorElement={<RouteError />} />
               <Route path="history" element={<SplitHistory />} errorElement={<RouteError />} />
-              <Route path="help" element={<Help />} errorElement={<RouteError />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -2,7 +2,6 @@ import {
   Clock3,
   FileText,
   FolderOpen,
-  HelpCircle,
   History,
   LayoutDashboard,
   Scissors,
@@ -20,7 +19,6 @@ const navItems = [
   { to: "/history", icon: Clock3, label: "History" },
   { to: "/backups", icon: History, label: "Backups" },
   { to: "/prompts", icon: FileText, label: "Prompts" },
-  { to: "/help", icon: HelpCircle, label: "Help" },
 ];
 
 function NavContent({ onNavClick }: { onNavClick?: () => void }) {

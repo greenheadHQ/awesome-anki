@@ -70,10 +70,10 @@ awesome-anki/
 │   └── web/                  # React 프론트엔드
 │       └── src/
 │           ├── pages/        # Dashboard, SplitWorkspace, CardBrowser,
-│           │                 # BackupManager, PromptManager, SplitHistory, Help
+│           │                 # BackupManager, PromptManager, SplitHistory
 │           ├── components/
 │           │   ├── card/          # 카드 렌더링/편집
-│           │   ├── help/          # 도움말 관련
+│           │   ├── help/          # HelpTooltip 컴포넌트
 │           │   ├── layout/        # 레이아웃 (사이드바 등)
 │           │   ├── ui/            # button, card, dialog, select, table,
 │           │   │                  # popover, model-badge, bottom-sheet, compact-selector
