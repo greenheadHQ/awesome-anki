@@ -1,5 +1,10 @@
 /**
  * HelpTooltip 콘텐츠 정의
+ *
+ * CIR: learnMore 필드를 남기지 않고 인터페이스에서 완전 제거한 이유 —
+ *   모든 learnMore 값이 /help#* 앵커를 가리켰으므로 Help 페이지 제거 시
+ *   100% dead link. 필드만 비우고 렌더링 로직을 남기는 최소 접근 대신,
+ *   인터페이스·값·렌더링을 일괄 제거하여 dead code를 완전히 걷어냄. (PR #86)
  */
 
 export interface HelpItem {
