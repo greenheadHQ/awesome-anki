@@ -302,6 +302,7 @@ export function SplitWorkspace() {
   const mutationMatchesCurrent =
     splitPreview.data &&
     splitPreview.variables?.noteId === selectedCard?.noteId &&
+    splitPreview.variables?.versionId === (activeVersionId || undefined) &&
     splitPreview.variables?.provider === activeProvider &&
     splitPreview.variables?.model === activeModel;
   const previewData: SplitPreviewResult | undefined =
@@ -311,11 +312,12 @@ export function SplitWorkspace() {
   const isLoadingCurrentCard =
     splitPreview.isPending &&
     splitPreview.variables?.noteId === selectedCard?.noteId &&
+    splitPreview.variables?.versionId === (activeVersionId || undefined) &&
     splitPreview.variables?.provider === activeProvider &&
     splitPreview.variables?.model === activeModel;
 
   // 현재 선택된 카드+모델의 에러 메시지 확인
-  const analysisKey = (nid: number) => `${nid}:${activeProvider}/${activeModel}`;
+  const analysisKey = (nid: number) => `${nid}:${activeVersionId || "default"}:${activeProvider}/${activeModel}`;
   const currentCardError = selectedCard
     ? errorAnalyses.get(analysisKey(selectedCard.noteId))
     : undefined;
@@ -797,6 +799,7 @@ export function SplitWorkspace() {
           </div>
         ) : splitPreview.isError &&
           splitPreview.variables?.noteId === selectedCard.noteId &&
+          splitPreview.variables?.versionId === (activeVersionId || undefined) &&
           splitPreview.variables?.provider === activeProvider &&
           splitPreview.variables?.model === activeModel ? (
           <div className="flex flex-col items-center justify-center h-full text-destructive">
