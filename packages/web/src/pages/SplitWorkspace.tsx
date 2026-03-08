@@ -317,7 +317,8 @@ export function SplitWorkspace() {
     splitPreview.variables?.model === activeModel;
 
   // 현재 선택된 카드+모델의 에러 메시지 확인
-  const analysisKey = (nid: number) => `${nid}:${activeVersionId || "default"}:${activeProvider}/${activeModel}`;
+  const analysisKey = (nid: number) =>
+    `${nid}:${activeVersionId || "default"}:${activeProvider}/${activeModel}`;
   const currentCardError = selectedCard
     ? errorAnalyses.get(analysisKey(selectedCard.noteId))
     : undefined;

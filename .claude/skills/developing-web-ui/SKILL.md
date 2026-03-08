@@ -72,7 +72,6 @@ import 시 어느 쪽을 참조하는지 확인 필요. 정규 위치는 `useBac
 | BackupManager | /backups | 백업 목록 + 롤백 |
 | PromptManager | /prompts | 버전/히스토리/실험/메트릭 탭 |
 | SplitHistory | /history | 분할 히스토리 목록 + 세션 상세 |
-| Help | /help | 전체 기능 설명, FAQ, 용어집 |
 
 ## 핵심 컴포넌트
 

@@ -1,5 +1,4 @@
 import { HelpCircle } from "lucide-react";
-import { Link } from "react-router-dom";
 
 import { type HelpItem, helpContent } from "../../lib/helpContent";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -40,14 +39,6 @@ export function HelpTooltip({ helpKey, custom, size = "sm", className = "" }: He
         <div className="space-y-2">
           <h4 className="font-medium text-sm">{content.title}</h4>
           <p className="text-sm text-muted-foreground leading-relaxed">{content.description}</p>
-          {content.learnMore && (
-            <Link
-              to={content.learnMore}
-              className="inline-block text-xs text-primary hover:underline mt-1"
-            >
-              자세히 알아보기 &rarr;
-            </Link>
-          )}
         </div>
       </PopoverContent>
     </Popover>
