@@ -132,10 +132,13 @@ export const queryKeys = {
 ### useQuery (데이터 조회)
 
 ```typescript
-export function useCards(deckName: string, options: CardOptions) {
+export function useCards(
+  deckName: string | null,
+  opts?: { page?: number; limit?: number; filter?: string },
+) {
   return useQuery({
-    queryKey: queryKeys.cards.byDeck(deckName, options),
-    queryFn: () => api.cards.list(deckName, options),
+    queryKey: queryKeys.cards.byDeck(deckName || "", opts),
+    queryFn: () => api.cards.getByDeck(deckName as string, opts),
     enabled: !!deckName,
     staleTime: 30 * 1000,
   });
