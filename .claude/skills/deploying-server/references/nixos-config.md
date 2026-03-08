@@ -35,6 +35,16 @@ homeserver.awesomeAnki = {
 1. **awesome-anki-env** (oneshot): agenix 시크릿 복호화 → `/run/awesome-anki-env` 생성
 2. **podman-awesome-anki**: 컨테이너 실행 (env 서비스 완료 후)
 
+### 자동 업데이트 라벨
+
+```nix
+labels = {
+  "io.containers.autoupdate" = "registry";
+};
+```
+
+`podman auto-update`가 이 라벨로 대상 컨테이너를 식별.
+
 ### tmpfiles 규칙
 
 ```nix
@@ -61,6 +71,39 @@ env 파일(`/run/awesome-anki-env`)에서 로드:
 `constants.nix`에서 관리:
 - 메모리: 1GB
 - CPU: 1 core
+
+## Podman Auto-Update (runtime.nix)
+
+### 서비스/타이머
+
+```nix
+# runtime.nix에 정의
+systemd.services.podman-auto-update = {
+  Type = "oneshot";
+  ExecStart = "${pkgs.podman}/bin/podman auto-update";
+};
+
+systemd.timers.podman-auto-update = {
+  OnCalendar = "*:0/5";  # 5분마다
+  Persistent = true;
+};
+```
+
+### 동작 원리
+
+1. 타이머가 5분마다 `podman auto-update` 실행
+2. `io.containers.autoupdate=registry` 라벨이 있는 컨테이너 대상
+3. 레지스트리에서 `latest` 태그의 digest 비교
+4. 변경 감지 시: stop → pull → start (10-30초 다운타임)
+5. 실패 시 이전 이미지로 자동 롤백
+
+### 확인 명령어
+
+```bash
+systemctl list-timers | grep podman-auto-update  # 타이머 상태
+podman auto-update --dry-run                      # 업데이트 대기 확인
+journalctl -u podman-auto-update -n 20            # 실행 로그
+```
 
 ## Caddy 리버스 프록시 (caddy.nix)
 
