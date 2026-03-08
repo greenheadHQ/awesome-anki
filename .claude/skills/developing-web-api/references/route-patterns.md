@@ -2,6 +2,8 @@
 
 ## 라우트 등록 방식
 
+라우트 파일 내부에서는 prefix 없이 상대 경로로 정의하고, `index.ts`에서 `app.route(prefix, router)` 형태로 등록한다.
+
 ```typescript
 // packages/server/src/index.ts
 import { AppError } from "@anki-splitter/core";
@@ -9,7 +11,7 @@ import { Hono } from "hono";
 
 const app = new Hono();
 
-// Routes
+// Routes -- prefix 기반 등록
 app.route("/api/decks", decks);
 app.route("/api/cards", cards);
 app.route("/api/split", split);
@@ -21,6 +23,11 @@ app.route("/api/embedding", embedding);
 app.route("/api/prompts", prompts);
 app.route("/api/history", history);
 
+// /api/health는 별도로 직접 정의 (인증 면제)
+app.get("/api/health", (c) => {
+  return c.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.onError((err, c) => {
   if (err instanceof AppError) {
     console.error(`[${err.statusCode}] ${err.name}:`, err.message);
@@ -30,8 +37,7 @@ app.onError((err, c) => {
   return c.json({ error: "Internal server error" }, 500);
 });
 
-// 서버 시작 — globalThis로 HMR 이중 바인딩 방지
-// ⚠️ export default { port, fetch } 패턴 사용 금지 (Bun HMR 버그)
+// 서버 시작 -- globalThis로 HMR 이중 바인딩 방지
 if (globalThis.__ankiServer) {
   globalThis.__ankiServer.reload({ fetch: app.fetch });
 } else {
@@ -48,7 +54,7 @@ import { Hono } from "hono";
 
 const app = new Hono();
 
-// try/catch 없이 에러 throw → 글로벌 핸들러가 처리
+// prefix 없이 정의 -- index.ts에서 app.route("/api/new-route", app)로 등록
 app.get("/:id", async (c) => {
   const id = c.req.param("id");
   const resource = await findResource(id);
@@ -76,15 +82,42 @@ export default app;
 
 ## 주요 패턴
 
-### 페이지네이션 (cards.ts)
+### 페이지네이션 (page 기반)
+
+카드 목록은 **page 기반** 페이지네이션을 사용한다. 기본 limit은 **20**.
 
 ```typescript
+// packages/server/src/routes/cards.ts
 app.get("/deck/:name", async (c) => {
   const deckName = decodeURIComponent(c.req.param("name"));
-  const limit = Number(c.req.query("limit") || "50");
-  const offset = Number(c.req.query("offset") || "0");
-  // ...
+  const page = parseInt(c.req.query("page") || "1", 10);
+  const limit = parseInt(c.req.query("limit") || "20", 10);
+  const filter = c.req.query("filter") || "all";
+
+  // ...분석 + 필터 적용...
+
+  const startIndex = (page - 1) * limit;
+  const paginated = filtered.slice(startIndex, startIndex + limit);
+
+  return c.json({
+    cards: paginated,
+    total: filtered.length,
+    page,
+    limit,
+    totalPages: Math.ceil(filtered.length / limit),
+  });
 });
+```
+
+응답 형태:
+```json
+{
+  "cards": [...],
+  "total": 150,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 8
+}
 ```
 
 ### 텍스트 말줄임 (성능)
@@ -93,7 +126,15 @@ app.get("/deck/:name", async (c) => {
 ```typescript
 text: text.slice(0, 200) + (text.length > 200 ? "..." : "")
 ```
-→ 상세 조회는 별도 `GET /api/cards/:noteId` 사용
+-> 상세 조회는 별도 `GET /api/cards/:noteId` 사용
+
+### 분할 반려
+
+```typescript
+// POST /api/split/reject
+// Body: { sessionId: string, rejectionReason: string }
+// 둘 다 필수. 히스토리에 rejected 상태 기록 + 프롬프트 메트릭에 rejected 이벤트 기록
+```
 
 ### 캐시 무효화 주의
 

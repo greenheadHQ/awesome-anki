@@ -52,13 +52,24 @@ calculateCost(inputTokens, outputTokens, pricing):
 
 ## 예산 가드 로직
 
-### 서버 사이드 예산 캡
+### getServerBudgetCapUsd()
 
-```text
-getServerBudgetCapUsd():
-  1. ANKI_SPLITTER_BUDGET_CAP_USD 환경변수 파싱
-  2. 유효하지 않으면 (NaN, <= 0) 기본값 $1.0
+서버 사이드 예산 캡을 반환하는 함수. `GET /api/llm/models` 응답의 `budgetCapUsd` 필드에 사용됨.
+
+```typescript
+// pricing.ts
+export function getServerBudgetCapUsd(): number {
+  const envCap = process.env.ANKI_SPLITTER_BUDGET_CAP_USD;
+  if (envCap) {
+    const parsed = Number.parseFloat(envCap);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return DEFAULT_SERVER_BUDGET_CAP_USD; // 1.0
+}
 ```
+
+- 환경변수 `ANKI_SPLITTER_BUDGET_CAP_USD`가 유효한 양수이면 해당 값 반환
+- 그 외 (NaN, <= 0, 미설정) → 기본값 $1.0
 
 ### 이중 가드 (checkBudget)
 

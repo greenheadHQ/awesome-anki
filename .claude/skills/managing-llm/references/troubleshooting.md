@@ -51,12 +51,20 @@
 - LLM 호출 자체는 정상 수행 (가격표에 없어도 API 호출은 가능)
 - 프론트엔드에서 비용 표시: `"--"` (null 체크)
 
+## Gemini 빈 응답
+
+- **에러**: `"LLM 응답이 비어있습니다 (provider: gemini, model: ${model})"`
+- **발생 시점**: `GeminiAdapter.generateContent()`에서 `response.text`가 falsy일 때
+- **원인**: 모델이 빈 응답을 반환하는 경우 (프롬프트가 너무 짧거나, safety filter 등)
+- **해결**: 프롬프트 내용 검토, 모델 변경 시도
+
 ## OpenAI JSON 모드 파싱 실패
 
 - 첫 응답의 JSON 파싱 실패 시 temperature 0.1로 1회 재시도
-- 재시도 성공: 토큰 사용량은 두 호출 합산
+- 재시도 성공: 토큰 사용량은 두 호출 합산 (첫 시도 + 재시도)
 - 재시도 실패: `JSON.parse` 에러가 호출부로 전파
 - 원인: markdown code fence 감싸기 -> `normalizeResponseText()`에서 제거 시도
+- 재시도 temperature가 0.1인 이유: deterministic하게 만들어 JSON 구조 안정성 높임
 
 ## OpenAI 모델 거부 (refusal)
 

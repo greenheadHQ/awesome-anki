@@ -21,25 +21,39 @@
 let globalCache: ValidationCache = loadCacheFromStorage();
 const listeners = new Set<() => void>();
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  return () => listeners.delete(callback);
 }
 
 function getSnapshot() {
   return globalCache;
 }
 
-function updateCache(noteId: number, result: ValidationResult) {
-  globalCache = { ...globalCache, [noteId]: { result, timestamp: Date.now() } };
+function updateGlobalCache(updater: (prev: ValidationCache) => ValidationCache) {
+  globalCache = updater(globalCache);
   saveCacheToStorage(globalCache);
-  listeners.forEach(l => l()); // 모든 구독자에게 알림
+  for (const listener of listeners) { listener(); }
 }
 
 export function useValidationCache() {
   const cache = useSyncExternalStore(subscribe, getSnapshot);
-  return { cache, updateCache };
+  return {
+    getValidation,          // (noteId) => CachedValidation | null
+    setValidation,          // (noteId, AllValidationResult) => void
+    clearValidation,        // (noteId) => void
+    clearAllValidations,    // () => void
+    getValidationStatuses,  // (noteIds) => Map<number, ValidationStatus | null>
+    uncachedCount,          // (noteIds) => number
+    cacheSize,              // number
+  };
 }
+
+// 단일 카드 검증 mutation (TanStack Query)
+export function useValidateCard(deckName: string | null) { ... }
+
+// 일괄 검증 mutation (순차 실행, API 부하 방지)
+export function useBatchValidate(deckName: string | null) { ... }
 ```
 
 ### 핵심 포인트
@@ -47,3 +61,4 @@ export function useValidationCache() {
 - `useSyncExternalStore`는 React 외부 상태를 구독하여 모든 컴포넌트에서 동일한 상태 공유
 - localStorage 저장/로드로 페이지 새로고침 시에도 캐시 유지
 - `listeners` Set으로 상태 변경 시 모든 구독 컴포넌트 리렌더링
+- `useValidateCard`와 `useBatchValidate`는 TanStack Query `useMutation` 기반 — 검증 성공 시 자동으로 캐시 업데이트
