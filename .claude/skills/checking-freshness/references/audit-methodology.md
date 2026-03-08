@@ -21,7 +21,7 @@ Opus 4.6 에이전트를 돌려 assertion 기반 채점 수행.
 당시에는 스킬이 많을수록 좋다고 판단.
 
 **v2** (3155e73, PR #80): eval 결과 분석 — with_skill 97% vs without_skill 92%,
-전체 delta +0.06 (5%p). 9/12 스킬이 delta=0.
+전체 delta +0.05 (5%p). 9/12 스킬이 delta=0.
 - delta > 0 스킬: deploying-server(+3), tracking-todo(+1), checking-freshness(+1)
 - delta = 0 스킬 (9개): understanding-project, working-with-anki, splitting-cards,
   validating-cards, managing-embeddings, managing-prompts, managing-llm,
