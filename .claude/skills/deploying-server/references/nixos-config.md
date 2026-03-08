@@ -35,15 +35,15 @@ homeserver.awesomeAnki = {
 1. **awesome-anki-env** (oneshot): agenix 시크릿 복호화 → `/run/awesome-anki-env` 생성
 2. **podman-awesome-anki**: 컨테이너 실행 (env 서비스 완료 후)
 
-### 자동 업데이트 라벨
+### 자동 업데이트 서비스
 
-```nix
-labels = {
-  "io.containers.autoupdate" = "registry";
-};
-```
+`awesome-anki-auto-update` (oneshot + 5분 타이머):
+1. `podman inspect`로 현재 이미지 digest 확인
+2. `podman pull`로 최신 이미지 다운로드
+3. digest 변경 시 `systemctl restart podman-awesome-anki`
 
-`podman auto-update`가 이 라벨로 대상 컨테이너를 식별.
+`podman auto-update` 대신 커스텀 스크립트 사용 — NixOS `oci-containers`의
+systemd 라이프사이클과 충돌 방지.
 
 ### tmpfiles 규칙
 
@@ -72,37 +72,37 @@ env 파일(`/run/awesome-anki-env`)에서 로드:
 - 메모리: 1GB
 - CPU: 1 core
 
-## Podman Auto-Update (runtime.nix)
+## 이미지 자동 업데이트 (awesome-anki.nix)
 
 ### 서비스/타이머
 
 ```nix
-# runtime.nix에 정의
-systemd.services.podman-auto-update = {
+# awesome-anki.nix에 정의 (컨테이너별 전용)
+systemd.services.awesome-anki-auto-update = {
   Type = "oneshot";
-  ExecStart = "${pkgs.podman}/bin/podman auto-update";
+  ExecStart = autoUpdateScript;
+  # → podman inspect (현재 digest) → podman pull → digest 비교
+  # → 변경 시 systemctl restart podman-awesome-anki
 };
 
-systemd.timers.podman-auto-update = {
+systemd.timers.awesome-anki-auto-update = {
   OnCalendar = "*:0/5";  # 5분마다
   Persistent = true;
 };
 ```
 
-### 동작 원리
+### 왜 podman auto-update를 사용하지 않는가
 
-1. 타이머가 5분마다 `podman auto-update` 실행
-2. `io.containers.autoupdate=registry` 라벨이 있는 컨테이너 대상
-3. 레지스트리에서 `latest` 태그의 digest 비교
-4. 변경 감지 시: stop → pull → start (10-30초 다운타임)
-5. 실패 시 이전 이미지로 자동 롤백
+NixOS `oci-containers`는 systemd 서비스로 컨테이너를 관리한다.
+`podman auto-update`는 컨테이너를 직접 재시작(`podman restart`)하는데,
+이는 systemd 서비스의 `ExecStart`/`ExecStop` 라이프사이클과 충돌한다.
+커스텀 스크립트에서 `systemctl restart`를 사용하면 systemd가 올바르게 관리.
 
 ### 확인 명령어
 
 ```bash
-systemctl list-timers | grep podman-auto-update  # 타이머 상태
-podman auto-update --dry-run                      # 업데이트 대기 확인
-journalctl -u podman-auto-update -n 20            # 실행 로그
+systemctl list-timers | grep awesome-anki-auto-update  # 타이머 상태
+journalctl -u awesome-anki-auto-update -n 20           # 실행 로그
 ```
 
 ## Caddy 리버스 프록시 (caddy.nix)

@@ -55,26 +55,21 @@ sudo chown -R 1001:1001 /var/lib/docker-data/awesome-anki/output
 
 ## 자동 업데이트 문제
 
-### podman auto-update가 실행되지 않음
+### 자동 업데이트가 실행되지 않음
 
 ```bash
 # 1. 타이머 상태 확인
-systemctl list-timers | grep podman-auto-update
+systemctl list-timers | grep awesome-anki-auto-update
 
 # 2. 서비스 로그
-journalctl -u podman-auto-update -n 20
+journalctl -u awesome-anki-auto-update -n 20
 
 # 3. 수동 실행 테스트
-podman auto-update --dry-run
-
-# 4. 라벨 확인
-podman inspect awesome-anki --format '{{.Config.Labels}}'
-# 기대값: map[io.containers.autoupdate:registry ...]
+systemctl start awesome-anki-auto-update
 ```
 
 **원인 패턴**:
-- 타이머 미활성화 → `systemctl enable --now podman-auto-update.timer`
-- 라벨 누락 → `awesome-anki.nix`에 `labels` 설정 확인 후 `nixos-rebuild switch`
+- 타이머 미활성화 → `systemctl enable --now awesome-anki-auto-update.timer`
 - 네트워크 오류 → `podman pull ghcr.io/greenheadhq/awesome-anki:latest` 수동 시도
 
 ### auto-update 후 컨테이너 비정상
