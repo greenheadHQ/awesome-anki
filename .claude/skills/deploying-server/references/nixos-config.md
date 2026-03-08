@@ -35,6 +35,16 @@ homeserver.awesomeAnki = {
 1. **awesome-anki-env** (oneshot): agenix 시크릿 복호화 → `/run/awesome-anki-env` 생성
 2. **podman-awesome-anki**: 컨테이너 실행 (env 서비스 완료 후)
 
+### 자동 업데이트 서비스
+
+`awesome-anki-auto-update` (oneshot + 5분 타이머):
+1. `podman inspect`로 현재 이미지 digest 확인
+2. `podman pull`로 최신 이미지 다운로드
+3. digest 변경 시 `systemctl restart podman-awesome-anki`
+
+`podman auto-update` 대신 커스텀 스크립트 사용 — NixOS `oci-containers`의
+systemd 라이프사이클과 충돌 방지.
+
 ### tmpfiles 규칙
 
 ```nix
@@ -61,6 +71,39 @@ env 파일(`/run/awesome-anki-env`)에서 로드:
 `constants.nix`에서 관리:
 - 메모리: 1GB
 - CPU: 1 core
+
+## 이미지 자동 업데이트 (awesome-anki.nix)
+
+### 서비스/타이머
+
+```nix
+# awesome-anki.nix에 정의 (컨테이너별 전용)
+systemd.services.awesome-anki-auto-update = {
+  Type = "oneshot";
+  ExecStart = autoUpdateScript;
+  # → podman inspect (현재 digest) → podman pull → digest 비교
+  # → 변경 시 systemctl restart podman-awesome-anki
+};
+
+systemd.timers.awesome-anki-auto-update = {
+  OnCalendar = "*:0/5";  # 5분마다
+  Persistent = true;
+};
+```
+
+### 왜 podman auto-update를 사용하지 않는가
+
+NixOS `oci-containers`는 systemd 서비스로 컨테이너를 관리한다.
+`podman auto-update`는 컨테이너를 직접 재시작(`podman restart`)하는데,
+이는 systemd 서비스의 `ExecStart`/`ExecStop` 라이프사이클과 충돌한다.
+커스텀 스크립트에서 `systemctl restart`를 사용하면 systemd가 올바르게 관리.
+
+### 확인 명령어
+
+```bash
+systemctl list-timers | grep awesome-anki-auto-update  # 타이머 상태
+journalctl -u awesome-anki-auto-update -n 20           # 실행 로그
+```
 
 ## Caddy 리버스 프록시 (caddy.nix)
 

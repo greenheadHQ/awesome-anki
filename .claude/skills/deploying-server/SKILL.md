@@ -84,10 +84,28 @@ caddy-env → caddy       awesome-anki-env → podman-awesome-anki
 
 ## CI/CD 파이프라인
 
-1. `v*` 태그 push → GitHub Actions 트리거
-2. Docker Buildx로 이미지 빌드
+1. `main` push 또는 `v*` 태그 push → GitHub Actions 트리거
+2. Docker Buildx로 이미지 빌드 (GHA 캐시)
 3. `ghcr.io/greenheadhq/awesome-anki` 레지스트리에 push
-4. MiniPC에서 수동으로 `podman pull` + 컨테이너 재시작
+4. MiniPC `awesome-anki-auto-update` 타이머 (5분 주기)가 `latest` digest 변경 감지 → `systemctl restart`로 교체
+
+### 태그 전략
+
+| 트리거 | 생성 태그 |
+|--------|----------|
+| main push | `latest`, `sha-<hash>` |
+| `v1.2.3` tag | `1.2.3`, `1.2`, `latest` |
+| `v1.2.3-alpha` tag | `1.2.3-alpha` (latest 없음) |
+
+### 자동 배포 흐름
+
+```
+main push → GitHub Actions (~3분) → GHCR latest 갱신
+  → MiniPC awesome-anki-auto-update (5분 주기) → digest 변경 감지
+  → podman pull → systemctl restart (10-30초 다운타임)
+```
+
+실패 시 이전 이미지로 자동 롤백. Tailscale 내부망 전용이므로 짧은 다운타임 수용.
 
 ## 빠른 작업 명령어
 
@@ -103,7 +121,12 @@ journalctl -u podman-awesome-anki -n 50
 # 재시작
 systemctl restart podman-awesome-anki
 
-# 이미지 업데이트
+# 이미지 업데이트 (자동)
+# 5분마다 자동 실행 — 수동 개입 불필요
+systemctl status awesome-anki-auto-update.timer  # 타이머 상태
+journalctl -u awesome-anki-auto-update -n 10     # 업데이트 로그
+
+# 이미지 업데이트 (수동 — 긴급 시)
 podman pull ghcr.io/greenheadhq/awesome-anki:latest
 systemctl restart podman-awesome-anki
 ```

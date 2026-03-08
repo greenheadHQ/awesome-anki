@@ -33,26 +33,43 @@
 `.github/workflows/publish.yml`:
 
 ```yaml
-trigger: push tags v*
+trigger: push branches [main] / tags v*
 registry: ghcr.io
 image: ghcr.io/greenheadhq/awesome-anki
+concurrency: publish-container (직렬화, cancel 안 함)
 ```
 
 ### 태그 전략
 
-- `v1.2.3` → `1.2.3`, `1.2`, `latest`
-- Docker Buildx + GitHub Actions 캐시 사용
+| 트리거 | 생성 태그 |
+|--------|----------|
+| main push | `latest`, `sha-<commit>` |
+| `v1.2.3` tag | `1.2.3`, `1.2`, `latest` |
+| `v1.2.3-alpha` tag | `1.2.3-alpha` (latest 없음) |
 
-### 배포 순서
+- Docker Buildx + GitHub Actions 캐시 사용 (`type=gha,mode=max`)
+- `docker/metadata-action@v5`가 조건부 태깅 처리
+
+### 배포 순서 (자동)
 
 1. 코드 변경 → `main` 머지
-2. `git tag v1.x.x && git push --tags`
-3. GitHub Actions가 이미지 빌드 + push
-4. MiniPC에서 수동 pull + 재시작:
-   ```bash
-   podman pull ghcr.io/greenheadhq/awesome-anki:latest
-   systemctl restart podman-awesome-anki
-   ```
+2. GitHub Actions가 자동으로 이미지 빌드 + push (`latest` + `sha-*`)
+3. MiniPC `podman-auto-update` 타이머 (5분 주기)가 `latest` 변경 감지
+4. 자동으로 stop → pull → start (10-30초 다운타임)
+5. 실패 시 이전 이미지로 자동 롤백
+
+### 배포 순서 (수동 — 긴급 시)
+
+```bash
+podman pull ghcr.io/greenheadhq/awesome-anki:latest
+systemctl restart podman-awesome-anki
+```
+
+### 배포 순서 (태그 릴리스)
+
+1. `git tag v1.x.x && git push --tags`
+2. GitHub Actions가 semver 태그 + `latest` 빌드
+3. 이후 자동 배포 동일
 
 ## 로컬 개발 vs 프로덕션
 
