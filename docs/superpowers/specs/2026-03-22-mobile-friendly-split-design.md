@@ -299,21 +299,173 @@ operation에 따라 다른 뷰 렌더링:
 
 ---
 
+## 9. 마이그레이션 전략
+
+### Remote systemPrompt SoT
+
+현재 systemPrompt는 `/api/prompts/system` 경로로 원격 저장되며 `getRemoteSystemPromptPayload()`로 조회한다. 하드코딩된 `SYSTEM_PROMPT`는 폴백 역할.
+
+**마이그레이션 방법:**
+1. 하드코딩 `SYSTEM_PROMPT`(prompts.ts)를 새 mobile-friendly 버전으로 교체
+2. 서버 시작 시 remote systemPrompt의 **해시**를 비교하여 구버전이면 자동 갱신하는 마이그레이션 로직 추가 (`seedSystemPrompt`)
+3. 사용자가 remote systemPrompt를 커스터마이즈한 경우: 자동 덮어쓰지 않고, 서버 로그에 경고 출력. UI에서 "시스템 프롬프트가 새 operation 모델과 호환되지 않을 수 있습니다" 배너 표시
+
+### `buildSplitPromptFromTemplate` 폴백 스키마
+
+`SPLIT_RESPONSE_FORMAT` 폴백 함수가 기존 `shouldSplit`/`splitReason` 스키마를 내보낸다. 이를 새 discriminated union (`operation`/`operationReason`) 스키마로 교체하고 `OPTIMIZATION_RESPONSE_FORMAT`으로 이름 변경.
+
+### 기존 Prompt Version 호환
+
+`PromptVersion.splitPromptTemplate`에 저장된 기존 버전들은 구 스키마를 포함한다.
+
+**전략:**
+1. `validateOperationResponse`에 **레거시 폴백** 추가: `shouldSplit` 필드가 감지되면 자동 변환 (`shouldSplit: true` + `splitCards.length > 1` → `operation: "split"`, `shouldSplit: true` + `splitCards.length <= 1` → `operation: "compact"`, `shouldSplit: false` → `operation: "skip"`)
+2. 기존 프롬프트 버전을 `archived` 상태로 마킹
+3. 새 기본 프롬프트 버전 생성 (새 스키마 포함)
+4. `PromptConfig` 타입에서 `maxClozeChars`/`targetClozeChars`/`maxClozePerCard` 필드를 `@deprecated` 마킹 (향후 제거)
+
+### `buildAnalysisPrompt` / `analyzeCardForSplit`
+
+이 함수들은 구 atomic 기준(80자 체크, 열거 감지 등)을 사용한다. 동일하게 mobile-friendly 기준으로 개편하거나, 사용처가 없으면 제거. 구현 시 사용처를 확인 후 결정.
+
+---
+
+## 10. 비용 추정 변경
+
+### `estimateSplitCost` → `estimateOptimizationCost`
+
+- `buildOptimizationPrompt` 기반으로 입력 토큰 추정 (새 프롬프트가 기존보다 짧을 수 있음)
+- `ESTIMATED_OUTPUT_INPUT_RATIO = 0.7` 휴리스틱: compact 응답은 split보다 짧으므로 보수적 추정은 그대로 유지 (worst-case = `SPLIT_MAX_OUTPUT_TOKENS`)
+- 함수명, import 경로만 변경. 로직은 동일.
+
+---
+
+## 11. 웹 API 타입 상세
+
+### `SplitPreviewResult` → `OptimizationPreviewResult`
+
+```typescript
+// 공통 필드
+interface PreviewResultBase {
+  sessionId?: string;
+  noteId: number;
+  operation: "split" | "compact" | "skip";
+  operationReason: string;
+  executionTimeMs?: number;
+  tokenUsage?: TokenUsage;
+  aiModel?: string;
+  provider?: string;
+  estimatedCost?: CostEstimate;
+  actualCost?: ActualCost;
+  historyWarning?: string;
+}
+
+// Split 프리뷰
+interface SplitPreviewResult extends PreviewResultBase {
+  operation: "split";
+  originalText: string;
+  splitCards: SplitCardPayload[];
+  mainCardIndex: number;
+}
+
+// Compact 프리뷰
+interface CompactPreviewResult extends PreviewResultBase {
+  operation: "compact";
+  originalText: string;
+  compactedContent: string;
+  auditReport: {
+    preserved: string[];
+    removed: string[];
+    transformed: string[];
+  };
+}
+
+// Skip 프리뷰
+interface SkipPreviewResult extends PreviewResultBase {
+  operation: "skip";
+}
+
+type OptimizationPreviewResult =
+  | SplitPreviewResult
+  | CompactPreviewResult
+  | SkipPreviewResult;
+```
+
+### `POST /api/split/apply` Compact 요청 페이로드
+
+```typescript
+// Split apply (기존)
+interface SplitApplyRequest {
+  sessionId: string;
+  operation: "split";
+  noteId: number;
+  deckName: string;
+  splitCards: Array<{ title: string; content: string; ... }>;
+  mainCardIndex: number;
+}
+
+// Compact apply (신규)
+interface CompactApplyRequest {
+  sessionId: string;
+  operation: "compact";
+  noteId: number;
+  deckName: string;
+  compactedContent: string;
+}
+
+type ApplyRequest = SplitApplyRequest | CompactApplyRequest;
+```
+
+Compact apply 응답: `newNoteIds`는 빈 배열 `[]`. `mainNoteId`는 원본 noteId.
+
+---
+
+## 12. 텍스트 길이 계산
+
+`textLength` 산출 알고리즘:
+1. HTML 태그 제거 (`<span>`, `<b>`, `<table>` 등)
+2. Cloze 마커 정규화: `{{c1::답::힌트}}` → `답` (답만 카운트)
+3. Callout 마커 제거 (`::: tip`, `::: toggle` 등)
+4. 연속 공백/줄바꿈 정규화 (1칸으로)
+5. 남은 순수 텍스트의 `.length` 반환
+
+`packages/core/src/parser/` 하위에 `text-length.ts` 유틸리티 추가.
+
+---
+
+## 13. Rejection Reasons 업데이트
+
+### 추가
+- `"over-compressed"` — 과도한 압축 (compact 전용)
+- `"info-lost"` — 핵심 정보 누락 (compact 전용)
+
+### 재검토
+- `"too-granular"` — 유지 (mobile-friendly에서도 과도 분할 가능)
+- `"char-exceeded"` — 제거 (하드 리밋 없으므로 의미 없음)
+
+변경 위치: `packages/core` REJECTION_REASONS 상수 + `packages/web` SplitWorkspace.tsx 로컬 상수.
+
+---
+
 ## 영향 범위 요약
 
 | 패키지 | 파일 | 변경 내용 |
 |--------|------|-----------|
 | `core` | `splitter/atomic-converter.ts` | `analyzeForSplit` → `analyzeForOptimization`, 텍스트 길이 트리거 추가 |
-| `core` | `gemini/prompts.ts` | `SYSTEM_PROMPT` 전면 개편, `buildSplitPrompt` → `buildOptimizationPrompt` |
-| `core` | `gemini/validator.ts` | discriminated union 스키마, `validateOperationResponse` |
-| `core` | `gemini/client.ts` | `requestCardSplit` → `requestCardOptimization`, 반환 타입 변경 |
+| `core` | `parser/text-length.ts` | 신규: HTML/Cloze/Callout 제거 후 순수 텍스트 길이 계산 유틸리티 |
+| `core` | `gemini/prompts.ts` | `SYSTEM_PROMPT` 전면 개편, `buildSplitPrompt` → `buildOptimizationPrompt`, `buildSplitPromptFromTemplate` → `buildOptimizationPromptFromTemplate`, `SPLIT_RESPONSE_FORMAT` → `OPTIMIZATION_RESPONSE_FORMAT`, `buildAnalysisPrompt` mobile-friendly 기준으로 개편 |
+| `core` | `gemini/validator.ts` | discriminated union 스키마, `validateOperationResponse`, 레거시 `shouldSplit` 폴백 변환 |
+| `core` | `gemini/client.ts` | `requestCardSplit` → `requestCardOptimization`, `estimateSplitCost` → `estimateOptimizationCost`, `analyzeCardForSplit` 기준 개편, 반환 타입 변경 |
+| `core` | `prompt-version/types.ts` | `PromptConfig`의 char limit 필드 `@deprecated` 마킹, `REJECTION_REASONS` 업데이트 (`char-exceeded` 제거, `over-compressed`/`info-lost` 추가) |
 | `core` | export 진입점 | 이름 변경된 함수/타입 re-export |
-| `server` | `routes/split.ts` | preview/apply 라우트에 operation 분기 추가 |
-| `server` | `history/types.ts` | `operation` 필드 추가, `CompactPayload` 타입 |
-| `server` | `history/store.ts` | compact 데이터 저장 로직 |
-| `server` | DB 마이그레이션 | `operation` 컬럼 추가 |
-| `web` | `pages/SplitWorkspace.tsx` | operation별 프리뷰 뷰 분기, compact diff 뷰 |
+| `server` | `routes/split.ts` | preview/apply 라우트에 operation 분기 추가, compact apply 경로 (updateNoteFields) |
+| `server` | `routes/cards.ts` | `CardSummary.analysis` 타입 변경: `canSplit` → `needsOptimization`, `estimatedCards` 제거, `reasons`/`textLength` 추가 |
+| `server` | `history/types.ts` | `operation` 필드 추가, `CompactPayload` 타입, `SplitGeneratedPayload.splitCards` optional, `SplitCardPayload.charCount` 제거 |
+| `server` | `history/store.ts` | compact 데이터 저장 로직, `markGenerated` compact 분기 |
+| `server` | DB 마이그레이션 | `operation` 컬럼 추가, 기존 레코드 `'split'` 기본값 |
+| `server` | systemPrompt 마이그레이션 | 서버 시작 시 remote systemPrompt 해시 비교 → 구버전이면 갱신 |
+| `web` | `pages/SplitWorkspace.tsx` | operation별 프리뷰 뷰 분기, compact diff 뷰, `REJECTION_REASONS` 업데이트, `SplitCandidate.analysis` 타입 변경 |
 | `web` | `hooks/useSplit.ts` | apply 요청에 operation 필드 |
-| `web` | `lib/api.ts` | `SplitPreviewResult` 타입 확장 |
-| `web` | `components/card/DiffViewer` | compact diff 뷰 + 감사 보고서 패널 |
+| `web` | `lib/api.ts` | `SplitPreviewResult` → `OptimizationPreviewResult` discriminated union, `CardSummary.analysis` 타입 변경 |
+| `web` | `components/card/DiffViewer` | compact diff 뷰 + 감사 보고서 패널 (AuditReportPanel) |
 | `web` | 이력 페이지 | operation 배지, compact 상세 뷰 |
