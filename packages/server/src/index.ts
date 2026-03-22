@@ -20,6 +20,7 @@ import { logger } from "hono/logger";
 import { getSplitHistoryStore } from "./history/store.js";
 import backup from "./routes/backup.js";
 import cards from "./routes/cards.js";
+import clinic from "./routes/clinic.js";
 import decks from "./routes/decks.js";
 import embedding from "./routes/embedding.js";
 import history from "./routes/history.js";
@@ -27,7 +28,6 @@ import llm from "./routes/llm.js";
 import media from "./routes/media.js";
 import prompts from "./routes/prompts.js";
 import split from "./routes/split.js";
-import clinic from "./routes/clinic.js";
 
 const app = new Hono();
 const API_KEY = process.env.ANKI_SPLITTER_API_KEY;
