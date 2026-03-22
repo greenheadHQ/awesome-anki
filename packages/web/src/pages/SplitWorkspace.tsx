@@ -157,9 +157,11 @@ function CardStatusIcon({ status }: { status: CardAnalysisStatus }) {
 function RejectPopover({
   canReject,
   onReject,
+  operation,
 }: {
   canReject: boolean;
   onReject: (reason: string) => void;
+  operation?: "split" | "compact" | "skip";
 }) {
   const [open, setOpen] = useState(false);
   const [showOther, setShowOther] = useState(false);
@@ -190,7 +192,7 @@ function RejectPopover({
           className="border-red-200 text-red-600 hover:bg-red-50"
         >
           <X className="w-4 h-4 mr-1" />
-          분할 반려
+          {operation === "compact" ? "압축 반려" : "분할 반려"}
           <ChevronDown className="w-3 h-3 ml-1" />
         </Button>
       </PopoverTrigger>
@@ -1268,7 +1270,7 @@ export function SplitWorkspace() {
               {selectedCard && hasApplicablePreview && (
                 <div className="border-t p-3 shrink-0">
                   <div className="flex gap-2">
-                    <RejectPopover canReject={canReject} onReject={handleReject} />
+                    <RejectPopover canReject={canReject} onReject={handleReject} operation={previewData?.operation} />
                     <Button onClick={handleApply} disabled={isBusy} className="flex-1">
                       {splitApply.isPending ? (
                         <>
@@ -1318,7 +1320,7 @@ export function SplitWorkspace() {
                 <div className="px-4 py-3 border-t shrink-0">
                   <div className="flex gap-2">
                     {/* 반려 버튼 */}
-                    <RejectPopover canReject={canReject} onReject={handleReject} />
+                    <RejectPopover canReject={canReject} onReject={handleReject} operation={previewData?.operation} />
 
                     {/* 적용 버튼 */}
                     <Button onClick={handleApply} disabled={isBusy} className="flex-1">

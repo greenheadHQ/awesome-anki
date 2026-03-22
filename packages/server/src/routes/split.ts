@@ -417,6 +417,7 @@ app.post("/preview", async (c) => {
         try {
           const historyStore = await getSplitHistoryStore();
           historyStore.markNotSplit(sessionId, {
+            operation: "skip",
             splitReason: aiResult.operationReason || "최적화가 필요하지 않다고 판단했습니다.",
             executionTimeMs,
             aiModel: aiResult.modelName,
@@ -491,6 +492,23 @@ app.post("/apply", async (c) => {
 
   if (!sessionId) {
     throw new ValidationError("sessionId가 필요합니다.");
+  }
+
+  // noteId 일치 검증 — 세션의 noteId와 요청의 noteId가 다르면 거부
+  try {
+    const historyStore = await getSplitHistoryStore();
+    const sessionMeta = historyStore.getSessionMetadata(sessionId);
+    if (sessionMeta && sessionMeta.noteId !== noteId) {
+      throw new ValidationError(`세션의 noteId(${sessionMeta.noteId})와 요청의 noteId(${noteId})가 일치하지 않습니다.`);
+    }
+  } catch (e) {
+    if (e instanceof ValidationError) throw e;
+    // history store unavailable — proceed without check
+  }
+
+  // compactedContent 길이 제한
+  if (operation === "compact" && compactedContent && compactedContent.length > 1_000_000) {
+    throw new ValidationError("compactedContent가 최대 허용 길이를 초과합니다.");
   }
 
   let backupId: string | undefined;

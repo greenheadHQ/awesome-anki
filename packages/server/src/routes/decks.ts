@@ -2,7 +2,7 @@
  * Decks API Routes
  */
 
-import { analyzeForSplit, extractTextField, getDeckNames, getDeckNotes } from "@anki-splitter/core";
+import { analyzeForOptimization, extractTextField, getDeckNames, getDeckNotes } from "@anki-splitter/core";
 import { Hono } from "hono";
 
 const app = new Hono();
@@ -28,9 +28,9 @@ app.get("/:name/stats", async (c) => {
 
   for (const note of notes) {
     const text = extractTextField(note);
-    const analysis = analyzeForSplit(text);
+    const analysis = analyzeForOptimization(text);
 
-    if (analysis.canSplit) {
+    if (analysis.needsOptimization) {
       splitCandidates++;
     }
   }

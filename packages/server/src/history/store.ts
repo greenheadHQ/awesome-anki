@@ -624,6 +624,7 @@ export class SplitHistoryStore {
     const stmt = this.db.query(
       `UPDATE split_sessions
        SET status = 'not_split',
+           operation = COALESCE(?, operation),
            split_reason = ?,
            ai_model = ?,
            provider = COALESCE(?, provider),
@@ -639,6 +640,7 @@ export class SplitHistoryStore {
 
     this.db.transaction(() => {
       const result = stmt.run(
+        payload.operation || null,
         payload.splitReason || null,
         payload.aiModel || null,
         payload.provider || null,
@@ -887,19 +889,21 @@ export class SplitHistoryStore {
 
   getSessionMetadata(sessionId: string): {
     sessionId: string;
+    noteId: number;
     promptVersionId?: string;
     splitCards: Array<{ content: string; charCount?: number; title?: string }>;
   } | null {
     const stmt = this.db.query<
-      Pick<SessionRow, "id" | "prompt_version_id" | "split_cards_json">,
+      Pick<SessionRow, "id" | "note_id" | "prompt_version_id" | "split_cards_json">,
       [string]
-    >("SELECT id, prompt_version_id, split_cards_json FROM split_sessions WHERE id = ?");
+    >("SELECT id, note_id, prompt_version_id, split_cards_json FROM split_sessions WHERE id = ?");
 
     const row = stmt.get(sessionId);
     if (!row) return null;
 
     return {
       sessionId: row.id,
+      noteId: row.note_id,
       promptVersionId: row.prompt_version_id ?? undefined,
       splitCards: safeJsonParse(row.split_cards_json, []),
     };

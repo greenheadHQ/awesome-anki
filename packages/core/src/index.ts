@@ -72,7 +72,6 @@ export {
 } from "./errors.js";
 // Gemini exports
 export {
-  analyzeCardForSplit,
   type CardForSplit,
   estimateOptimizationCost,
   estimateSplitCost,
@@ -98,7 +97,6 @@ export {
   hasHint,
 } from "./gemini/cloze-enhancer.js";
 export {
-  buildAnalysisPrompt,
   buildOptimizationPrompt,
   buildOptimizationPromptFromTemplate,
   buildSplitPrompt,
@@ -106,14 +104,12 @@ export {
   SYSTEM_PROMPT,
 } from "./gemini/prompts.js";
 export {
-  type AnalysisResponse,
   type CompactOperationResponse,
   type OperationResponse,
   type SkipOperationResponse,
   type SplitOperationResponse,
   type SplitResponse,
   validateAllCardsHaveCloze,
-  validateAnalysisResponse,
   validateClozePresence,
   validateOperationResponse,
   validateSplitResponse,

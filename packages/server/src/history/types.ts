@@ -127,6 +127,7 @@ export interface SplitNotSplitPayload {
   executionTimeMs?: number;
   tokenUsage?: TokenUsage;
   aiResponse?: Record<string, unknown> | null;
+  operation?: "split" | "compact" | "skip";
 }
 
 export interface CompactPayload {

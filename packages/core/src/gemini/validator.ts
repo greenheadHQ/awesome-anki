@@ -80,19 +80,9 @@ const SplitResponseSchema = z.object({
   qualityChecks: LegacyQualityChecksSchema,
 });
 
-// 분석 응답 스키마
-const AnalysisResponseSchema = z.object({
-  needsSplit: z.boolean(),
-  confidence: z.number().min(0).max(1).optional(),
-  reason: z.string(),
-  suggestedSplitCount: z.number().int().min(0),
-  splitPoints: z.array(z.string()).optional(),
-});
-
 // ── Exported types ────────────────────────────────────────────
 export type SplitCard = z.infer<typeof SplitCardSchema>;
 export type SplitResponse = z.infer<typeof SplitResponseSchema>;
-export type AnalysisResponse = z.infer<typeof AnalysisResponseSchema>;
 
 export type OperationResponse = z.infer<typeof OperationResponseSchema>;
 export type SplitOperationResponse = z.infer<typeof SplitSchema>;
@@ -224,20 +214,6 @@ export function validateSplitResponse(data: unknown): SplitResponse {
     throw new Error(
       `mainCardIndex(${result.data.mainCardIndex})가 splitCards 범위를 벗어났습니다.`,
     );
-  }
-
-  return result.data;
-}
-
-/**
- * 분석 응답 검증
- */
-export function validateAnalysisResponse(data: unknown): AnalysisResponse {
-  const result = AnalysisResponseSchema.safeParse(data);
-
-  if (!result.success) {
-    const errors = result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ");
-    throw new Error(`분석 응답 검증 실패: ${errors}`);
   }
 
   return result.data;
