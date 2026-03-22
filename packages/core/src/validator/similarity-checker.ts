@@ -44,6 +44,7 @@ function normalizeText(text: string): string {
   return text
     .toLowerCase()
     .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
+    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
     .replace(/<[^>]+>/g, " ") // HTML 태그 제거
     .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 제거
     .replace(/^:::\s*$/gm, "")

@@ -24,5 +24,8 @@ export {
   findSimilarGroups,
   type SimilarityCheckOptions,
 } from "./similarity-checker.js";
+// Verbose 감지
+export { checkVerbose, type VerboseCheckOptions } from "./verbose-checker.js";
+
 // 타입 export
 export * from "./types.js";
