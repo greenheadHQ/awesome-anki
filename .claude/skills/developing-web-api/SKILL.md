@@ -33,7 +33,7 @@ packages/server/src/
     ├── split.ts          # 분할 (preview/apply/reject)
     ├── backup.ts         # 백업/롤백
     ├── media.ts          # Anki 미디어 프록시
-    ├── validate.ts       # 검증 4종
+    ├── clinic.ts         # 검증 5종 + YAGNI + fix/apply
     ├── llm.ts            # LLM 모델/프로바이더 정보
     ├── embedding.ts      # 임베딩
     ├── prompts.ts        # 프롬프트 버전 관리 + systemPrompt CAS
@@ -92,14 +92,16 @@ packages/server/src/
 | GET | /api/backup/latest | 최근 백업 ID 조회 |
 | POST | /api/backup/:id/rollback | 롤백 |
 
-### Validate
+### Clinic
 | Method | Path | 설명 |
 |--------|------|------|
-| POST | /api/validate/fact-check | 팩트 체크 |
-| POST | /api/validate/freshness | 최신성 검사 |
-| POST | /api/validate/similarity | 유사성 검사 (useEmbedding 옵션) |
-| POST | /api/validate/context | 문맥 일관성 검사 |
-| POST | /api/validate/all | 전체 검증 (병렬) |
+| POST | /api/clinic/fact-check | 팩트 체크 |
+| POST | /api/clinic/freshness | 최신성 검사 |
+| POST | /api/clinic/similarity | 유사성 검사 (useEmbedding 옵션) |
+| POST | /api/clinic/context | 문맥 일관성 검사 |
+| POST | /api/clinic/yagni | YAGNI 검사 |
+| POST | /api/clinic/all | 전체 검증 (병렬) |
+| POST | /api/clinic/fix/apply | 검증 결과 수정 적용 |
 
 ### Embedding
 | Method | Path | 설명 |

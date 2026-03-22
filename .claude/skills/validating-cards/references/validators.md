@@ -8,7 +8,7 @@
 ## 1. 팩트 체크 (fact-checker.ts)
 
 - **방식**: LLM 기반 (Gemini/OpenAI, `provider`/`model` 선택 가능)
-- **API**: `POST /api/validate/fact-check`
+- **API**: `POST /api/clinic/fact-check`
 - **입력**: `{ noteId, thorough?, provider?, model? }`
 - **출력**: 사실 여부, 부정확한 부분 지적, 수정 제안
 - **결과 타입**: `FactCheckResult` — `details.claims[]`, `details.overallAccuracy`
@@ -16,7 +16,7 @@
 ## 2. 최신성 검사 (freshness-checker.ts)
 
 - **방식**: LLM 기반 (Gemini/OpenAI, `provider`/`model` 선택 가능)
-- **API**: `POST /api/validate/freshness`
+- **API**: `POST /api/clinic/freshness`
 - **입력**: `{ noteId, checkDate?, provider?, model? }`
 - **출력**: 기술 최신성 여부, 구버전 정보 지적, 업데이트 제안
 - **결과 타입**: `FreshnessResult` — `details.outdatedItems[]`
@@ -24,7 +24,7 @@
 ## 3. 유사성 검사 (similarity-checker.ts)
 
 - **방식**: Jaccard (기본) 또는 임베딩 (옵션)
-- **API**: `POST /api/validate/similarity`
+- **API**: `POST /api/clinic/similarity`
 - **입력**: `{ noteId, deckName, threshold?, maxResults?, useEmbedding? }`
 - **`provider`/`model` 파라미터 없음** — 유사성 검사는 LLM을 사용하지 않음
 
@@ -56,7 +56,7 @@ const groups = await findSimilarGroups(cards, { threshold: 70 });
 ## 4. 문맥 일관성 검사 (context-checker.ts)
 
 - **방식**: LLM 기반 (Gemini/OpenAI, `provider`/`model` 선택 가능)
-- **API**: `POST /api/validate/context`
+- **API**: `POST /api/clinic/context`
 - **입력**: `{ noteId, includeReverseLinks?, maxRelatedCards?, thorough?, provider?, model? }`
 - **특징**:
   - nid 링크로 연결된 카드 그룹 분석
@@ -77,7 +77,7 @@ const result = await analyzeCardGroup(cards, options);
 
 ## 전체 검증
 
-- **API**: `POST /api/validate/all`
+- **API**: `POST /api/clinic/all`
 - **입력**: `{ noteId, deckName, provider?, model? }`
 - 4종 **병렬 실행**으로 속도 최적화
 - 유사성 검사는 Jaccard만 사용 (`useEmbedding` 전달 안 함)

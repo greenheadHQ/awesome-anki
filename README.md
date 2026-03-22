@@ -324,15 +324,17 @@ bun run cli rollback <backupId>
 | POST   | `/api/backup/:id/rollback` | 롤백 실행                                                                    |
 | GET    | `/api/media/:filename`     | Anki 미디어 프록시                                                           |
 
-### 9.5 Validation
+### 9.5 Clinic
 
 | 메서드 | 경로                       | 설명        |
 | ------ | -------------------------- | ----------- |
-| POST   | `/api/validate/fact-check` | 팩트 체크   |
-| POST   | `/api/validate/freshness`  | 최신성 검사 |
-| POST   | `/api/validate/similarity` | 유사성 검사 |
-| POST   | `/api/validate/context`    | 문맥 검사   |
-| POST   | `/api/validate/all`        | 통합 검증   |
+| POST   | `/api/clinic/fact-check` | 팩트 체크           |
+| POST   | `/api/clinic/freshness`  | 최신성 검사         |
+| POST   | `/api/clinic/similarity` | 유사성 검사         |
+| POST   | `/api/clinic/context`    | 문맥 검사           |
+| POST   | `/api/clinic/yagni`      | YAGNI 검사          |
+| POST   | `/api/clinic/all`        | 통합 검증           |
+| POST   | `/api/clinic/fix/apply`  | 검증 결과 수정 적용 |
 
 ### 9.6 Embedding
 

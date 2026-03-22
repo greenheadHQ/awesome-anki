@@ -99,21 +99,23 @@ ${cleanContent}
         )
       : [];
     const affectedClozes: number[] = isYagni ? rawClozes : [];
+    // isYagni=true인데 affectedClozes가 비면 LLM 응답 불일치 → isYagni를 false로 override
+    const resolvedIsYagni = isYagni && affectedClozes.length > 0;
     const rawConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 80;
 
     // 상태 결정
     let status: YagniResult["status"] = "valid";
-    if (isYagni && affectedClozes.length > 0) {
+    if (resolvedIsYagni) {
       status = affectedClozes.length >= clozeNumbers.length ? "error" : "warning";
     }
 
     return {
       status,
       type: "yagni",
-      message: getYagniMessage(status, isYagni, affectedClozes.length, clozeNumbers.length),
+      message: getYagniMessage(status, resolvedIsYagni, affectedClozes.length, clozeNumbers.length),
       confidence: Math.min(100, Math.max(0, rawConfidence)),
       details: {
-        isYagni,
+        isYagni: resolvedIsYagni,
         reason,
         affectedClozes,
       },

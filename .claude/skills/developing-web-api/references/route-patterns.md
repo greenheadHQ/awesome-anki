@@ -17,7 +17,7 @@ app.route("/api/cards", cards);
 app.route("/api/split", split);
 app.route("/api/backup", backup);
 app.route("/api/media", media);
-app.route("/api/validate", validate);
+app.route("/api/clinic", clinic);
 app.route("/api/llm", llm);
 app.route("/api/embedding", embedding);
 app.route("/api/prompts", prompts);

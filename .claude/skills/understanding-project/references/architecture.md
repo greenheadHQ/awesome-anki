@@ -63,7 +63,7 @@ awesome-anki/
 │   │       ├── history-sync.ts  # 동기화 진입점
 │   │       └── routes/       # API 라우트
 │   │           ├── decks.ts, cards.ts, split.ts
-│   │           ├── backup.ts, validate.ts
+│   │           ├── backup.ts, clinic.ts
 │   │           ├── embedding.ts, prompts.ts
 │   │           └── llm.ts, history.ts, media.ts
 │   │
