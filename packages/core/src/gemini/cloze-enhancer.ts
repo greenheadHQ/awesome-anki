@@ -254,7 +254,9 @@ export function checkCardQuality(content: string): CardQualityCheck {
     if (frontMatch) {
       const frontChars = frontMatch[1].trim().length;
       if (frontChars > DEFAULT_PROMPT_CONFIG.maxBasicFrontChars) {
-        issues.push(`Basic Front가 ${frontChars}자로 ${DEFAULT_PROMPT_CONFIG.maxBasicFrontChars}자 초과`);
+        issues.push(
+          `Basic Front가 ${frontChars}자로 ${DEFAULT_PROMPT_CONFIG.maxBasicFrontChars}자 초과`,
+        );
       }
     }
   }

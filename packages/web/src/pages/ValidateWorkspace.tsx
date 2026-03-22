@@ -45,7 +45,13 @@ type MobilePanel = "list" | "detail";
 type DetailTab = "validate" | "related";
 
 // 검증 상태 아이콘
-function StatusIcon({ status, size = "sm" }: { status: ValidationStatus | null; size?: "sm" | "md" }) {
+function StatusIcon({
+  status,
+  size = "sm",
+}: {
+  status: ValidationStatus | null;
+  size?: "sm" | "md";
+}) {
   const sizeClass = size === "sm" ? "w-4 h-4" : "w-5 h-5";
 
   if (status === null) {
@@ -113,12 +119,8 @@ export function ValidateWorkspace() {
 
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(selectedNoteId);
 
-  const {
-    getValidation,
-    getValidationStatuses,
-    setValidation,
-    uncachedCount,
-  } = useValidationCache();
+  const { getValidation, getValidationStatuses, setValidation, uncachedCount } =
+    useValidationCache();
 
   const validateCard = useValidateCard(activeDeck);
 
@@ -161,11 +163,7 @@ export function ValidateWorkspace() {
     // 검색
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      cards = cards.filter(
-        (c) =>
-          String(c.noteId).includes(q) ||
-          c.text.toLowerCase().includes(q),
-      );
+      cards = cards.filter((c) => String(c.noteId).includes(q) || c.text.toLowerCase().includes(q));
     }
 
     return cards;
@@ -392,12 +390,13 @@ export function ValidateWorkspace() {
 
     switch (typeKey) {
       case "factCheck": {
-        const claims = (details.claims as Array<{
-          claim: string;
-          isVerified: boolean;
-          confidence: number;
-          correction?: string;
-        }>) ?? [];
+        const claims =
+          (details.claims as Array<{
+            claim: string;
+            isVerified: boolean;
+            confidence: number;
+            correction?: string;
+          }>) ?? [];
         if (claims.length === 0) return null;
         return (
           <div className="space-y-1">
@@ -426,12 +425,13 @@ export function ValidateWorkspace() {
       }
 
       case "freshness": {
-        const items = (details.outdatedItems as Array<{
-          content: string;
-          reason: string;
-          currentInfo?: string;
-          severity: string;
-        }>) ?? [];
+        const items =
+          (details.outdatedItems as Array<{
+            content: string;
+            reason: string;
+            currentInfo?: string;
+            severity: string;
+          }>) ?? [];
         if (items.length === 0) return null;
         return (
           <div className="space-y-1">
@@ -449,11 +449,12 @@ export function ValidateWorkspace() {
       }
 
       case "similarity": {
-        const similarCards = (details.similarCards as Array<{
-          noteId: number;
-          similarity: number;
-          matchedContent: string;
-        }>) ?? [];
+        const similarCards =
+          (details.similarCards as Array<{
+            noteId: number;
+            similarity: number;
+            matchedContent: string;
+          }>) ?? [];
         const method = details.method as string | undefined;
         return (
           <div className="space-y-1">
@@ -466,7 +467,11 @@ export function ValidateWorkspace() {
                     : "bg-gray-100 text-gray-700",
                 )}
               >
-                {method === "embedding" ? <Sparkles className="w-3 h-3" /> : <Hash className="w-3 h-3" />}
+                {method === "embedding" ? (
+                  <Sparkles className="w-3 h-3" />
+                ) : (
+                  <Hash className="w-3 h-3" />
+                )}
                 {method === "embedding" ? "임베딩" : "Jaccard"}
               </span>
             )}
@@ -488,9 +493,7 @@ export function ValidateWorkspace() {
                       {card.similarity}% 유사
                     </span>
                   </div>
-                  <p className="text-muted-foreground mt-1 line-clamp-2">
-                    {card.matchedContent}
-                  </p>
+                  <p className="text-muted-foreground mt-1 line-clamp-2">{card.matchedContent}</p>
                 </div>
               ))
             ) : (
@@ -501,11 +504,12 @@ export function ValidateWorkspace() {
       }
 
       case "context": {
-        const inconsistencies = (details.inconsistencies as Array<{
-          description: string;
-          conflictingNoteId?: number;
-          severity: string;
-        }>) ?? [];
+        const inconsistencies =
+          (details.inconsistencies as Array<{
+            description: string;
+            conflictingNoteId?: number;
+            severity: string;
+          }>) ?? [];
         const relatedCards = (details.relatedCards as number[]) ?? [];
         return (
           <div className="space-y-1">
@@ -550,9 +554,7 @@ export function ValidateWorkspace() {
         return (
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="px-2 py-0.5 bg-muted rounded">
-                개념 {conceptCount}개
-              </span>
+              <span className="px-2 py-0.5 bg-muted rounded">개념 {conceptCount}개</span>
               <span className="px-2 py-0.5 bg-muted rounded">
                 Cloze {(details.clozeCount as number) ?? 0}개
               </span>
@@ -595,11 +597,7 @@ export function ValidateWorkspace() {
           <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
             <span className="text-sm font-semibold">검증 결과</span>
             {selectedNoteId && (
-              <Button
-                size="sm"
-                onClick={handleValidateSelected}
-                disabled={isValidating}
-              >
+              <Button size="sm" onClick={handleValidateSelected} disabled={isValidating}>
                 {isValidating ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -961,10 +959,7 @@ export function ValidateWorkspace() {
                     )}
                     {/* 검증 버튼 */}
                     <div className="flex justify-center">
-                      <Button
-                        onClick={handleValidateSelected}
-                        disabled={validateCard.isPending}
-                      >
+                      <Button onClick={handleValidateSelected} disabled={validateCard.isPending}>
                         {validateCard.isPending ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -1008,7 +1003,9 @@ export function ValidateWorkspace() {
                               key,
                               icon,
                               label,
-                              currentValidation.results![key as keyof typeof currentValidation.results],
+                              currentValidation.results![
+                                key as keyof typeof currentValidation.results
+                              ],
                             ),
                           )}
                         </div>
@@ -1058,9 +1055,7 @@ export function ValidateWorkspace() {
                       <div className="text-center py-8 text-muted-foreground">
                         <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">
-                          {currentValidation
-                            ? "연관 카드가 없습니다"
-                            : "먼저 검증을 실행해주세요"}
+                          {currentValidation ? "연관 카드가 없습니다" : "먼저 검증을 실행해주세요"}
                         </p>
                       </div>
                     )}
@@ -1074,17 +1069,11 @@ export function ValidateWorkspace() {
         // 데스크톱: 3패널 레이아웃
         <div className="flex-1 grid grid-cols-[280px_1fr_360px] gap-0 min-h-0 border rounded-lg overflow-hidden">
           {/* 좌측: 카드 목록 */}
-          <div className="flex flex-col min-h-0 border-r">
-            {renderCardList()}
-          </div>
+          <div className="flex flex-col min-h-0 border-r">{renderCardList()}</div>
           {/* 가운데: 원본 카드 */}
-          <div className="flex flex-col min-h-0 border-r">
-            {renderOriginalCard()}
-          </div>
+          <div className="flex flex-col min-h-0 border-r">{renderOriginalCard()}</div>
           {/* 우측: 검증 결과 */}
-          <div className="flex flex-col min-h-0">
-            {renderValidationPanel()}
-          </div>
+          <div className="flex flex-col min-h-0">{renderValidationPanel()}</div>
         </div>
       )}
     </div>

@@ -229,7 +229,13 @@ validate.post("/all", async (c) => {
       checkVerbose(text, { modelId }),
     ]);
 
-  const results = [factCheckResult, freshnessResult, similarityResult, contextResult, verboseResult];
+  const results = [
+    factCheckResult,
+    freshnessResult,
+    similarityResult,
+    contextResult,
+    verboseResult,
+  ];
   let overallStatus: "valid" | "warning" | "error" | "unknown" = "valid";
 
   if (results.some((r) => r.status === "error")) {

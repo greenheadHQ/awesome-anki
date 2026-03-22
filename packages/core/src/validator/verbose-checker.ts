@@ -132,11 +132,7 @@ ${cleanContent}
   }
 }
 
-function getVerboseMessage(
-  status: string,
-  conceptCount: number,
-  recommendation: string,
-): string {
+function getVerboseMessage(status: string, conceptCount: number, recommendation: string): string {
   if (recommendation === "ok") {
     return `원자적 카드입니다 (개념 ${conceptCount}개)`;
   }
