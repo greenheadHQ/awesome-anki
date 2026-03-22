@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { useFixApply } from "../../hooks/useClinicCache";
 import type { AllValidationResult } from "../../lib/api";
+import { applyFactCorrections, removeYagniClozes } from "../../lib/card-fixer";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
@@ -21,40 +22,6 @@ interface AllInOnePanelProps {
   noteId: number;
   deckName: string;
   validationResults: AllValidationResult["results"] | undefined;
-}
-
-// --- 순수 문자열 조작 (core/validator/card-fixer 미러) ---
-
-function removeYagniClozes(content: string, clozesToRemove: number[]): string {
-  if (clozesToRemove.length === 0) return content;
-
-  let result = content;
-  for (const clozeNum of clozesToRemove) {
-    const pattern = new RegExp(`\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`, "g");
-    result = result.replace(pattern, "");
-  }
-
-  return result
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/^\s*\n/gm, "\n")
-    .replace(/^\n+/, "")
-    .replace(/\n+$/, "");
-}
-
-function applyFactCorrections(
-  content: string,
-  corrections: Array<{ claim: string; correction: string }>,
-): string {
-  let result = content;
-  for (const { claim, correction } of corrections) {
-    if (!claim || !correction || claim === correction) continue;
-    const escaped = claim.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pattern = new RegExp(escaped, "g");
-    if (!pattern.test(result)) continue;
-    const fresh = new RegExp(escaped, "g");
-    result = result.replace(fresh, correction);
-  }
-  return result;
 }
 
 export function AllInOnePanel({
