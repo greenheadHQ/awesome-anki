@@ -8,7 +8,7 @@ import type { ActualCost, LLMModelId, TokenUsage } from "../llm/types.js";
 export type ValidationStatus = "valid" | "warning" | "error" | "unknown";
 
 // 검증 유형
-export type ValidationType = "fact-check" | "freshness" | "similarity" | "context" | "verbose";
+export type ValidationType = "fact-check" | "freshness" | "similarity" | "context" | "verbose" | "yagni";
 
 // 기본 검증 결과 인터페이스
 export interface ValidationResult {
@@ -100,6 +100,17 @@ export interface VerboseResult extends ValidationResult {
     concepts: string[];
     recommendation: "split" | "ok";
     suggestedSplitCount?: number;
+  };
+}
+
+// YAGNI 검사 결과
+export interface YagniResult extends ValidationResult {
+  type: "yagni";
+  details: {
+    isYagni: boolean;
+    reason: string;
+    /** 제거 대상 Cloze 번호 (e.g., [2, 5] → {{c2::...}}, {{c5::...}}) */
+    affectedClozes: number[];
   };
 }
 
