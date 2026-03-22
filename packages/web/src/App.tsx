@@ -12,7 +12,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { PromptManager } from "./pages/PromptManager";
 import { SplitHistory } from "./pages/SplitHistory";
 import { SplitWorkspace } from "./pages/SplitWorkspace";
-import { ValidateWorkspace } from "./pages/ValidateWorkspace";
+import { ClinicWorkspace } from "./pages/ClinicWorkspace";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,8 +32,8 @@ export default function App() {
             <Route path="/" element={<Layout />} errorElement={<RouteError />}>
               <Route index element={<Dashboard />} errorElement={<RouteError />} />
               <Route
-                path="validate"
-                element={<ValidateWorkspace />}
+                path="clinic"
+                element={<ClinicWorkspace />}
                 errorElement={<RouteError />}
               />
               <Route path="split" element={<SplitWorkspace />} errorElement={<RouteError />} />

@@ -78,14 +78,14 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
   });
 
   const validateMutation = useMutation({
-    mutationFn: () => api.validate.all(noteId, deckName),
+    mutationFn: () => api.clinic.all(noteId, deckName),
     onSuccess: (data) => setResult(data),
   });
 
   // 임베딩 기반 유사성 검사 (별도 호출)
   const similarityMutation = useMutation({
     mutationFn: (useEmbed: boolean) =>
-      api.validate.similarity(noteId, deckName, { useEmbedding: useEmbed }),
+      api.clinic.similarity(noteId, deckName, { useEmbedding: useEmbed }),
     onSuccess: (data) => setSimilarityResult(data.result),
   });
 

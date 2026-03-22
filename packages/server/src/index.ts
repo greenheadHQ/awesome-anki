@@ -27,7 +27,7 @@ import llm from "./routes/llm.js";
 import media from "./routes/media.js";
 import prompts from "./routes/prompts.js";
 import split from "./routes/split.js";
-import validate from "./routes/validate.js";
+import clinic from "./routes/clinic.js";
 
 const app = new Hono();
 const API_KEY = process.env.ANKI_SPLITTER_API_KEY;
@@ -109,7 +109,7 @@ app.route("/api/cards", cards);
 app.route("/api/split", split);
 app.route("/api/backup", backup);
 app.route("/api/media", media);
-app.route("/api/validate", validate);
+app.route("/api/clinic", clinic);
 app.route("/api/llm", llm);
 app.route("/api/embedding", embedding);
 app.route("/api/prompts", prompts);

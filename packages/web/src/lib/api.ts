@@ -589,6 +589,27 @@ export interface VerboseResult extends ValidationResult {
   };
 }
 
+export interface YagniResult extends ValidationResult {
+  type: "yagni";
+  details: {
+    isYagni: boolean;
+    reason: string;
+    affectedClozes: number[];
+  };
+}
+
+export interface FixResult {
+  original: string;
+  fixed: string;
+  changes: Array<{
+    type: "yagni-removal" | "fact-correction";
+    before: string;
+    after: string;
+    reason: string;
+  }>;
+  warning?: string;
+}
+
 export interface AllValidationResult {
   noteId: number;
   overallStatus: ValidationStatus;
@@ -598,6 +619,7 @@ export interface AllValidationResult {
     similarity: SimilarityResult;
     context: ContextResult;
     verbose: VerboseResult;
+    yagni: YagniResult;
   };
   validatedAt: string;
 }
@@ -724,14 +746,14 @@ export const api = {
 
   health: () => fetchJson<{ status: string; timestamp: string }>("/health"),
 
-  validate: {
+  clinic: {
     factCheck: (noteId: number, thorough = false) =>
-      fetchJson<{ noteId: number; result: FactCheckResult }>("/validate/fact-check", {
+      fetchJson<{ noteId: number; result: FactCheckResult }>("/clinic/fact-check", {
         method: "POST",
         body: JSON.stringify({ noteId, thorough }),
       }),
     freshness: (noteId: number) =>
-      fetchJson<{ noteId: number; result: FreshnessResult }>("/validate/freshness", {
+      fetchJson<{ noteId: number; result: FreshnessResult }>("/clinic/freshness", {
         method: "POST",
         body: JSON.stringify({ noteId }),
       }),
@@ -740,7 +762,7 @@ export const api = {
       deckName: string,
       opts?: { threshold?: number; useEmbedding?: boolean },
     ) =>
-      fetchJson<{ noteId: number; result: SimilarityResult }>("/validate/similarity", {
+      fetchJson<{ noteId: number; result: SimilarityResult }>("/clinic/similarity", {
         method: "POST",
         body: JSON.stringify({
           noteId,
@@ -750,17 +772,22 @@ export const api = {
         }),
       }),
     context: (noteId: number, includeReverseLinks = true) =>
-      fetchJson<{ noteId: number; result: ContextResult }>("/validate/context", {
+      fetchJson<{ noteId: number; result: ContextResult }>("/clinic/context", {
         method: "POST",
         body: JSON.stringify({ noteId, includeReverseLinks }),
       }),
     verbose: (noteId: number, opts?: { provider?: string; model?: string }) =>
-      fetchJson<{ noteId: number; result: VerboseResult }>("/validate/verbose", {
+      fetchJson<{ noteId: number; result: VerboseResult }>("/clinic/verbose", {
+        method: "POST",
+        body: JSON.stringify({ noteId, provider: opts?.provider, model: opts?.model }),
+      }),
+    yagni: (noteId: number, opts?: { provider?: string; model?: string }) =>
+      fetchJson<{ noteId: number; result: YagniResult }>("/clinic/yagni", {
         method: "POST",
         body: JSON.stringify({ noteId, provider: opts?.provider, model: opts?.model }),
       }),
     all: (noteId: number, deckName: string, opts?: { provider?: string; model?: string }) =>
-      fetchJson<AllValidationResult>("/validate/all", {
+      fetchJson<AllValidationResult>("/clinic/all", {
         method: "POST",
         body: JSON.stringify({
           noteId,
@@ -768,6 +795,11 @@ export const api = {
           provider: opts?.provider,
           model: opts?.model,
         }),
+      }),
+    fixApply: (noteId: number, fixedContent: string, deckName: string) =>
+      fetchJson<{ success: boolean; backupId: string; warning?: string }>("/clinic/fix/apply", {
+        method: "POST",
+        body: JSON.stringify({ noteId, fixedContent, deckName }),
       }),
   },
 

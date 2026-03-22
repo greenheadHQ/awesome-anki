@@ -5,6 +5,7 @@
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { FreshnessResult, OutdatedItem } from "./types.js";
+import { cleanCardText } from "./utils.js";
 
 const FRESHNESS_CHECK_PROMPT = `
 당신은 컴퓨터 과학(CS) 및 프로그래밍 분야의 기술 트렌드 전문가입니다.
@@ -54,14 +55,7 @@ export async function checkFreshness(
   const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
   const client = createLLMClient(resolvedModelId.provider);
 
-  // Cloze 마크업 제거
-  const cleanContent = cardContent
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1")
-    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
-    .replace(/<[^>]+>/g, " ")
-    .replace(/:::\s*\w+[^\n]*\n?/g, "")
-    .replace(/^:::\s*$/gm, "")
-    .trim();
+  const cleanContent = cleanCardText(cardContent);
 
   const currentDate = options.checkDate || new Date().toISOString().split("T")[0];
 
