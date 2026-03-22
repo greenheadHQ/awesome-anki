@@ -1,12 +1,4 @@
-import {
-  Clock3,
-  FileText,
-  FolderOpen,
-  History,
-  LayoutDashboard,
-  Scissors,
-  X,
-} from "lucide-react";
+import { Clock3, FileText, FolderOpen, History, LayoutDashboard, Scissors, X } from "lucide-react";
 import { useEffect, useEffectEvent, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
