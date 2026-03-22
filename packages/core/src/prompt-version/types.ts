@@ -17,12 +17,12 @@ export interface FewShotExample {
  */
 export interface PromptConfig {
   // 카드 길이 기준
-  maxClozeChars: number; // Cloze 최대 글자 수 (기본 80)
-  targetClozeChars: number; // Cloze 목표 글자 수 (기본 50)
-  maxBasicFrontChars: number; // Basic Front 최대 글자 수 (기본 40)
-  targetBasicFrontChars: number; // Basic Front 목표 글자 수 (기본 25)
-  maxBasicBackChars: number; // Basic Back 최대 글자 수 (기본 30)
-  targetBasicBackChars: number; // Basic Back 목표 글자 수 (기본 20)
+  maxClozeChars: number; // Cloze 최대 글자 수 (기본 120)
+  targetClozeChars: number; // Cloze 목표 글자 수 (기본 60)
+  maxBasicFrontChars: number; // Basic Front 최대 글자 수 (기본 70)
+  targetBasicFrontChars: number; // Basic Front 목표 글자 수 (기본 35)
+  maxBasicBackChars: number; // Basic Back 최대 글자 수 (기본 60)
+  targetBasicBackChars: number; // Basic Back 목표 글자 수 (기본 28)
 
   // Cloze 규칙
   maxClozePerCard: number; // 카드당 최대 Cloze 수 (기본 1)
