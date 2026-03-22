@@ -1,166 +1,175 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== "object") {
-    return fallback;
-  }
+	if (!payload || typeof payload !== "object") {
+		return fallback;
+	}
 
-  const maybeError = (payload as { error?: unknown }).error;
-  if (typeof maybeError === "string") {
-    return maybeError;
-  }
+	const maybeError = (payload as { error?: unknown }).error;
+	if (typeof maybeError === "string") {
+		return maybeError;
+	}
 
-  if (maybeError && typeof maybeError === "object") {
-    const message = (maybeError as { message?: unknown }).message;
-    if (typeof message === "string") {
-      return message;
-    }
-  }
+	if (maybeError && typeof maybeError === "object") {
+		const message = (maybeError as { message?: unknown }).message;
+		if (typeof message === "string") {
+			return message;
+		}
+	}
 
-  const message = (payload as { message?: unknown }).message;
-  if (typeof message === "string") {
-    return message;
-  }
+	const message = (payload as { message?: unknown }).message;
+	if (typeof message === "string") {
+		return message;
+	}
 
-  return fallback;
+	return fallback;
 }
 
 interface FetchJsonOptions extends RequestInit {
-  allowErrorEnvelope?: boolean;
+	allowErrorEnvelope?: boolean;
 }
 
-async function fetchJson<T>(path: string, options?: FetchJsonOptions): Promise<T> {
-  const { allowErrorEnvelope = false, headers: optionHeaders, ...restOptions } = options ?? {};
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(optionHeaders || {}),
-  };
+async function fetchJson<T>(
+	path: string,
+	options?: FetchJsonOptions,
+): Promise<T> {
+	const {
+		allowErrorEnvelope = false,
+		headers: optionHeaders,
+		...restOptions
+	} = options ?? {};
+	const headers: HeadersInit = {
+		"Content-Type": "application/json",
+		...(optionHeaders || {}),
+	};
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...restOptions,
-    headers,
-  });
-  if (!res.ok) {
-    const errorPayload = await res
-      .json()
-      .catch(() => ({ error: `API Error: ${res.status} ${res.statusText}` }));
-    if (allowErrorEnvelope) {
-      return errorPayload as T;
-    }
-    throw new Error(extractErrorMessage(errorPayload, `API Error: ${res.status}`));
-  }
-  return res.json();
+	const res = await fetch(`${BASE_URL}${path}`, {
+		...restOptions,
+		headers,
+	});
+	if (!res.ok) {
+		const errorPayload = await res
+			.json()
+			.catch(() => ({ error: `API Error: ${res.status} ${res.statusText}` }));
+		if (allowErrorEnvelope) {
+			return errorPayload as T;
+		}
+		throw new Error(
+			extractErrorMessage(errorPayload, `API Error: ${res.status}`),
+		);
+	}
+	return res.json();
 }
 
 // Types
 export interface DeckStats {
-  deckName: string;
-  totalNotes: number;
-  splitCandidates: number;
+	deckName: string;
+	totalNotes: number;
+	splitCandidates: number;
 }
 
 export interface CardSummary {
-  noteId: number;
-  text: string;
-  tags: string[];
-  modelName: string;
-  analysis: {
-    needsOptimization: boolean;
-    reasons: {
-      clozeOverflow: boolean;
-      textOverflow: boolean;
-    };
-    hasTodoBlock: boolean;
-    clozeCount: number;
-    textLength: number;
-  };
-  clozeStats: {
-    totalClozes: number;
-    uniqueNumbers: number;
-  };
-  needsOptimization: boolean;
-  reasons: {
-    clozeOverflow: boolean;
-    textOverflow: boolean;
-  };
-  textLength: number;
+	noteId: number;
+	text: string;
+	tags: string[];
+	modelName: string;
+	analysis: {
+		needsOptimization: boolean;
+		reasons: {
+			clozeOverflow: boolean;
+			textOverflow: boolean;
+		};
+		hasTodoBlock: boolean;
+		clozeCount: number;
+		textLength: number;
+	};
+	clozeStats: {
+		totalClozes: number;
+		uniqueNumbers: number;
+	};
+	needsOptimization: boolean;
+	reasons: {
+		clozeOverflow: boolean;
+		textOverflow: boolean;
+	};
+	textLength: number;
 }
 
 export interface CardDetail extends CardSummary {
-  nidLinks: Array<{
-    title: string;
-    nid: string;
-  }>;
-  clozes: Array<{
-    clozeNumber: number;
-    content: string;
-    hint?: string;
-  }>;
+	nidLinks: Array<{
+		title: string;
+		nid: string;
+	}>;
+	clozes: Array<{
+		clozeNumber: number;
+		content: string;
+		hint?: string;
+	}>;
 }
 
 // LLM types
 export interface LLMModelInfo {
-  provider: string;
-  model: string;
-  displayName: string;
-  inputPricePerMillionTokens: number;
-  outputPricePerMillionTokens: number;
+	provider: string;
+	model: string;
+	displayName: string;
+	inputPricePerMillionTokens: number;
+	outputPricePerMillionTokens: number;
 }
 
 export interface LLMModelsResponse {
-  models: LLMModelInfo[];
-  defaultModelId: { provider: string; model: string };
-  budgetCapUsd: number;
-  availableProviders: string[];
+	models: LLMModelInfo[];
+	defaultModelId: { provider: string; model: string };
+	budgetCapUsd: number;
+	availableProviders: string[];
 }
 
 export interface CostEstimate {
-  estimatedInputCostUsd: number;
-  estimatedOutputCostUsd: number;
-  estimatedTotalCostUsd: number;
+	estimatedInputCostUsd: number;
+	estimatedOutputCostUsd: number;
+	estimatedTotalCostUsd: number;
 }
 
 export interface ActualCost {
-  inputCostUsd: number;
-  outputCostUsd: number;
-  totalCostUsd: number;
+	inputCostUsd: number;
+	outputCostUsd: number;
+	totalCostUsd: number;
 }
 
 export interface TokenUsage {
-  promptTokens?: number;
-  completionTokens?: number;
-  totalTokens?: number;
+	promptTokens?: number;
+	completionTokens?: number;
+	totalTokens?: number;
 }
 
 export interface OptimizationPreviewResult {
-  sessionId?: string;
-  noteId: number;
-  operation: "split" | "compact" | "skip";
-  operationReason: string;
-  originalText?: string;
-  // Split fields (present when operation === "split")
-  splitCards?: Array<{
-    title: string;
-    content: string;
-    isMainCard?: boolean;
-    cardType?: "cloze" | "basic";
-  }>;
-  mainCardIndex?: number;
-  // Compact fields (present when operation === "compact")
-  compactedContent?: string;
-  auditReport?: {
-    preserved: string[];
-    removed: string[];
-    transformed: string[];
-  };
-  // Common fields
-  executionTimeMs?: number;
-  tokenUsage?: TokenUsage;
-  aiModel?: string;
-  provider?: string;
-  estimatedCost?: CostEstimate;
-  actualCost?: ActualCost;
-  historyWarning?: string;
+	sessionId?: string;
+	noteId: number;
+	operation: "split" | "compact" | "skip";
+	operationReason: string;
+	originalText?: string;
+	// Split fields (present when operation === "split")
+	splitCards?: Array<{
+		title: string;
+		content: string;
+		isMainCard?: boolean;
+		cardType?: "cloze" | "basic";
+	}>;
+	mainCardIndex?: number;
+	// Compact fields (present when operation === "compact")
+	compactedContent?: string;
+	auditReport?: {
+		preserved: string[];
+		removed: string[];
+		transformed: string[];
+	};
+	// Common fields
+	executionTimeMs?: number;
+	tokenUsage?: TokenUsage;
+	aiModel?: string;
+	provider?: string;
+	estimatedCost?: CostEstimate;
+	actualCost?: ActualCost;
+	historyWarning?: string;
 }
 
 /** @deprecated Use OptimizationPreviewResult instead */
@@ -170,815 +179,862 @@ export type SplitPreviewResult = OptimizationPreviewResult;
 export type SplitPreview = OptimizationPreviewResult;
 
 export interface SplitApplyResult {
-  success: boolean;
-  backupId: string;
-  mainNoteId: number;
-  newNoteIds: number[];
-  syncResult?: {
-    success: boolean;
-    syncedAt?: string;
-    error?: string;
-  };
-  warning?: string;
-  historyWarning?: string;
+	success: boolean;
+	backupId: string;
+	mainNoteId: number;
+	newNoteIds: number[];
+	syncResult?: {
+		success: boolean;
+		syncedAt?: string;
+		error?: string;
+	};
+	warning?: string;
+	historyWarning?: string;
 }
 
 export interface SplitRejectResult {
-  success: boolean;
-  sessionId: string;
-  historyWarning?: string;
+	success: boolean;
+	sessionId: string;
+	historyWarning?: string;
 }
 
 export interface BackupEntry {
-  id: string;
-  timestamp: string;
-  deckName: string;
-  originalNoteId: number;
-  createdNoteIds: number[];
+	id: string;
+	timestamp: string;
+	deckName: string;
+	originalNoteId: number;
+	createdNoteIds: number[];
 }
 
 // Validation types
 export type ValidationStatus = "valid" | "warning" | "error" | "unknown";
 
 export interface ValidationResult {
-  status: ValidationStatus;
-  type: string;
-  message: string;
-  confidence: number;
-  details: Record<string, unknown>;
-  timestamp: string;
+	status: ValidationStatus;
+	type: string;
+	message: string;
+	confidence: number;
+	details: Record<string, unknown>;
+	timestamp: string;
 }
 
 export interface FactCheckResult extends ValidationResult {
-  type: "fact-check";
-  details: {
-    claims: Array<{
-      claim: string;
-      isVerified: boolean;
-      confidence: number;
-      correction?: string;
-      source?: string;
-    }>;
-    overallAccuracy: number;
-    sources?: string[];
-  };
+	type: "fact-check";
+	details: {
+		claims: Array<{
+			claim: string;
+			isVerified: boolean;
+			confidence: number;
+			correction?: string;
+			source?: string;
+		}>;
+		overallAccuracy: number;
+		sources?: string[];
+	};
 }
 
 export interface FreshnessResult extends ValidationResult {
-  type: "freshness";
-  details: {
-    outdatedItems: Array<{
-      content: string;
-      reason: string;
-      currentInfo?: string;
-      severity: "low" | "medium" | "high";
-    }>;
-    lastKnownUpdate?: string;
-    recommendedAction?: string;
-  };
+	type: "freshness";
+	details: {
+		outdatedItems: Array<{
+			content: string;
+			reason: string;
+			currentInfo?: string;
+			severity: "low" | "medium" | "high";
+		}>;
+		lastKnownUpdate?: string;
+		recommendedAction?: string;
+	};
 }
 
 export interface SimilarityResult extends ValidationResult {
-  type: "similarity";
-  details: {
-    similarCards: Array<{
-      noteId: number;
-      similarity: number;
-      matchedContent: string;
-    }>;
-    isDuplicate: boolean;
-    method?: "jaccard" | "embedding";
-  };
+	type: "similarity";
+	details: {
+		similarCards: Array<{
+			noteId: number;
+			similarity: number;
+			matchedContent: string;
+		}>;
+		isDuplicate: boolean;
+		method?: "jaccard" | "embedding";
+	};
 }
 
 // Difficulty types
 export interface DifficultCard {
-  noteId: number;
-  cardId: number;
-  text: string;
-  tags: string[];
-  lapses: number;
-  easeFactor: number;
-  interval: number;
-  reps: number;
-  difficultyScore: number;
-  difficultyReasons: string[];
+	noteId: number;
+	cardId: number;
+	text: string;
+	tags: string[];
+	lapses: number;
+	easeFactor: number;
+	interval: number;
+	reps: number;
+	difficultyScore: number;
+	difficultyReasons: string[];
 }
 
 // Embedding types
 export interface EmbeddingError {
-  code:
-    | "VALIDATION_ERROR"
-    | "DECK_NOT_FOUND"
-    | "EMBEDDING_PROVIDER_ERROR"
-    | "RATE_LIMITED"
-    | "CACHE_IO_ERROR"
-    | "INTERNAL_ERROR";
-  message: string;
-  retryable: boolean;
-  details?: Record<string, unknown>;
+	code:
+		| "VALIDATION_ERROR"
+		| "DECK_NOT_FOUND"
+		| "EMBEDDING_PROVIDER_ERROR"
+		| "RATE_LIMITED"
+		| "CACHE_IO_ERROR"
+		| "INTERNAL_ERROR";
+	message: string;
+	retryable: boolean;
+	details?: Record<string, unknown>;
 }
 
 export interface EmbeddingSuccessEnvelope<T> {
-  ok: true;
-  requestId: string;
-  timestamp: string;
-  schemaVersion: number;
-  data: T;
+	ok: true;
+	requestId: string;
+	timestamp: string;
+	schemaVersion: number;
+	data: T;
 }
 
 export interface EmbeddingErrorEnvelope {
-  ok: false;
-  requestId: string;
-  timestamp: string;
-  schemaVersion: number;
-  error: EmbeddingError;
+	ok: false;
+	requestId: string;
+	timestamp: string;
+	schemaVersion: number;
+	error: EmbeddingError;
 }
 
-export type EmbeddingApiResponse<T> = EmbeddingSuccessEnvelope<T> | EmbeddingErrorEnvelope;
+export type EmbeddingApiResponse<T> =
+	| EmbeddingSuccessEnvelope<T>
+	| EmbeddingErrorEnvelope;
 
 export interface EmbeddingStatus {
-  deckName: string;
-  provider: string;
-  model: string;
-  jaccardFallbackEnabled: boolean;
-  notes: {
-    total: number;
-  };
-  coverage: number;
-  dimension: {
-    detected: number;
-    expected: number;
-  };
-  cache: {
-    exists: boolean;
-    count: number;
-    lastUpdated: string | null;
-    path: string;
-    schemaVersion: number | null;
-    provider: string | null;
-    model: string | null;
-    health:
-      | "missing"
-      | "schema_version_mismatch"
-      | "provider_mismatch"
-      | "model_mismatch"
-      | "dimension_unexpected"
-      | "ok";
-  };
+	deckName: string;
+	provider: string;
+	model: string;
+	jaccardFallbackEnabled: boolean;
+	notes: {
+		total: number;
+	};
+	coverage: number;
+	dimension: {
+		detected: number;
+		expected: number;
+	};
+	cache: {
+		exists: boolean;
+		count: number;
+		lastUpdated: string | null;
+		path: string;
+		schemaVersion: number | null;
+		provider: string | null;
+		model: string | null;
+		health:
+			| "missing"
+			| "schema_version_mismatch"
+			| "provider_mismatch"
+			| "model_mismatch"
+			| "dimension_unexpected"
+			| "ok";
+	};
 }
 
 export interface EmbeddingGenerateResult {
-  status: "completed" | "completed_with_errors";
-  deckName: string;
-  provider: string;
-  model: string;
-  jaccardFallbackEnabled: boolean;
-  forceRegenerate: boolean;
-  durationMs: number;
-  dimension: {
-    detected: number;
-    expected: number;
-  };
-  notes: {
-    total: number;
-    processed: number;
-    generated: number;
-    skipped: number;
-    failed: number;
-  };
-  cache: {
-    beforeCount: number;
-    afterCount: number;
-    removed: number;
-    migration: {
-      applied: boolean;
-      reason:
-        | "none"
-        | "cache_missing"
-        | "force_regenerate"
-        | "schema_version_mismatch"
-        | "provider_mismatch"
-        | "model_mismatch";
-      from: {
-        provider: string;
-        model: string;
-        dimension: number;
-        count: number;
-      } | null;
-    };
-  };
-  failures: Array<{
-    noteId: number;
-    code: EmbeddingError["code"];
-    message: string;
-  }>;
-  lastUpdated: string;
+	status: "completed" | "completed_with_errors";
+	deckName: string;
+	provider: string;
+	model: string;
+	jaccardFallbackEnabled: boolean;
+	forceRegenerate: boolean;
+	durationMs: number;
+	dimension: {
+		detected: number;
+		expected: number;
+	};
+	notes: {
+		total: number;
+		processed: number;
+		generated: number;
+		skipped: number;
+		failed: number;
+	};
+	cache: {
+		beforeCount: number;
+		afterCount: number;
+		removed: number;
+		migration: {
+			applied: boolean;
+			reason:
+				| "none"
+				| "cache_missing"
+				| "force_regenerate"
+				| "schema_version_mismatch"
+				| "provider_mismatch"
+				| "model_mismatch";
+			from: {
+				provider: string;
+				model: string;
+				dimension: number;
+				count: number;
+			} | null;
+		};
+	};
+	failures: Array<{
+		noteId: number;
+		code: EmbeddingError["code"];
+		message: string;
+	}>;
+	lastUpdated: string;
 }
 
 export interface EmbeddingDeleteResult {
-  deckName: string;
-  deleted: boolean;
-  deletedCount: number;
-  message: string;
+	deckName: string;
+	deleted: boolean;
+	deletedCount: number;
+	message: string;
 }
 
 export class EmbeddingApiError extends Error {
-  readonly code: EmbeddingError["code"];
-  readonly retryable: boolean;
-  readonly requestId: string;
-  readonly schemaVersion: number;
-  readonly details?: Record<string, unknown>;
-  readonly originalResponse: EmbeddingErrorEnvelope;
+	readonly code: EmbeddingError["code"];
+	readonly retryable: boolean;
+	readonly requestId: string;
+	readonly schemaVersion: number;
+	readonly details?: Record<string, unknown>;
+	readonly originalResponse: EmbeddingErrorEnvelope;
 
-  constructor(response: EmbeddingErrorEnvelope) {
-    super(response.error.message);
-    this.name = "EmbeddingApiError";
-    this.code = response.error.code;
-    this.retryable = response.error.retryable;
-    this.requestId = response.requestId;
-    this.schemaVersion = response.schemaVersion;
-    this.details = response.error.details;
-    this.originalResponse = response;
-  }
+	constructor(response: EmbeddingErrorEnvelope) {
+		super(response.error.message);
+		this.name = "EmbeddingApiError";
+		this.code = response.error.code;
+		this.retryable = response.error.retryable;
+		this.requestId = response.requestId;
+		this.schemaVersion = response.schemaVersion;
+		this.details = response.error.details;
+		this.originalResponse = response;
+	}
 }
 
 // Prompt Version types
 export interface PromptVersion {
-  id: string;
-  name: string;
-  description: string;
-  systemPrompt: string;
-  splitPromptTemplate: string;
-  analysisPromptTemplate: string;
-  examples: Array<{
-    input: string;
-    output: string;
-    explanation: string;
-  }>;
-  config: {
-    maxClozeChars: number;
-    maxBasicFrontChars: number;
-    maxBasicBackChars: number;
-    minClozeChars: number;
-    requireContextTag: boolean;
-    requireHintForBinary: boolean;
-  };
-  status: "draft" | "active" | "archived";
-  metrics: {
-    totalSplits: number;
-    approvalRate: number;
-    modificationRate: number;
-    rejectionRate: number;
-    avgCharCount: number;
-    avgCardsPerSplit: number;
-  };
-  createdAt: string;
-  updatedAt: string;
+	id: string;
+	name: string;
+	description: string;
+	systemPrompt: string;
+	splitPromptTemplate: string;
+	analysisPromptTemplate: string;
+	examples: Array<{
+		input: string;
+		output: string;
+		explanation: string;
+	}>;
+	config: {
+		maxClozeChars: number;
+		maxBasicFrontChars: number;
+		maxBasicBackChars: number;
+		minClozeChars: number;
+		requireContextTag: boolean;
+		requireHintForBinary: boolean;
+	};
+	status: "draft" | "active" | "archived";
+	metrics: {
+		totalSplits: number;
+		approvalRate: number;
+		modificationRate: number;
+		rejectionRate: number;
+		avgCharCount: number;
+		avgCardsPerSplit: number;
+	};
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface ActiveVersionInfo {
-  versionId: string;
-  activatedAt: string;
+	versionId: string;
+	activatedAt: string;
 }
 
 export interface PromptSystemState {
-  revision: number;
-  systemPrompt: string;
-  activeVersion: {
-    id: string;
-    name: string;
-    updatedAt: string;
-  };
+	revision: number;
+	systemPrompt: string;
+	activeVersion: {
+		id: string;
+		name: string;
+		updatedAt: string;
+	};
 }
 
 export interface PromptSystemConflictLatest {
-  revision: number;
-  systemPrompt: string;
-  activeVersionId: string;
-  updatedAt: string;
+	revision: number;
+	systemPrompt: string;
+	activeVersionId: string;
+	updatedAt: string;
 }
 
 export interface PromptSystemSaveResult {
-  revision: number;
-  newVersion: {
-    id: string;
-    name: string;
-    activatedAt: string;
-  };
-  syncResult: {
-    success: boolean;
-    syncedAt?: string;
-    error?: string;
-  };
+	revision: number;
+	newVersion: {
+		id: string;
+		name: string;
+		activatedAt: string;
+	};
+	syncResult: {
+		success: boolean;
+		syncedAt?: string;
+		error?: string;
+	};
 }
 
 export class PromptConflictError extends Error {
-  readonly status = 409;
-  readonly latest: PromptSystemConflictLatest;
+	readonly status = 409;
+	readonly latest: PromptSystemConflictLatest;
 
-  constructor(latest: PromptSystemConflictLatest) {
-    super("Prompt revision conflict");
-    this.name = "PromptConflictError";
-    this.latest = latest;
-  }
+	constructor(latest: PromptSystemConflictLatest) {
+		super("Prompt revision conflict");
+		this.name = "PromptConflictError";
+		this.latest = latest;
+	}
 }
 
 export type SplitHistoryStatus =
-  | "generating"
-  | "generated"
-  | "applied"
-  | "rejected"
-  | "error"
-  | "not_split";
+	| "generating"
+	| "generated"
+	| "applied"
+	| "rejected"
+	| "error"
+	| "not_split";
 
 export interface SplitHistoryListItem {
-  sessionId: string;
-  noteId: number;
-  deckName: string;
-  status: SplitHistoryStatus;
-  promptVersionId?: string;
-  splitReason?: string;
-  aiModel?: string;
-  provider?: string;
-  estimatedCostUsd?: number;
-  actualCostUsd?: number;
-  cardCount: number;
-  createdAt: string;
-  updatedAt: string;
-  appliedAt?: string;
+	sessionId: string;
+	noteId: number;
+	deckName: string;
+	status: SplitHistoryStatus;
+	operation?: "split" | "compact" | "skip";
+	promptVersionId?: string;
+	splitReason?: string;
+	aiModel?: string;
+	provider?: string;
+	estimatedCostUsd?: number;
+	actualCostUsd?: number;
+	cardCount: number;
+	createdAt: string;
+	updatedAt: string;
+	appliedAt?: string;
 }
 
 export interface SplitHistoryEvent {
-  eventId: string;
-  sessionId: string;
-  eventType: string;
-  status: SplitHistoryStatus;
-  createdAt: string;
-  payload: Record<string, unknown> | null;
+	eventId: string;
+	sessionId: string;
+	eventType: string;
+	status: SplitHistoryStatus;
+	createdAt: string;
+	payload: Record<string, unknown> | null;
 }
 
 export interface SplitHistoryDetail {
-  sessionId: string;
-  noteId: number;
-  deckName: string;
-  status: SplitHistoryStatus;
-  promptVersionId?: string;
-  originalText: string;
-  originalTags: string[];
-  aiResponse: Record<string, unknown> | null;
-  splitCards: Array<{
-    title: string;
-    content: string;
-    isMainCard?: boolean;
-    cardType?: "cloze" | "basic";
-    charCount?: number;
-  }>;
-  splitReason?: string;
-  aiModel?: string;
-  provider?: string;
-  estimatedCostUsd?: number;
-  actualCostUsd?: number;
-  executionTimeMs?: number;
-  tokenUsage?: {
-    promptTokens?: number;
-    completionTokens?: number;
-    totalTokens?: number;
-  };
-  rejectionReason?: string;
-  errorMessage?: string;
-  source: "runtime" | "legacy_json";
-  createdAt: string;
-  updatedAt: string;
-  appliedAt?: string;
-  events: SplitHistoryEvent[];
+	sessionId: string;
+	noteId: number;
+	deckName: string;
+	status: SplitHistoryStatus;
+	operation?: "split" | "compact" | "skip";
+	promptVersionId?: string;
+	originalText: string;
+	originalTags: string[];
+	aiResponse: Record<string, unknown> | null;
+	splitCards: Array<{
+		title: string;
+		content: string;
+		isMainCard?: boolean;
+		cardType?: "cloze" | "basic";
+		charCount?: number;
+	}>;
+	splitReason?: string;
+	aiModel?: string;
+	provider?: string;
+	estimatedCostUsd?: number;
+	actualCostUsd?: number;
+	executionTimeMs?: number;
+	tokenUsage?: {
+		promptTokens?: number;
+		completionTokens?: number;
+		totalTokens?: number;
+	};
+	rejectionReason?: string;
+	errorMessage?: string;
+	source: "runtime" | "legacy_json";
+	createdAt: string;
+	updatedAt: string;
+	appliedAt?: string;
+	events: SplitHistoryEvent[];
 }
 
 export interface SplitHistorySyncHealth {
-  mode: "local" | "remote";
-  status: "ok" | "degraded";
-  message: string;
-  updatedAt: string;
+	mode: "local" | "remote";
+	status: "ok" | "degraded";
+	message: string;
+	updatedAt: string;
 }
 
 export interface Experiment {
-  id: string;
-  name: string;
-  controlVersionId: string;
-  treatmentVersionId: string;
-  startedAt: string;
-  completedAt?: string;
-  status: "running" | "completed";
-  controlResults: {
-    splitCount: number;
-    approvalRate: number;
-    modificationRate: number;
-    rejectionRate: number;
-    avgCharCount: number;
-  };
-  treatmentResults: {
-    splitCount: number;
-    approvalRate: number;
-    modificationRate: number;
-    rejectionRate: number;
-    avgCharCount: number;
-  };
-  conclusion?: string;
-  winnerVersionId?: string;
+	id: string;
+	name: string;
+	controlVersionId: string;
+	treatmentVersionId: string;
+	startedAt: string;
+	completedAt?: string;
+	status: "running" | "completed";
+	controlResults: {
+		splitCount: number;
+		approvalRate: number;
+		modificationRate: number;
+		rejectionRate: number;
+		avgCharCount: number;
+	};
+	treatmentResults: {
+		splitCount: number;
+		approvalRate: number;
+		modificationRate: number;
+		rejectionRate: number;
+		avgCharCount: number;
+	};
+	conclusion?: string;
+	winnerVersionId?: string;
 }
 
 export interface ContextResult extends ValidationResult {
-  type: "context";
-  details: {
-    inconsistencies: Array<{
-      description: string;
-      conflictingNoteId?: number;
-      severity: "low" | "medium" | "high";
-    }>;
-    relatedCards: number[];
-  };
+	type: "context";
+	details: {
+		inconsistencies: Array<{
+			description: string;
+			conflictingNoteId?: number;
+			severity: "low" | "medium" | "high";
+		}>;
+		relatedCards: number[];
+	};
 }
 
 export interface VerboseResult extends ValidationResult {
-  type: "verbose";
-  details: {
-    wordCount: number;
-    clozeCount: number;
-    conceptCount: number;
-    concepts: string[];
-    recommendation: "split" | "ok";
-    suggestedSplitCount?: number;
-  };
+	type: "verbose";
+	details: {
+		wordCount: number;
+		clozeCount: number;
+		conceptCount: number;
+		concepts: string[];
+		recommendation: "split" | "ok";
+		suggestedSplitCount?: number;
+	};
 }
 
 export interface YagniResult extends ValidationResult {
-  type: "yagni";
-  details: {
-    isYagni: boolean;
-    reason: string;
-    affectedClozes: number[];
-  };
+	type: "yagni";
+	details: {
+		isYagni: boolean;
+		reason: string;
+		affectedClozes: number[];
+	};
 }
 
 export interface FixResult {
-  original: string;
-  fixed: string;
-  changes: Array<{
-    type: "yagni-removal" | "fact-correction";
-    before: string;
-    after: string;
-    reason: string;
-  }>;
-  warning?: string;
+	original: string;
+	fixed: string;
+	changes: Array<{
+		type: "yagni-removal" | "fact-correction";
+		before: string;
+		after: string;
+		reason: string;
+	}>;
+	warning?: string;
 }
 
 export interface AllValidationResult {
-  noteId: number;
-  overallStatus: ValidationStatus;
-  results: {
-    factCheck: FactCheckResult;
-    freshness: FreshnessResult;
-    similarity: SimilarityResult;
-    context: ContextResult;
-    verbose: VerboseResult;
-    yagni: YagniResult;
-  };
-  validatedAt: string;
+	noteId: number;
+	overallStatus: ValidationStatus;
+	results: {
+		factCheck: FactCheckResult;
+		freshness: FreshnessResult;
+		similarity: SimilarityResult;
+		context: ContextResult;
+		verbose: VerboseResult;
+		yagni: YagniResult;
+	};
+	validatedAt: string;
 }
 
 function unwrapEmbeddingResponse<T>(response: EmbeddingApiResponse<T>): T {
-  if (response && typeof response === "object") {
-    const maybeResponse = response as Partial<EmbeddingApiResponse<T>>;
-    if (typeof maybeResponse.ok === "boolean") {
-      if (maybeResponse.ok === true && "data" in maybeResponse) {
-        return (maybeResponse as EmbeddingSuccessEnvelope<T>).data;
-      }
-      if (maybeResponse.ok === false && "error" in maybeResponse) {
-        throw new EmbeddingApiError(maybeResponse as EmbeddingErrorEnvelope);
-      }
-    }
-  }
+	if (response && typeof response === "object") {
+		const maybeResponse = response as Partial<EmbeddingApiResponse<T>>;
+		if (typeof maybeResponse.ok === "boolean") {
+			if (maybeResponse.ok === true && "data" in maybeResponse) {
+				return (maybeResponse as EmbeddingSuccessEnvelope<T>).data;
+			}
+			if (maybeResponse.ok === false && "error" in maybeResponse) {
+				throw new EmbeddingApiError(maybeResponse as EmbeddingErrorEnvelope);
+			}
+		}
+	}
 
-  throw new Error(extractErrorMessage(response, "임베딩 API 응답 형식이 올바르지 않습니다."));
+	throw new Error(
+		extractErrorMessage(response, "임베딩 API 응답 형식이 올바르지 않습니다."),
+	);
 }
 
 // API Functions
 export const api = {
-  decks: {
-    list: () => fetchJson<{ decks: string[] }>("/decks"),
-    stats: (name: string) => fetchJson<DeckStats>(`/decks/${encodeURIComponent(name)}/stats`),
-  },
+	decks: {
+		list: () => fetchJson<{ decks: string[] }>("/decks"),
+		stats: (name: string) =>
+			fetchJson<DeckStats>(`/decks/${encodeURIComponent(name)}/stats`),
+	},
 
-  cards: {
-    getByDeck: (deck: string, opts?: { page?: number; limit?: number; filter?: string }) => {
-      const params = new URLSearchParams();
-      if (opts?.page) params.set("page", String(opts.page));
-      if (opts?.limit) params.set("limit", String(opts.limit));
-      if (opts?.filter) params.set("filter", opts.filter);
-      const query = params.toString();
-      return fetchJson<{
-        cards: CardSummary[];
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-      }>(`/cards/deck/${encodeURIComponent(deck)}${query ? `?${query}` : ""}`);
-    },
-    getById: (noteId: number) => fetchJson<CardDetail>(`/cards/${noteId}`),
-    getDifficult: (deck: string, opts?: { page?: number; limit?: number }) => {
-      const params = new URLSearchParams();
-      if (opts?.page) params.set("page", String(opts.page));
-      if (opts?.limit) params.set("limit", String(opts.limit));
-      const query = params.toString();
-      return fetchJson<{
-        cards: DifficultCard[];
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-      }>(`/cards/deck/${encodeURIComponent(deck)}/difficult${query ? `?${query}` : ""}`);
-    },
-  },
+	cards: {
+		getByDeck: (
+			deck: string,
+			opts?: { page?: number; limit?: number; filter?: string },
+		) => {
+			const params = new URLSearchParams();
+			if (opts?.page) params.set("page", String(opts.page));
+			if (opts?.limit) params.set("limit", String(opts.limit));
+			if (opts?.filter) params.set("filter", opts.filter);
+			const query = params.toString();
+			return fetchJson<{
+				cards: CardSummary[];
+				total: number;
+				page: number;
+				limit: number;
+				totalPages: number;
+			}>(`/cards/deck/${encodeURIComponent(deck)}${query ? `?${query}` : ""}`);
+		},
+		getById: (noteId: number) => fetchJson<CardDetail>(`/cards/${noteId}`),
+		getDifficult: (deck: string, opts?: { page?: number; limit?: number }) => {
+			const params = new URLSearchParams();
+			if (opts?.page) params.set("page", String(opts.page));
+			if (opts?.limit) params.set("limit", String(opts.limit));
+			const query = params.toString();
+			return fetchJson<{
+				cards: DifficultCard[];
+				total: number;
+				page: number;
+				limit: number;
+				totalPages: number;
+			}>(
+				`/cards/deck/${encodeURIComponent(deck)}/difficult${query ? `?${query}` : ""}`,
+			);
+		},
+	},
 
-  llm: {
-    models: () => fetchJson<LLMModelsResponse>("/llm/models"),
-  },
+	llm: {
+		models: () => fetchJson<LLMModelsResponse>("/llm/models"),
+	},
 
-  split: {
-    preview: (
-      noteId: number,
-      opts?: {
-        versionId?: string;
-        deckName?: string;
-        provider?: string;
-        model?: string;
-        budgetUsdCap?: number;
-      },
-    ) =>
-      fetchJson<OptimizationPreviewResult>("/split/preview", {
-        method: "POST",
-        body: JSON.stringify({
-          noteId,
-          versionId: opts?.versionId,
-          deckName: opts?.deckName,
-          provider: opts?.provider,
-          model: opts?.model,
-          budgetUsdCap: opts?.budgetUsdCap,
-        }),
-      }),
-    apply: (data: {
-      sessionId: string;
-      noteId: number;
-      deckName: string;
-      operation?: "split" | "compact";
-      // Split fields
-      splitCards?: Array<{
-        title: string;
-        content: string;
-        inheritImages?: string[];
-        inheritTags?: string[];
-        preservedLinks?: string[];
-        backLinks?: string[];
-      }>;
-      mainCardIndex?: number;
-      // Compact fields
-      compactedContent?: string;
-    }) =>
-      fetchJson<SplitApplyResult>("/split/apply", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    reject: (data: { sessionId: string; rejectionReason: string }) =>
-      fetchJson<SplitRejectResult>("/split/reject", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-  },
+	split: {
+		preview: (
+			noteId: number,
+			opts?: {
+				versionId?: string;
+				deckName?: string;
+				provider?: string;
+				model?: string;
+				budgetUsdCap?: number;
+			},
+		) =>
+			fetchJson<OptimizationPreviewResult>("/split/preview", {
+				method: "POST",
+				body: JSON.stringify({
+					noteId,
+					versionId: opts?.versionId,
+					deckName: opts?.deckName,
+					provider: opts?.provider,
+					model: opts?.model,
+					budgetUsdCap: opts?.budgetUsdCap,
+				}),
+			}),
+		apply: (data: {
+			sessionId: string;
+			noteId: number;
+			deckName: string;
+			operation?: "split" | "compact";
+			// Split fields
+			splitCards?: Array<{
+				title: string;
+				content: string;
+				inheritImages?: string[];
+				inheritTags?: string[];
+				preservedLinks?: string[];
+				backLinks?: string[];
+			}>;
+			mainCardIndex?: number;
+			// Compact fields
+			compactedContent?: string;
+		}) =>
+			fetchJson<SplitApplyResult>("/split/apply", {
+				method: "POST",
+				body: JSON.stringify(data),
+			}),
+		reject: (data: { sessionId: string; rejectionReason: string }) =>
+			fetchJson<SplitRejectResult>("/split/reject", {
+				method: "POST",
+				body: JSON.stringify(data),
+			}),
+	},
 
-  backup: {
-    list: () => fetchJson<{ backups: BackupEntry[]; total: number }>("/backup"),
-    latest: () => fetchJson<{ backupId: string | null }>("/backup/latest"),
-    rollback: (backupId: string) =>
-      fetchJson<{
-        success: boolean;
-        restoredNoteId?: number;
-        deletedNoteIds?: number[];
-        restoredFieldNames?: string[];
-        restoredTags?: string[];
-        warning?: string;
-        error?: string;
-      }>(`/backup/${backupId}/rollback`, { method: "POST" }),
-  },
+	backup: {
+		list: () => fetchJson<{ backups: BackupEntry[]; total: number }>("/backup"),
+		latest: () => fetchJson<{ backupId: string | null }>("/backup/latest"),
+		rollback: (backupId: string) =>
+			fetchJson<{
+				success: boolean;
+				restoredNoteId?: number;
+				deletedNoteIds?: number[];
+				restoredFieldNames?: string[];
+				restoredTags?: string[];
+				warning?: string;
+				error?: string;
+			}>(`/backup/${backupId}/rollback`, { method: "POST" }),
+	},
 
-  health: () => fetchJson<{ status: string; timestamp: string }>("/health"),
+	health: () => fetchJson<{ status: string; timestamp: string }>("/health"),
 
-  clinic: {
-    factCheck: (noteId: number, thorough = false) =>
-      fetchJson<{ noteId: number; result: FactCheckResult }>("/clinic/fact-check", {
-        method: "POST",
-        body: JSON.stringify({ noteId, thorough }),
-      }),
-    freshness: (noteId: number) =>
-      fetchJson<{ noteId: number; result: FreshnessResult }>("/clinic/freshness", {
-        method: "POST",
-        body: JSON.stringify({ noteId }),
-      }),
-    similarity: (
-      noteId: number,
-      deckName: string,
-      opts?: { threshold?: number; useEmbedding?: boolean },
-    ) =>
-      fetchJson<{ noteId: number; result: SimilarityResult }>("/clinic/similarity", {
-        method: "POST",
-        body: JSON.stringify({
-          noteId,
-          deckName,
-          threshold: opts?.threshold,
-          useEmbedding: opts?.useEmbedding,
-        }),
-      }),
-    context: (noteId: number, includeReverseLinks = true) =>
-      fetchJson<{ noteId: number; result: ContextResult }>("/clinic/context", {
-        method: "POST",
-        body: JSON.stringify({ noteId, includeReverseLinks }),
-      }),
-    verbose: (noteId: number, opts?: { provider?: string; model?: string }) =>
-      fetchJson<{ noteId: number; result: VerboseResult }>("/clinic/verbose", {
-        method: "POST",
-        body: JSON.stringify({ noteId, provider: opts?.provider, model: opts?.model }),
-      }),
-    yagni: (noteId: number, opts?: { provider?: string; model?: string }) =>
-      fetchJson<{ noteId: number; result: YagniResult }>("/clinic/yagni", {
-        method: "POST",
-        body: JSON.stringify({ noteId, provider: opts?.provider, model: opts?.model }),
-      }),
-    all: (noteId: number, deckName: string, opts?: { provider?: string; model?: string }) =>
-      fetchJson<AllValidationResult>("/clinic/all", {
-        method: "POST",
-        body: JSON.stringify({
-          noteId,
-          deckName,
-          provider: opts?.provider,
-          model: opts?.model,
-        }),
-      }),
-    fixApply: (noteId: number, fixedContent: string, deckName: string) =>
-      fetchJson<{ success: boolean; backupId: string; warning?: string }>("/clinic/fix/apply", {
-        method: "POST",
-        body: JSON.stringify({ noteId, fixedContent, deckName }),
-      }),
-  },
+	clinic: {
+		factCheck: (noteId: number, thorough = false) =>
+			fetchJson<{ noteId: number; result: FactCheckResult }>(
+				"/clinic/fact-check",
+				{
+					method: "POST",
+					body: JSON.stringify({ noteId, thorough }),
+				},
+			),
+		freshness: (noteId: number) =>
+			fetchJson<{ noteId: number; result: FreshnessResult }>(
+				"/clinic/freshness",
+				{
+					method: "POST",
+					body: JSON.stringify({ noteId }),
+				},
+			),
+		similarity: (
+			noteId: number,
+			deckName: string,
+			opts?: { threshold?: number; useEmbedding?: boolean },
+		) =>
+			fetchJson<{ noteId: number; result: SimilarityResult }>(
+				"/clinic/similarity",
+				{
+					method: "POST",
+					body: JSON.stringify({
+						noteId,
+						deckName,
+						threshold: opts?.threshold,
+						useEmbedding: opts?.useEmbedding,
+					}),
+				},
+			),
+		context: (noteId: number, includeReverseLinks = true) =>
+			fetchJson<{ noteId: number; result: ContextResult }>("/clinic/context", {
+				method: "POST",
+				body: JSON.stringify({ noteId, includeReverseLinks }),
+			}),
+		verbose: (noteId: number, opts?: { provider?: string; model?: string }) =>
+			fetchJson<{ noteId: number; result: VerboseResult }>("/clinic/verbose", {
+				method: "POST",
+				body: JSON.stringify({
+					noteId,
+					provider: opts?.provider,
+					model: opts?.model,
+				}),
+			}),
+		yagni: (noteId: number, opts?: { provider?: string; model?: string }) =>
+			fetchJson<{ noteId: number; result: YagniResult }>("/clinic/yagni", {
+				method: "POST",
+				body: JSON.stringify({
+					noteId,
+					provider: opts?.provider,
+					model: opts?.model,
+				}),
+			}),
+		all: (
+			noteId: number,
+			deckName: string,
+			opts?: { provider?: string; model?: string },
+		) =>
+			fetchJson<AllValidationResult>("/clinic/all", {
+				method: "POST",
+				body: JSON.stringify({
+					noteId,
+					deckName,
+					provider: opts?.provider,
+					model: opts?.model,
+				}),
+			}),
+		fixApply: (noteId: number, fixedContent: string, deckName: string) =>
+			fetchJson<{ success: boolean; backupId: string; warning?: string }>(
+				"/clinic/fix/apply",
+				{
+					method: "POST",
+					body: JSON.stringify({ noteId, fixedContent, deckName }),
+				},
+			),
+	},
 
-  embedding: {
-    status: async (deckName: string) =>
-      unwrapEmbeddingResponse(
-        await fetchJson<EmbeddingApiResponse<EmbeddingStatus>>(
-          `/embedding/status/${encodeURIComponent(deckName)}`,
-          { allowErrorEnvelope: true },
-        ),
-      ),
-    generate: async (deckName: string, forceRegenerate = false) =>
-      unwrapEmbeddingResponse(
-        await fetchJson<EmbeddingApiResponse<EmbeddingGenerateResult>>("/embedding/generate", {
-          method: "POST",
-          allowErrorEnvelope: true,
-          body: JSON.stringify({ deckName, forceRegenerate }),
-        }),
-      ),
-    deleteCache: async (deckName: string) =>
-      unwrapEmbeddingResponse(
-        await fetchJson<EmbeddingApiResponse<EmbeddingDeleteResult>>(
-          `/embedding/cache/${encodeURIComponent(deckName)}`,
-          {
-            method: "DELETE",
-            allowErrorEnvelope: true,
-          },
-        ),
-      ),
-  },
+	embedding: {
+		status: async (deckName: string) =>
+			unwrapEmbeddingResponse(
+				await fetchJson<EmbeddingApiResponse<EmbeddingStatus>>(
+					`/embedding/status/${encodeURIComponent(deckName)}`,
+					{ allowErrorEnvelope: true },
+				),
+			),
+		generate: async (deckName: string, forceRegenerate = false) =>
+			unwrapEmbeddingResponse(
+				await fetchJson<EmbeddingApiResponse<EmbeddingGenerateResult>>(
+					"/embedding/generate",
+					{
+						method: "POST",
+						allowErrorEnvelope: true,
+						body: JSON.stringify({ deckName, forceRegenerate }),
+					},
+				),
+			),
+		deleteCache: async (deckName: string) =>
+			unwrapEmbeddingResponse(
+				await fetchJson<EmbeddingApiResponse<EmbeddingDeleteResult>>(
+					`/embedding/cache/${encodeURIComponent(deckName)}`,
+					{
+						method: "DELETE",
+						allowErrorEnvelope: true,
+					},
+				),
+			),
+	},
 
-  prompts: {
-    versions: () =>
-      fetchJson<{
-        versions: PromptVersion[];
-        activeVersionId: string | null;
-      }>("/prompts/versions"),
-    version: (id: string) => fetchJson<PromptVersion>(`/prompts/versions/${id}`),
-    active: () =>
-      fetchJson<{
-        activeInfo: {
-          versionId: string;
-          activatedAt: string;
-          activatedBy: string;
-        };
-        version: PromptVersion | null;
-      }>("/prompts/active"),
-    system: () => fetchJson<PromptSystemState>("/prompts/system"),
-    saveSystemPrompt: async (data: {
-      expectedRevision: number;
-      systemPrompt: string;
-      reason: string;
-    }) => {
-      const res = await fetch(`${BASE_URL}/prompts/system`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+	prompts: {
+		versions: () =>
+			fetchJson<{
+				versions: PromptVersion[];
+				activeVersionId: string | null;
+			}>("/prompts/versions"),
+		version: (id: string) =>
+			fetchJson<PromptVersion>(`/prompts/versions/${id}`),
+		active: () =>
+			fetchJson<{
+				activeInfo: {
+					versionId: string;
+					activatedAt: string;
+					activatedBy: string;
+				};
+				version: PromptVersion | null;
+			}>("/prompts/active"),
+		system: () => fetchJson<PromptSystemState>("/prompts/system"),
+		saveSystemPrompt: async (data: {
+			expectedRevision: number;
+			systemPrompt: string;
+			reason: string;
+		}) => {
+			const res = await fetch(`${BASE_URL}/prompts/system`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(data),
+			});
 
-      if (res.status === 409) {
-        const rawBody = await res.text().catch(() => "");
-        let payload: {
-          latest?: PromptSystemConflictLatest;
-        } | null = null;
-        if (rawBody) {
-          try {
-            payload = JSON.parse(rawBody) as {
-              latest?: PromptSystemConflictLatest;
-            };
-          } catch {
-            payload = null;
-          }
-        }
-        if (payload?.latest) {
-          throw new PromptConflictError(payload.latest);
-        }
-        throw new Error(
-          "리비전 충돌이 발생했지만 서버 응답을 파싱할 수 없습니다. 원격 재조회 후 다시 시도하세요.",
-        );
-      }
+			if (res.status === 409) {
+				const rawBody = await res.text().catch(() => "");
+				let payload: {
+					latest?: PromptSystemConflictLatest;
+				} | null = null;
+				if (rawBody) {
+					try {
+						payload = JSON.parse(rawBody) as {
+							latest?: PromptSystemConflictLatest;
+						};
+					} catch {
+						payload = null;
+					}
+				}
+				if (payload?.latest) {
+					throw new PromptConflictError(payload.latest);
+				}
+				throw new Error(
+					"리비전 충돌이 발생했지만 서버 응답을 파싱할 수 없습니다. 원격 재조회 후 다시 시도하세요.",
+				);
+			}
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(error.error || `API Error: ${res.status}`);
-      }
+			if (!res.ok) {
+				const error = await res.json().catch(() => ({ error: res.statusText }));
+				throw new Error(error.error || `API Error: ${res.status}`);
+			}
 
-      return (await res.json()) as PromptSystemSaveResult;
-    },
-    activate: (versionId: string) =>
-      fetchJson<{ versionId: string; activatedAt: string }>(
-        `/prompts/versions/${versionId}/activate`,
-        { method: "POST" },
-      ),
-    experiments: () =>
-      fetchJson<{ experiments: Experiment[]; count: number }>("/prompts/experiments"),
-    experiment: (id: string) =>
-      fetchJson<{
-        experiment: Experiment;
-        controlVersion: PromptVersion | null;
-        treatmentVersion: PromptVersion | null;
-      }>(`/prompts/experiments/${id}`),
-    createExperiment: (data: {
-      name: string;
-      controlVersionId: string;
-      treatmentVersionId: string;
-    }) =>
-      fetchJson<Experiment>("/prompts/experiments", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    completeExperiment: (id: string, data: { conclusion: string; winnerVersionId: string }) =>
-      fetchJson<Experiment>(`/prompts/experiments/${id}/complete`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-  },
+			return (await res.json()) as PromptSystemSaveResult;
+		},
+		activate: (versionId: string) =>
+			fetchJson<{ versionId: string; activatedAt: string }>(
+				`/prompts/versions/${versionId}/activate`,
+				{ method: "POST" },
+			),
+		experiments: () =>
+			fetchJson<{ experiments: Experiment[]; count: number }>(
+				"/prompts/experiments",
+			),
+		experiment: (id: string) =>
+			fetchJson<{
+				experiment: Experiment;
+				controlVersion: PromptVersion | null;
+				treatmentVersion: PromptVersion | null;
+			}>(`/prompts/experiments/${id}`),
+		createExperiment: (data: {
+			name: string;
+			controlVersionId: string;
+			treatmentVersionId: string;
+		}) =>
+			fetchJson<Experiment>("/prompts/experiments", {
+				method: "POST",
+				body: JSON.stringify(data),
+			}),
+		completeExperiment: (
+			id: string,
+			data: { conclusion: string; winnerVersionId: string },
+		) =>
+			fetchJson<Experiment>(`/prompts/experiments/${id}/complete`, {
+				method: "POST",
+				body: JSON.stringify(data),
+			}),
+	},
 
-  history: {
-    list: (opts?: {
-      page?: number;
-      limit?: number;
-      deckName?: string;
-      status?: SplitHistoryStatus;
-      startDate?: string;
-      endDate?: string;
-    }) => {
-      const params = new URLSearchParams();
-      if (opts?.page) params.set("page", String(opts.page));
-      if (opts?.limit) params.set("limit", String(opts.limit));
-      if (opts?.deckName) params.set("deckName", opts.deckName);
-      if (opts?.status) params.set("status", opts.status);
-      if (opts?.startDate) params.set("startDate", opts.startDate);
-      if (opts?.endDate) params.set("endDate", opts.endDate);
-      const query = params.toString();
-      return fetchJson<{
-        items: SplitHistoryListItem[];
-        totalCount: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-        hasMore: boolean;
-        filters: {
-          deckName: string | null;
-          status: SplitHistoryStatus | null;
-          startDate: string;
-          endDate: string;
-        };
-      }>(`/history${query ? `?${query}` : ""}`);
-    },
-    detail: (sessionId: string) =>
-      fetchJson<SplitHistoryDetail>(`/history/${encodeURIComponent(sessionId)}`),
-    syncHealth: () => fetchJson<SplitHistorySyncHealth>("/history/sync/health"),
-  },
+	history: {
+		list: (opts?: {
+			page?: number;
+			limit?: number;
+			deckName?: string;
+			status?: SplitHistoryStatus;
+			startDate?: string;
+			endDate?: string;
+		}) => {
+			const params = new URLSearchParams();
+			if (opts?.page) params.set("page", String(opts.page));
+			if (opts?.limit) params.set("limit", String(opts.limit));
+			if (opts?.deckName) params.set("deckName", opts.deckName);
+			if (opts?.status) params.set("status", opts.status);
+			if (opts?.startDate) params.set("startDate", opts.startDate);
+			if (opts?.endDate) params.set("endDate", opts.endDate);
+			const query = params.toString();
+			return fetchJson<{
+				items: SplitHistoryListItem[];
+				totalCount: number;
+				page: number;
+				limit: number;
+				totalPages: number;
+				hasMore: boolean;
+				filters: {
+					deckName: string | null;
+					status: SplitHistoryStatus | null;
+					startDate: string;
+					endDate: string;
+				};
+			}>(`/history${query ? `?${query}` : ""}`);
+		},
+		detail: (sessionId: string) =>
+			fetchJson<SplitHistoryDetail>(
+				`/history/${encodeURIComponent(sessionId)}`,
+			),
+		syncHealth: () => fetchJson<SplitHistorySyncHealth>("/history/sync/health"),
+	},
 };
