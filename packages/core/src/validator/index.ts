@@ -31,11 +31,7 @@ export { checkVerbose, type VerboseCheckOptions } from "./verbose-checker.js";
 export { checkYagni, type YagniCheckOptions } from "./yagni-checker.js";
 
 // 카드 수정
-export {
-  applyFactCorrections,
-  type FixResult,
-  removeYagniClozes,
-} from "./card-fixer.js";
+export { applyFactCorrections, type FixResult, removeYagniClozes } from "./card-fixer.js";
 
 // 유틸리티
 export { cleanCardText } from "./utils.js";

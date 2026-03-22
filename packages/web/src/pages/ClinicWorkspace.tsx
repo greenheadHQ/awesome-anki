@@ -25,9 +25,9 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
+import { ContentRenderer } from "../components/card/ContentRenderer";
 import { ActionPreview } from "../components/clinic/ActionPreview";
 import { AllInOnePanel } from "../components/clinic/AllInOnePanel";
-import { ContentRenderer } from "../components/card/ContentRenderer";
 import { BottomSheet } from "../components/ui/bottom-sheet";
 import { Button } from "../components/ui/button";
 import { ModelBadge } from "../components/ui/model-badge";
@@ -41,11 +41,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useCardDetail, useCards } from "../hooks/useCards";
-import {
-  useBatchClinicValidate,
-  useClinicCache,
-  useClinicValidate,
-} from "../hooks/useClinicCache";
+import { useBatchClinicValidate, useClinicCache, useClinicValidate } from "../hooks/useClinicCache";
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useModelSelection } from "../hooks/useModelSelection";
@@ -161,13 +157,8 @@ export function ClinicWorkspace() {
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(selectedNoteId);
 
   // LLM 모델 선택 (공통 훅)
-  const {
-    activeProvider,
-    activeModel,
-    activeModelKey,
-    setSelectedModelKey,
-    llmModelsData,
-  } = useModelSelection();
+  const { activeProvider, activeModel, activeModelKey, setSelectedModelKey, llmModelsData } =
+    useModelSelection();
 
   const { getValidation, getValidationStatuses, uncachedCount } = useClinicCache();
 
@@ -197,9 +188,7 @@ export function ClinicWorkspace() {
 
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      cards = cards.filter(
-        (c) => String(c.noteId).includes(q) || c.text.toLowerCase().includes(q),
-      );
+      cards = cards.filter((c) => String(c.noteId).includes(q) || c.text.toLowerCase().includes(q));
     }
 
     return cards;
