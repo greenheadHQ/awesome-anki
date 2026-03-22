@@ -3,7 +3,7 @@
  */
 
 import {
-  analyzeForSplit,
+  analyzeForOptimization,
   extractTags,
   extractTextField,
   getClozeStats,
@@ -26,14 +26,14 @@ app.get("/deck/:name", async (c) => {
   const deckName = decodeURIComponent(c.req.param("name"));
   const page = parseInt(c.req.query("page") || "1", 10);
   const limit = parseInt(c.req.query("limit") || "20", 10);
-  const filter = c.req.query("filter") || "all"; // all, splitable
+  const filter = c.req.query("filter") || "all"; // all, splitable, optimizable
 
   const notes = await getDeckNotes(deckName);
 
   // 분석 및 필터링
   const analyzed = notes.map((note) => {
     const text = extractTextField(note);
-    const analysis = analyzeForSplit(text);
+    const analysis = analyzeForOptimization(text);
     const clozeStats = getClozeStats(text);
 
     return {
@@ -43,12 +43,17 @@ app.get("/deck/:name", async (c) => {
       modelName: note.modelName,
       analysis,
       clozeStats,
-      isSplitable: analysis.canSplit,
+      needsOptimization: analysis.needsOptimization,
+      reasons: analysis.reasons,
+      textLength: analysis.textLength,
     };
   });
 
-  // 필터 적용
-  const filtered = filter === "splitable" ? analyzed.filter((n) => n.isSplitable) : analyzed;
+  // 필터 적용 ("splitable" kept as alias for backward compat)
+  const filtered =
+    filter === "splitable" || filter === "optimizable"
+      ? analyzed.filter((n) => n.needsOptimization)
+      : analyzed;
 
   // 페이지네이션
   const startIndex = (page - 1) * limit;
@@ -100,7 +105,7 @@ app.get("/:noteId", async (c) => {
 
   const text = extractTextField(note);
   const tags = extractTags(note);
-  const analysis = analyzeForSplit(text);
+  const analysis = analyzeForOptimization(text);
   const nidLinks = parseNidLinks(text);
   const clozes = parseClozes(text);
   const clozeStats = getClozeStats(text);
@@ -114,7 +119,9 @@ app.get("/:noteId", async (c) => {
     nidLinks,
     clozes,
     clozeStats,
-    isSplitable: analysis.canSplit,
+    needsOptimization: analysis.needsOptimization,
+    reasons: analysis.reasons,
+    textLength: analysis.textLength,
   });
 });
 

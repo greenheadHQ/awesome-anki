@@ -10,7 +10,7 @@ import {
   cloneSchedulingAfterSplit,
   detectCardType,
   estimateCost,
-  estimateSplitCost,
+  estimateOptimizationCost,
   extractTags,
   extractTextField,
   findCardsByNote,
@@ -22,14 +22,16 @@ import {
   getRemoteSystemPromptPayload,
   type LLMModelId,
   NotFoundError,
+  type OperationResponse,
   preBackup,
   recordPromptMetricsEvent,
-  requestCardSplit,
+  requestCardOptimization,
   rollback,
   SPLIT_MAX_OUTPUT_TOKENS,
   type SplitResult,
   sync,
   updateBackupWithCreatedNotes,
+  updateNoteFields,
   ValidationError,
 } from "@anki-splitter/core";
 import { Hono } from "hono";
@@ -46,7 +48,6 @@ function mapPreviewCards(
     content: string;
     isMainCard?: boolean;
     cardType?: "cloze" | "basic";
-    charCount?: number;
   }>,
 ): SplitCardPayload[] {
   return cards.map((card) => ({
@@ -54,7 +55,6 @@ function mapPreviewCards(
     content: card.content,
     isMainCard: card.isMainCard,
     cardType: card.cardType,
-    charCount: card.charCount,
   }));
 }
 
@@ -233,7 +233,7 @@ app.post("/preview", async (c) => {
     }
 
     try {
-      const costEstimation = await estimateSplitCost(
+      const costEstimation = await estimateOptimizationCost(
         { noteId, text, tags },
         prompts,
         resolvedModelId,
@@ -315,25 +315,30 @@ app.post("/preview", async (c) => {
     }
 
     const startTime = Date.now();
-    const aiResult = await requestCardSplit({ noteId, text, tags }, prompts, resolvedModelId);
+    const aiResult: OperationResponse & {
+      tokenUsage?: import("@anki-splitter/core").TokenUsage;
+      modelName: string;
+      provider?: string;
+      actualCost?: { totalCostUsd: number; inputCostUsd: number; outputCostUsd: number };
+    } = await requestCardOptimization({ noteId, text, tags }, prompts, resolvedModelId);
     const executionTimeMs = Date.now() - startTime;
 
-    if (aiResult.shouldSplit && aiResult.splitCards.length > 1) {
+    if (aiResult.operation === "split") {
       const splitCards = aiResult.splitCards.map((card, idx) => ({
         title: card.title,
         content: card.content,
         isMainCard: idx === aiResult.mainCardIndex,
         cardType: card.cardType ?? detectCardType(card.content),
-        charCount: card.charCount,
       }));
 
       if (sessionId) {
         try {
           const historyStore = await getSplitHistoryStore();
           historyStore.markGenerated(sessionId, {
+            operation: "split",
             splitCards: mapPreviewCards(splitCards),
             aiResponse: aiResult as unknown as Record<string, unknown>,
-            splitReason: aiResult.splitReason,
+            splitReason: aiResult.operationReason,
             executionTimeMs,
             aiModel: aiResult.modelName,
             provider: aiResult.provider,
@@ -352,10 +357,88 @@ app.post("/preview", async (c) => {
       return c.json({
         sessionId,
         noteId,
+        operation: "split",
         originalText: text,
         splitCards,
         mainCardIndex: aiResult.mainCardIndex,
-        splitReason: aiResult.splitReason,
+        operationReason: aiResult.operationReason,
+        executionTimeMs,
+        tokenUsage: aiResult.tokenUsage,
+        aiModel: aiResult.modelName,
+        provider: aiResult.provider ?? "gemini",
+        estimatedCost,
+        actualCost: aiResult.actualCost,
+        ...(historyWarning && { historyWarning }),
+      });
+    } else if (aiResult.operation === "compact") {
+      if (sessionId) {
+        try {
+          const historyStore = await getSplitHistoryStore();
+          historyStore.markGenerated(sessionId, {
+            operation: "compact",
+            aiResponse: aiResult as unknown as Record<string, unknown>,
+            splitReason: aiResult.operationReason,
+            compactedContent: aiResult.compactedContent,
+            auditReport: aiResult.auditReport,
+            executionTimeMs,
+            aiModel: aiResult.modelName,
+            provider: aiResult.provider,
+            tokenUsage: aiResult.tokenUsage,
+            estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+            actualCostUsd: aiResult.actualCost?.totalCostUsd,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          historyWarning = historyWarning
+            ? `${historyWarning}; ${message}`
+            : `히스토리 기록 실패: ${message}`;
+        }
+      }
+
+      return c.json({
+        sessionId,
+        noteId,
+        operation: "compact",
+        originalText: text,
+        compactedContent: aiResult.compactedContent,
+        auditReport: aiResult.auditReport,
+        operationReason: aiResult.operationReason,
+        executionTimeMs,
+        tokenUsage: aiResult.tokenUsage,
+        aiModel: aiResult.modelName,
+        provider: aiResult.provider ?? "gemini",
+        estimatedCost,
+        actualCost: aiResult.actualCost,
+        ...(historyWarning && { historyWarning }),
+      });
+    } else {
+      // skip
+      if (sessionId) {
+        try {
+          const historyStore = await getSplitHistoryStore();
+          historyStore.markNotSplit(sessionId, {
+            splitReason: aiResult.operationReason || "최적화가 필요하지 않다고 판단했습니다.",
+            executionTimeMs,
+            aiModel: aiResult.modelName,
+            provider: aiResult.provider,
+            tokenUsage: aiResult.tokenUsage,
+            aiResponse: aiResult as unknown as Record<string, unknown>,
+            estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+            actualCostUsd: aiResult.actualCost?.totalCostUsd,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          historyWarning = historyWarning
+            ? `${historyWarning}; ${message}`
+            : `히스토리 기록 실패: ${message}`;
+        }
+      }
+
+      return c.json({
+        sessionId,
+        noteId,
+        operation: "skip",
+        operationReason: aiResult.operationReason || "최적화가 필요하지 않다고 판단했습니다.",
         executionTimeMs,
         tokenUsage: aiResult.tokenUsage,
         aiModel: aiResult.modelName,
@@ -365,40 +448,6 @@ app.post("/preview", async (c) => {
         ...(historyWarning && { historyWarning }),
       });
     }
-
-    if (sessionId) {
-      try {
-        const historyStore = await getSplitHistoryStore();
-        historyStore.markNotSplit(sessionId, {
-          splitReason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
-          executionTimeMs,
-          aiModel: aiResult.modelName,
-          provider: aiResult.provider,
-          tokenUsage: aiResult.tokenUsage,
-          aiResponse: aiResult as unknown as Record<string, unknown>,
-          estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
-          actualCostUsd: aiResult.actualCost?.totalCostUsd,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        historyWarning = historyWarning
-          ? `${historyWarning}; ${message}`
-          : `히스토리 기록 실패: ${message}`;
-      }
-    }
-
-    return c.json({
-      sessionId,
-      noteId,
-      reason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
-      executionTimeMs,
-      tokenUsage: aiResult.tokenUsage,
-      aiModel: aiResult.modelName,
-      provider: aiResult.provider ?? "gemini",
-      estimatedCost,
-      actualCost: aiResult.actualCost,
-      ...(historyWarning && { historyWarning }),
-    });
   } catch (error) {
     if (sessionId) {
       try {
@@ -422,20 +471,23 @@ app.post("/preview", async (c) => {
  * 분할 적용 (자동 롤백 포함)
  */
 app.post("/apply", async (c) => {
-  const { sessionId, noteId, deckName, splitCards, mainCardIndex } = await c.req.json<{
-    sessionId: string;
-    noteId: number;
-    deckName: string;
-    splitCards: Array<{
-      title: string;
-      content: string;
-      inheritImages?: string[];
-      inheritTags?: string[];
-      preservedLinks?: string[];
-      backLinks?: string[];
-    }>;
-    mainCardIndex: number;
-  }>();
+  const { sessionId, noteId, deckName, operation, splitCards, mainCardIndex, compactedContent } =
+    await c.req.json<{
+      sessionId: string;
+      noteId: number;
+      deckName: string;
+      operation?: "split" | "compact";
+      splitCards?: Array<{
+        title: string;
+        content: string;
+        inheritImages?: string[];
+        inheritTags?: string[];
+        preservedLinks?: string[];
+        backLinks?: string[];
+      }>;
+      mainCardIndex?: number;
+      compactedContent?: string;
+    }>();
 
   if (!sessionId) {
     throw new ValidationError("sessionId가 필요합니다.");
@@ -453,6 +505,66 @@ app.post("/apply", async (c) => {
     // Critical Step 1: 백업 생성
     const backup = await preBackup(deckName, noteId);
     backupId = backup.backupId;
+
+    if (operation === "compact") {
+      // ── Compact path ──────────────────────────────────────────
+      if (!compactedContent) {
+        throw new ValidationError("compact 작업에는 compactedContent가 필요합니다.");
+      }
+
+      // Critical Step 2: 기존 노트 내용을 compact된 텍스트로 업데이트
+      await updateNoteFields(noteId, { Text: compactedContent });
+
+      // Non-critical: Sync Server 전파
+      try {
+        await sync();
+        syncResult = { success: true, syncedAt: new Date().toISOString() };
+      } catch (syncError) {
+        const message = syncError instanceof Error ? syncError.message : String(syncError);
+        syncResult = { success: false, error: message };
+        console.warn("Anki sync failed after compact apply:", message);
+      }
+
+      // Non-critical: 이력/메트릭 업데이트
+      try {
+        const historyStore = await getSplitHistoryStore();
+        historyStore.markApplied(sessionId, {
+          operation: "compact",
+          compactedContent,
+        });
+
+        const metadata = historyStore.getSessionMetadata(sessionId);
+        if (metadata?.promptVersionId) {
+          await recordPromptMetricsEvent({
+            promptVersionId: metadata.promptVersionId,
+            userAction: "approved",
+            splitCards: metadata.splitCards,
+          });
+        }
+      } catch (historyError) {
+        const message =
+          historyError instanceof Error ? historyError.message : String(historyError);
+        historyWarning = `히스토리 업데이트 실패: ${message}`;
+        console.warn(historyWarning);
+      }
+
+      return c.json({
+        success: true,
+        backupId,
+        mainNoteId: noteId,
+        newNoteIds: [],
+        syncResult,
+        ...(historyWarning && { historyWarning }),
+      });
+    }
+
+    // ── Split path (default) ──────────────────────────────────
+    if (!splitCards || splitCards.length === 0) {
+      throw new ValidationError("split 작업에는 splitCards가 필요합니다.");
+    }
+    if (mainCardIndex === undefined || mainCardIndex === null) {
+      throw new ValidationError("split 작업에는 mainCardIndex가 필요합니다.");
+    }
 
     // Critical Step 2: 분할 적용
     const splitResult: SplitResult = {
@@ -505,6 +617,7 @@ app.post("/apply", async (c) => {
       const historyStore = await getSplitHistoryStore();
       const persistedCards = mapApplyCards(splitCards);
       historyStore.markApplied(sessionId, {
+        operation: "split",
         splitCards: persistedCards,
       });
 
