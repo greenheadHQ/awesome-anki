@@ -12,6 +12,7 @@ import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import { extractUniqueNids } from "../parser/nid-parser.js";
 import type { ContextResult, Inconsistency } from "./types.js";
+import { cleanCardText } from "./utils.js";
 
 const CONTEXT_CHECK_PROMPT = `
 당신은 지식 카드(Anki) 간의 논리적 일관성을 검증하는 전문가입니다.
@@ -249,14 +250,7 @@ ${cardsText}
  * 텍스트 정규화 (Gemini 전달용)
  */
 function cleanContent(text: string): string {
-  return text
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
-    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
-    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
-    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
-    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
-    .replace(/\s+/g, " ")
-    .trim();
+  return cleanCardText(text).replace(/\s+/g, " ");
 }
 
 function getStatusMessage(status: string, count: number): string {

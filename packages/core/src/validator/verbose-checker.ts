@@ -5,6 +5,7 @@
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { VerboseResult } from "./types.js";
+import { cleanCardText } from "./utils.js";
 
 const VERBOSE_CHECK_PROMPT = `
 당신은 Anki 학습 카드의 원자성(atomicity) 분석가입니다.
@@ -50,14 +51,7 @@ export async function checkVerbose(
   cardContent: string,
   options: VerboseCheckOptions = {},
 ): Promise<VerboseResult> {
-  // Cloze 마크업 제거하여 순수 텍스트 추출
-  const cleanContent = cardContent
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
-    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
-    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
-    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
-    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
-    .trim();
+  const cleanContent = cleanCardText(cardContent);
 
   const clozeMatches = cardContent.match(/\{\{c\d+::/g);
   const actualClozeCount = clozeMatches ? clozeMatches.length : 0;
@@ -84,14 +78,17 @@ ${cleanContent}
 
     // 타입 가드: LLM 응답을 신뢰하지 않고 각 필드를 안전하게 변환
     const wordCount =
-      typeof parsed.wordCount === "number" ? parsed.wordCount : cleanContent.replace(/\s/g, "").length;
+      typeof parsed.wordCount === "number"
+        ? parsed.wordCount
+        : cleanContent.replace(/\s/g, "").length;
     const clozeCount = typeof parsed.clozeCount === "number" ? parsed.clozeCount : actualClozeCount;
     const conceptCount = typeof parsed.conceptCount === "number" ? parsed.conceptCount : 1;
     const concepts: string[] = Array.isArray(parsed.concepts)
       ? parsed.concepts.filter((c: unknown) => typeof c === "string")
       : [];
     const recommendation = parsed.recommendation === "split" ? "split" : "ok";
-    const rawSplit = typeof parsed.suggestedSplitCount === "number" ? parsed.suggestedSplitCount : conceptCount;
+    const rawSplit =
+      typeof parsed.suggestedSplitCount === "number" ? parsed.suggestedSplitCount : conceptCount;
     const suggestedSplitCount = recommendation === "split" ? rawSplit : undefined;
     const rawConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 80;
 

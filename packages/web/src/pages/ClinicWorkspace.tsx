@@ -1,7 +1,7 @@
 /**
- * ValidateWorkspace - 카드 검증 작업 공간
- * 데스크톱: 3단 레이아웃 (카드 목록 | 원본 카드 | 검증 결과)
- * 모바일: list↔detail view transition
+ * ClinicWorkspace - 카드 검진 작업 공간
+ * 데스크톱: 3단 레이아웃 (카드 목록 | 원본 카드 + 수정 미리보기 | 검증 결과 + All-in-One)
+ * 모바일: list ↔ detail view transition
  */
 
 import {
@@ -20,11 +20,14 @@ import {
   Search,
   Shield,
   Sparkles,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { ContentRenderer } from "../components/card/ContentRenderer";
+import { ActionPreview } from "../components/clinic/ActionPreview";
+import { AllInOnePanel } from "../components/clinic/AllInOnePanel";
 import { BottomSheet } from "../components/ui/bottom-sheet";
 import { Button } from "../components/ui/button";
 import { ModelBadge } from "../components/ui/model-badge";
@@ -38,10 +41,10 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useCardDetail, useCards } from "../hooks/useCards";
+import { useBatchClinicValidate, useClinicCache, useClinicValidate } from "../hooks/useClinicCache";
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
-import { useLLMModels } from "../hooks/useSplit";
-import { useBatchValidate, useValidateCard, useValidationCache } from "../hooks/useValidationCache";
+import { useModelSelection } from "../hooks/useModelSelection";
 import type { AllValidationResult, ValidationStatus } from "../lib/api";
 import { cn } from "../lib/utils";
 import { startViewTransition } from "../lib/view-transition";
@@ -49,7 +52,7 @@ import { startViewTransition } from "../lib/view-transition";
 type MobilePanel = "list" | "detail";
 type DetailTab = "validate" | "related";
 
-// 검증 상태 아이콘
+// --- 검증 상태 아이콘 ---
 function StatusIcon({
   status,
   size = "sm",
@@ -100,13 +103,28 @@ function getStatusBg(status: ValidationStatus): string {
   }
 }
 
-// 검증 유형별 아이콘 + 라벨
+/** 카드 목록의 왼쪽 3px 색상 바 */
+function getStatusBorderColor(status: ValidationStatus | null): string {
+  switch (status) {
+    case "valid":
+      return "border-l-green-500";
+    case "warning":
+      return "border-l-yellow-500";
+    case "error":
+      return "border-l-red-500";
+    default:
+      return "border-l-gray-300";
+  }
+}
+
+// 6종 검증 유형 (yagni 추가)
 const VALIDATION_TYPES = [
   { key: "factCheck", icon: CheckCircle, label: "팩트 체크" },
   { key: "freshness", icon: Clock, label: "최신성 검사" },
   { key: "similarity", icon: Copy, label: "유사성 검사" },
   { key: "context", icon: Link2, label: "문맥 일관성" },
   { key: "verbose", icon: Sparkles, label: "Verbose 감지" },
+  { key: "yagni", icon: Trash2, label: "YAGNI 감지" },
 ] as const;
 
 type FilterMode = "all" | "unvalidated" | "needs-review";
@@ -117,7 +135,7 @@ const FILTER_LABELS: Record<FilterMode, string> = {
   "needs-review": "검토 필요",
 };
 
-export function ValidateWorkspace() {
+export function ClinicWorkspace() {
   const isMobile = useIsMobile("xl");
 
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
@@ -127,7 +145,6 @@ export function ValidateWorkspace() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [showConfigSheet, setShowConfigSheet] = useState(false);
 
   const { data: decksData } = useDecks();
@@ -139,20 +156,15 @@ export function ValidateWorkspace() {
 
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(selectedNoteId);
 
-  // LLM 모델 선택
-  const { data: llmModelsData } = useLLMModels();
-  const defaultModelKey = llmModelsData
-    ? `${llmModelsData.defaultModelId.provider}/${llmModelsData.defaultModelId.model}`
-    : null;
-  const activeModelKey = selectedModelKey ?? defaultModelKey;
-  const activeProvider = activeModelKey?.split("/")[0];
-  const activeModel = activeModelKey?.split("/").slice(1).join("/");
+  // LLM 모델 선택 (공통 훅)
+  const { activeProvider, activeModel, activeModelKey, setSelectedModelKey, llmModelsData } =
+    useModelSelection();
 
-  const { getValidation, getValidationStatuses, uncachedCount } = useValidationCache();
+  const { getValidation, getValidationStatuses, uncachedCount } = useClinicCache();
 
   const modelOpts = { provider: activeProvider, model: activeModel };
-  const validateCard = useValidateCard(activeDeck, modelOpts);
-  const batchValidate = useBatchValidate(activeDeck, modelOpts);
+  const validateCard = useClinicValidate(activeDeck, modelOpts);
+  const batchValidate = useBatchClinicValidate(activeDeck, modelOpts);
 
   const allCards = useMemo(() => cardsData?.cards ?? [], [cardsData]);
   const noteIds = useMemo(() => allCards.map((c) => c.noteId), [allCards]);
@@ -165,7 +177,6 @@ export function ValidateWorkspace() {
   const filteredCards = useMemo(() => {
     let cards = allCards;
 
-    // 필터
     if (filterMode === "unvalidated") {
       cards = cards.filter((c) => !validationStatuses.get(c.noteId));
     } else if (filterMode === "needs-review") {
@@ -175,7 +186,6 @@ export function ValidateWorkspace() {
       });
     }
 
-    // 검색
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       cards = cards.filter((c) => String(c.noteId).includes(q) || c.text.toLowerCase().includes(q));
@@ -188,7 +198,7 @@ export function ValidateWorkspace() {
 
   // 통계
   const totalCards = allCards.length;
-  const unvalidatedCount = uncachedCount(noteIds);
+  const unvalidatedCount2 = uncachedCount(noteIds);
   const issueCount = useMemo(() => {
     let count = 0;
     for (const [, status] of validationStatuses) {
@@ -237,166 +247,7 @@ export function ValidateWorkspace() {
     batchValidate.mutate(unvalidated);
   };
 
-  // --- 카드 목록 패널 ---
-  const renderCardList = () => (
-    <>
-      {/* 필터 + 검색 */}
-      <div className="py-3 px-4 border-b shrink-0 space-y-2">
-        {/* 검색 */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="카드 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        {/* 필터 토글 */}
-        <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md">
-          {(Object.keys(FILTER_LABELS) as FilterMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setFilterMode(mode)}
-              className={cn(
-                "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
-                filterMode === mode
-                  ? "bg-background shadow-sm font-medium"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {FILTER_LABELS[mode]}
-              {mode === "needs-review" && issueCount > 0 && (
-                <span className="ml-1 text-red-500">({issueCount})</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* 카드 리스트 */}
-      <div className="flex-1 overflow-y-auto">
-        {isLoadingCards ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin" />
-          </div>
-        ) : filteredCards.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            {searchQuery ? "검색 결과가 없습니다" : "카드가 없습니다"}
-          </div>
-        ) : (
-          <div className="divide-y">
-            {filteredCards.map((card) => {
-              const status = validationStatuses.get(card.noteId) ?? null;
-              return (
-                <button
-                  type="button"
-                  key={card.noteId}
-                  onClick={() => handleSelectCard(card.noteId)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 hover:bg-muted transition-colors",
-                    selectedNoteId === card.noteId && "bg-primary/10",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <StatusIcon status={status} />
-                        <p className="text-sm font-medium truncate">{card.noteId}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {card.text.slice(0, 60)}
-                        {card.text.length > 60 ? "..." : ""}
-                      </p>
-                    </div>
-                    {card.analysis.clozeCount > 0 && (
-                      <span className="shrink-0 text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
-                        C{card.analysis.clozeCount}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  // --- 원본 카드 패널 ---
-  const renderOriginalCard = () => (
-    <>
-      {!isMobile && (
-        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-          <span className="text-sm font-semibold">원본 카드</span>
-          {selectedNoteId && (
-            <span className="text-xs text-muted-foreground">NID: {selectedNoteId}</span>
-          )}
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto py-4">
-        {selectedNoteId ? (
-          isLoadingDetail ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <ContentRenderer
-              content={cardDetail?.text || ""}
-              showToggle={true}
-              defaultView="rendered"
-            />
-          )
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center">
-              <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>왼쪽에서 카드를 선택하세요</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  // --- 검증 결과 섹션 렌더러 ---
-  const renderValidationSection = (
-    typeKey: string,
-    icon: React.ElementType,
-    label: string,
-    result: AllValidationResult["results"][keyof AllValidationResult["results"]] | undefined,
-  ) => {
-    if (!result) return null;
-    const Icon = icon;
-    const isExpanded = expandedSections.has(typeKey);
-
-    return (
-      <div key={typeKey} className="border rounded-lg overflow-hidden">
-        <button
-          type="button"
-          className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
-          onClick={() => toggleSection(typeKey)}
-        >
-          <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4" />
-            <span className="font-medium text-sm">{label}</span>
-            <StatusIcon status={result.status} />
-          </div>
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-        {isExpanded && (
-          <div className="p-3 border-t bg-muted/30 text-sm">
-            <p className="mb-2">{result.message}</p>
-            {renderValidationDetails(typeKey, result)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // 검증 유형별 세부 내용 렌더러
+  // --- 검증 유형별 세부 내용 렌더러 ---
   const renderValidationDetails = (
     typeKey: string,
     result: AllValidationResult["results"][keyof AllValidationResult["results"]],
@@ -592,10 +443,207 @@ export function ValidateWorkspace() {
         );
       }
 
+      case "yagni": {
+        const isYagni = details.isYagni as boolean;
+        const reason = details.reason as string;
+        const affectedClozes = (details.affectedClozes as number[]) ?? [];
+        return (
+          <div className="space-y-2">
+            {isYagni ? (
+              <div className="flex items-start gap-2 text-xs">
+                <Trash2 className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-orange-700 dark:text-orange-400">{reason}</p>
+                  {affectedClozes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {affectedClozes.map((c) => (
+                        <span
+                          key={`yagni-c${c}`}
+                          className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-mono"
+                        >
+                          c{c}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">YAGNI Cloze가 감지되지 않았습니다</p>
+            )}
+          </div>
+        );
+      }
+
       default:
         return null;
     }
   };
+
+  // --- 검증 결과 섹션 렌더러 ---
+  const renderValidationSection = (
+    typeKey: string,
+    icon: React.ElementType,
+    label: string,
+    result: AllValidationResult["results"][keyof AllValidationResult["results"]] | undefined,
+  ) => {
+    if (!result) return null;
+    const Icon = icon;
+    const isExpanded = expandedSections.has(typeKey);
+
+    return (
+      <div key={typeKey} className="border rounded-lg overflow-hidden">
+        <button
+          type="button"
+          className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
+          onClick={() => toggleSection(typeKey)}
+        >
+          <div className="flex items-center gap-2">
+            <Icon className="w-4 h-4" />
+            <span className="font-medium text-sm">{label}</span>
+            <StatusIcon status={result.status} />
+          </div>
+          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+        {isExpanded && (
+          <div className="p-3 border-t bg-muted/30 text-sm">
+            <p className="mb-2">{result.message}</p>
+            {renderValidationDetails(typeKey, result)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // --- 카드 목록 패널 ---
+  const renderCardList = () => (
+    <>
+      {/* 필터 + 검색 */}
+      <div className="py-3 px-4 border-b shrink-0 space-y-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="카드 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+        <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md">
+          {(Object.keys(FILTER_LABELS) as FilterMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setFilterMode(mode)}
+              className={cn(
+                "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
+                filterMode === mode
+                  ? "bg-background shadow-sm font-medium"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {FILTER_LABELS[mode]}
+              {mode === "needs-review" && issueCount > 0 && (
+                <span className="ml-1 text-red-500">({issueCount})</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* 카드 리스트 */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoadingCards ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin" />
+          </div>
+        ) : filteredCards.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            {searchQuery ? "검색 결과가 없습니다" : "카드가 없습니다"}
+          </div>
+        ) : (
+          <div className="divide-y">
+            {filteredCards.map((card) => {
+              const status = validationStatuses.get(card.noteId) ?? null;
+              return (
+                <button
+                  type="button"
+                  key={card.noteId}
+                  onClick={() => handleSelectCard(card.noteId)}
+                  className={cn(
+                    "w-full text-left px-4 py-3 hover:bg-muted transition-colors border-l-[3px]",
+                    getStatusBorderColor(status),
+                    selectedNoteId === card.noteId && "bg-primary/10",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <StatusIcon status={status} />
+                        <p className="text-sm font-medium truncate">{card.noteId}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {card.text.slice(0, 60)}
+                        {card.text.length > 60 ? "..." : ""}
+                      </p>
+                    </div>
+                    {card.analysis.clozeCount > 0 && (
+                      <span className="shrink-0 text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
+                        C{card.analysis.clozeCount}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  // --- 원본 카드 + 수정 미리보기 패널 ---
+  const renderOriginalCard = () => (
+    <>
+      {!isMobile && (
+        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
+          <span className="text-sm font-semibold">원본 카드</span>
+          {selectedNoteId && (
+            <span className="text-xs text-muted-foreground">NID: {selectedNoteId}</span>
+          )}
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto py-4">
+        {selectedNoteId ? (
+          isLoadingDetail ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <ContentRenderer
+                content={cardDetail?.text || ""}
+                showToggle={true}
+                defaultView="rendered"
+              />
+              {/* 수정 미리보기 (ActionPreview) */}
+              <ActionPreview
+                cardContent={cardDetail?.text || ""}
+                validationResults={currentValidation?.results}
+              />
+            </>
+          )
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="text-center">
+              <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>왼쪽에서 카드를 선택하세요</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
 
   // --- 검증 결과 패널 ---
   const renderValidationPanel = () => {
@@ -603,7 +651,7 @@ export function ValidateWorkspace() {
     const isValidating = validateCard.isPending;
 
     return (
-      <>
+      <div className="flex flex-col min-h-0 h-full">
         {!isMobile && (
           <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
             <span className="text-sm font-semibold">검증 결과</span>
@@ -683,7 +731,7 @@ export function ValidateWorkspace() {
               </div>
 
               {detailTab === "validate" ? (
-                // 5종 검증 결과
+                // 6종 검증 결과
                 <div className="space-y-2">
                   {VALIDATION_TYPES.map(({ key, icon, label }) =>
                     renderValidationSection(
@@ -768,7 +816,7 @@ export function ValidateWorkspace() {
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <Shield className="w-12 h-12 mb-4 text-blue-400" />
               <p className="text-center mb-4">
-                5종 검증으로 카드 건강을 진단합니다.
+                6종 검증으로 카드 건강을 진단합니다.
                 <br />
                 <span className="text-xs">API 비용이 발생할 수 있습니다.</span>
               </p>
@@ -779,7 +827,17 @@ export function ValidateWorkspace() {
             </div>
           )}
         </div>
-      </>
+
+        {/* All-in-One Panel (우측 패널 하단 고정) */}
+        {selectedNoteId && activeDeck && cardDetail?.text && currentValidation?.results && (
+          <AllInOnePanel
+            cardContent={cardDetail.text}
+            noteId={selectedNoteId}
+            deckName={activeDeck}
+            validationResults={currentValidation.results}
+          />
+        )}
+      </div>
     );
   };
 
@@ -790,7 +848,7 @@ export function ValidateWorkspace() {
       {isMobile ? (
         <div className="flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center gap-2.5">
-            <h1 className="typo-h1">카드 검증</h1>
+            <h1 className="typo-h1">Clinic</h1>
             <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary tabular-nums">
               {totalCards}개
             </span>
@@ -868,7 +926,7 @@ export function ValidateWorkspace() {
                           {isDefault && " \u2713"}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          ${m.inputPricePerMillionTokens}/${m.outputPricePerMillionTokens} per 1M
+                          ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens} per 1M
                           tokens
                         </div>
                       </button>
@@ -881,7 +939,7 @@ export function ValidateWorkspace() {
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
-          <h1 className="typo-h1 shrink-0">카드 검증</h1>
+          <h1 className="typo-h1 shrink-0">Clinic</h1>
           <Select
             value={activeDeck ?? undefined}
             onValueChange={(value) => {
@@ -943,14 +1001,14 @@ export function ValidateWorkspace() {
               </Select>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>미검증: {unvalidatedCount}</span>
+              <span>미검증: {unvalidatedCount2}</span>
               {issueCount > 0 && <span className="text-red-500">문제: {issueCount}</span>}
             </div>
             <Button
               size="sm"
               variant="outline"
               onClick={handleBatchValidate}
-              disabled={batchValidate.isPending || unvalidatedCount === 0}
+              disabled={batchValidate.isPending || unvalidatedCount2 === 0}
             >
               {batchValidate.isPending ? (
                 <>
@@ -970,7 +1028,7 @@ export function ValidateWorkspace() {
 
       {/* ===== 콘텐츠 ===== */}
       {isMobile ? (
-        // 모바일: list ↔ detail 전환
+        // 모바일: list <-> detail 전환
         <div className="flex-1 flex flex-col min-h-0">
           {activePanel === "list" ? (
             <div
@@ -979,7 +1037,7 @@ export function ValidateWorkspace() {
             >
               {renderCardList()}
               {/* 모바일 배치 검증 */}
-              {unvalidatedCount > 0 && (
+              {unvalidatedCount2 > 0 && (
                 <div className="px-4 py-3 border-t shrink-0">
                   <Button
                     className="w-full"
@@ -995,7 +1053,7 @@ export function ValidateWorkspace() {
                     ) : (
                       <>
                         <Shield className="w-4 h-4 mr-1" />
-                        미검증 {unvalidatedCount}개 전체 검증
+                        미검증 {unvalidatedCount2}개 전체 검증
                       </>
                     )}
                   </Button>
@@ -1060,11 +1118,18 @@ export function ValidateWorkspace() {
                         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                       </div>
                     ) : (
-                      <ContentRenderer
-                        content={cardDetail?.text || ""}
-                        showToggle={true}
-                        defaultView="rendered"
-                      />
+                      <>
+                        <ContentRenderer
+                          content={cardDetail?.text || ""}
+                          showToggle={true}
+                          defaultView="rendered"
+                        />
+                        {/* 수정 미리보기 */}
+                        <ActionPreview
+                          cardContent={cardDetail?.text || ""}
+                          validationResults={currentValidation?.results}
+                        />
+                      </>
                     )}
                     {/* 검증 버튼 */}
                     <div className="flex justify-center">
@@ -1115,6 +1180,18 @@ export function ValidateWorkspace() {
                         </div>
                       </>
                     )}
+                    {/* 모바일 All-in-One */}
+                    {selectedNoteId &&
+                      activeDeck &&
+                      cardDetail?.text &&
+                      currentValidation?.results && (
+                        <AllInOnePanel
+                          cardContent={cardDetail.text}
+                          noteId={selectedNoteId}
+                          deckName={activeDeck}
+                          validationResults={currentValidation.results}
+                        />
+                      )}
                   </div>
                 ) : (
                   // 연관 탭 (모바일)
@@ -1122,8 +1199,7 @@ export function ValidateWorkspace() {
                     {currentValidation?.results ? (
                       <>
                         {/* 유사 카드 */}
-                        {currentValidation.results.similarity?.details.similarCards.length >
-                          0 && (
+                        {currentValidation.results.similarity?.details.similarCards.length > 0 && (
                           <>
                             <h3 className="text-sm font-semibold flex items-center gap-1.5">
                               <Copy className="w-4 h-4" />
@@ -1157,26 +1233,23 @@ export function ValidateWorkspace() {
                           </>
                         )}
                         {/* 문맥 연결 카드 */}
-                        {currentValidation.results.context?.details.relatedCards.length >
-                          0 && (
+                        {currentValidation.results.context?.details.relatedCards.length > 0 && (
                           <div>
                             <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
                               <Link2 className="w-4 h-4" />
                               문맥 연결 카드
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
-                              {currentValidation.results.context.details.relatedCards.map(
-                                (nid) => (
-                                  <button
-                                    type="button"
-                                    key={`m-ctx-${nid}`}
-                                    onClick={() => handleSelectCard(nid)}
-                                    className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
-                                  >
-                                    #{nid}
-                                  </button>
-                                ),
-                              )}
+                              {currentValidation.results.context.details.relatedCards.map((nid) => (
+                                <button
+                                  type="button"
+                                  key={`m-ctx-${nid}`}
+                                  onClick={() => handleSelectCard(nid)}
+                                  className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
+                                >
+                                  #{nid}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         )}
@@ -1202,14 +1275,14 @@ export function ValidateWorkspace() {
           )}
         </div>
       ) : (
-        // 데스크톱: 3패널 레이아웃
-        <div className="flex-1 grid grid-cols-[280px_1fr_360px] gap-0 min-h-0 border rounded-lg overflow-hidden">
+        // 데스크톱: 3패널 레이아웃 — border-l dividers ("island" 제거)
+        <div className="flex-1 grid grid-cols-[280px_1fr_360px] min-h-0 border rounded-lg overflow-hidden">
           {/* 좌측: 카드 목록 */}
-          <div className="flex flex-col min-h-0 border-r">{renderCardList()}</div>
-          {/* 가운데: 원본 카드 */}
-          <div className="flex flex-col min-h-0 border-r">{renderOriginalCard()}</div>
-          {/* 우측: 검증 결과 */}
-          <div className="flex flex-col min-h-0">{renderValidationPanel()}</div>
+          <div className="flex flex-col min-h-0">{renderCardList()}</div>
+          {/* 가운데: 원본 카드 + 수정 미리보기 */}
+          <div className="flex flex-col min-h-0 border-l">{renderOriginalCard()}</div>
+          {/* 우측: 검증 결과 + All-in-One */}
+          <div className="flex flex-col min-h-0 border-l">{renderValidationPanel()}</div>
         </div>
       )}
     </div>

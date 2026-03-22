@@ -1,15 +1,16 @@
 /**
- * 검증 결과 캐싱 훅
+ * Clinic 검증 결과 캐싱 훅
  * localStorage를 사용하여 검증 결과를 캐시
  */
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useSyncExternalStore } from "react";
 
 import { type AllValidationResult, api, type ValidationStatus } from "../lib/api";
+import { queryKeys } from "../lib/query-keys";
 
 const CACHE_KEY = "anki-validation-cache";
-const CACHE_VERSION = 2; // verbose 필드 추가 — 구 캐시 무효화
+const CACHE_VERSION = 3; // yagni 필드 추가 — 구 캐시 무효화
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
 
 interface CachedValidation {
@@ -77,7 +78,7 @@ function updateGlobalCache(updater: (prev: ValidationCache) => ValidationCache) 
   }
 }
 
-export function useValidationCache() {
+export function useClinicCache() {
   const cache = useSyncExternalStore(subscribe, getSnapshot);
 
   // 검증 결과 가져오기
@@ -153,16 +154,16 @@ export function useValidationCache() {
 /**
  * 단일 카드 검증 mutation 훅
  */
-export function useValidateCard(
+export function useClinicValidate(
   deckName: string | null,
   opts?: { provider?: string; model?: string },
 ) {
-  const { setValidation } = useValidationCache();
+  const { setValidation } = useClinicCache();
 
   return useMutation({
     mutationFn: async (noteId: number) => {
       if (!deckName) throw new Error("덱이 선택되지 않았습니다.");
-      return api.validate.all(noteId, deckName, {
+      return api.clinic.all(noteId, deckName, {
         provider: opts?.provider,
         model: opts?.model,
       });
@@ -176,11 +177,11 @@ export function useValidateCard(
 /**
  * 여러 카드 일괄 검증 mutation 훅
  */
-export function useBatchValidate(
+export function useBatchClinicValidate(
   deckName: string | null,
   opts?: { provider?: string; model?: string },
 ) {
-  const { setValidation } = useValidationCache();
+  const { setValidation } = useClinicCache();
 
   return useMutation({
     mutationFn: async (noteIds: number[]) => {
@@ -189,7 +190,7 @@ export function useBatchValidate(
       // 순차적으로 검증 (API 부하 방지)
       const results: AllValidationResult[] = [];
       for (const noteId of noteIds) {
-        const result = await api.validate.all(noteId, deckName, {
+        const result = await api.clinic.all(noteId, deckName, {
           provider: opts?.provider,
           model: opts?.model,
         });
@@ -197,6 +198,34 @@ export function useBatchValidate(
         setValidation(noteId, result);
       }
       return results;
+    },
+  });
+}
+
+/**
+ * 카드 수정 적용 mutation 훅
+ */
+export function useFixApply() {
+  const queryClient = useQueryClient();
+  const { clearValidation } = useClinicCache();
+
+  return useMutation({
+    mutationFn: ({
+      noteId,
+      fixedContent,
+      deckName,
+    }: {
+      noteId: number;
+      fixedContent: string;
+      deckName: string;
+    }) => api.clinic.fixApply(noteId, fixedContent, deckName),
+    onSuccess: (_data, variables) => {
+      // 수정된 카드의 캐시 무효화 (재검증 필요)
+      clearValidation(variables.noteId);
+      // 카드 목록 새로고침
+      queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
+      // 백업 목록 새로고침
+      queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
     },
   });
 }

@@ -34,9 +34,9 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { useCardDetail, useCards } from "../hooks/useCards";
+import { useClinicCache, useClinicValidate } from "../hooks/useClinicCache";
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
-import { useValidateCard, useValidationCache } from "../hooks/useValidationCache";
 import type { ValidationStatus } from "../lib/api";
 import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
 import { cn } from "../lib/utils";
@@ -136,8 +136,8 @@ export function CardBrowser() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [selectedNoteId]);
 
-  const { getValidation, getValidationStatuses, cacheSize } = useValidationCache();
-  const validateMutation = useValidateCard(selectedDeck);
+  const { getValidation, getValidationStatuses, cacheSize } = useClinicCache();
+  const validateMutation = useClinicValidate(selectedDeck);
   const cards = useMemo(() => cardsData?.cards ?? [], [cardsData]);
 
   const validationStatuses = useMemo(() => {

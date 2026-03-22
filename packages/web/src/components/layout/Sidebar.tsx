@@ -1,11 +1,11 @@
 import {
-  CheckCircle,
   Clock3,
   FileText,
   FolderOpen,
   History,
   LayoutDashboard,
   Scissors,
+  Stethoscope,
   X,
 } from "lucide-react";
 import { useEffect, useEffectEvent, useRef } from "react";
@@ -15,8 +15,8 @@ import { cn } from "../../lib/utils";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/validate", icon: CheckCircle, label: "Validate" },
-  { to: "/split", icon: Scissors, label: "Split" },
+  { to: "/clinic", icon: Stethoscope, label: "Clinic" },
+  { to: "/split", icon: Scissors, label: "Split", deprecated: true },
   { to: "/browse", icon: FolderOpen, label: "Browse" },
   { to: "/history", icon: Clock3, label: "History" },
   { to: "/backups", icon: History, label: "Backups" },
@@ -58,7 +58,14 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
             }
           >
             <item.icon className="h-5 w-5" />
-            {item.label}
+            <span className="flex items-center gap-2">
+              {item.label}
+              {"deprecated" in item && item.deprecated && (
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  deprecated
+                </span>
+              )}
+            </span>
           </NavLink>
         ))}
       </nav>
