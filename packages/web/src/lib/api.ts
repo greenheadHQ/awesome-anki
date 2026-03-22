@@ -754,15 +754,24 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ noteId, includeReverseLinks }),
       }),
-    verbose: (noteId: number) =>
+    verbose: (noteId: number, opts?: { provider?: string; model?: string }) =>
       fetchJson<{ noteId: number; result: VerboseResult }>("/validate/verbose", {
         method: "POST",
-        body: JSON.stringify({ noteId }),
+        body: JSON.stringify({ noteId, provider: opts?.provider, model: opts?.model }),
       }),
-    all: (noteId: number, deckName: string) =>
+    all: (
+      noteId: number,
+      deckName: string,
+      opts?: { provider?: string; model?: string },
+    ) =>
       fetchJson<AllValidationResult>("/validate/all", {
         method: "POST",
-        body: JSON.stringify({ noteId, deckName }),
+        body: JSON.stringify({
+          noteId,
+          deckName,
+          provider: opts?.provider,
+          model: opts?.model,
+        }),
       }),
   },
 

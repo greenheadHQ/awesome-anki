@@ -153,13 +153,19 @@ export function useValidationCache() {
 /**
  * 단일 카드 검증 mutation 훅
  */
-export function useValidateCard(deckName: string | null) {
+export function useValidateCard(
+  deckName: string | null,
+  opts?: { provider?: string; model?: string },
+) {
   const { setValidation } = useValidationCache();
 
   return useMutation({
     mutationFn: async (noteId: number) => {
       if (!deckName) throw new Error("덱이 선택되지 않았습니다.");
-      return api.validate.all(noteId, deckName);
+      return api.validate.all(noteId, deckName, {
+        provider: opts?.provider,
+        model: opts?.model,
+      });
     },
     onSuccess: (data) => {
       setValidation(data.noteId, data);
@@ -170,7 +176,10 @@ export function useValidateCard(deckName: string | null) {
 /**
  * 여러 카드 일괄 검증 mutation 훅
  */
-export function useBatchValidate(deckName: string | null) {
+export function useBatchValidate(
+  deckName: string | null,
+  opts?: { provider?: string; model?: string },
+) {
   const { setValidation } = useValidationCache();
 
   return useMutation({
@@ -180,7 +189,10 @@ export function useBatchValidate(deckName: string | null) {
       // 순차적으로 검증 (API 부하 방지)
       const results: AllValidationResult[] = [];
       for (const noteId of noteIds) {
-        const result = await api.validate.all(noteId, deckName);
+        const result = await api.validate.all(noteId, deckName, {
+          provider: opts?.provider,
+          model: opts?.model,
+        });
         results.push(result);
         setValidation(noteId, result);
       }

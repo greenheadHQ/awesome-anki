@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   CheckCircle,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Clock,
   Copy,
@@ -25,17 +26,22 @@ import {
 import { useCallback, useMemo, useState } from "react";
 
 import { ContentRenderer } from "../components/card/ContentRenderer";
+import { BottomSheet } from "../components/ui/bottom-sheet";
 import { Button } from "../components/ui/button";
+import { ModelBadge } from "../components/ui/model-badge";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
+import { useLLMModels } from "../hooks/useSplit";
 import { useValidateCard, useValidationCache } from "../hooks/useValidationCache";
 import type { AllValidationResult, ValidationStatus } from "../lib/api";
 import { cn } from "../lib/utils";
@@ -109,6 +115,8 @@ export function ValidateWorkspace() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
+  const [showConfigSheet, setShowConfigSheet] = useState(false);
 
   const { data: decksData } = useDecks();
   const activeDeck = selectedDeck ?? decksData?.decks?.[0] ?? null;
@@ -119,10 +127,22 @@ export function ValidateWorkspace() {
 
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(selectedNoteId);
 
+  // LLM 모델 선택
+  const { data: llmModelsData } = useLLMModels();
+  const defaultModelKey = llmModelsData
+    ? `${llmModelsData.defaultModelId.provider}/${llmModelsData.defaultModelId.model}`
+    : null;
+  const activeModelKey = selectedModelKey ?? defaultModelKey;
+  const activeProvider = activeModelKey?.split("/")[0];
+  const activeModel = activeModelKey?.split("/").slice(1).join("/");
+
   const { getValidation, getValidationStatuses, setValidation, uncachedCount } =
     useValidationCache();
 
-  const validateCard = useValidateCard(activeDeck);
+  const validateCard = useValidateCard(activeDeck, {
+    provider: activeProvider,
+    model: activeModel,
+  });
 
   // 배치 검증 — 순차 실행
   const batchValidate = useMutation({
@@ -131,7 +151,10 @@ export function ValidateWorkspace() {
       const { api } = await import("../lib/api");
       const results: AllValidationResult[] = [];
       for (const noteId of noteIds) {
-        const result = await api.validate.all(noteId, activeDeck);
+        const result = await api.validate.all(noteId, activeDeck, {
+          provider: activeProvider,
+          model: activeModel,
+        });
         results.push(result);
         setValidation(noteId, result);
       }
@@ -809,6 +832,66 @@ export function ValidateWorkspace() {
               ))}
             </SelectContent>
           </Select>
+          {/* 모델 선택 바 — 터치 시 설정 시트 */}
+          <button
+            type="button"
+            onClick={() => setShowConfigSheet(true)}
+            className="flex items-center gap-3 w-full rounded-lg border border-primary/20 bg-gradient-to-r from-card to-primary/5 px-3.5 py-2.5 text-left transition-colors hover:bg-accent"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                {activeProvider ? (
+                  <ModelBadge provider={activeProvider} />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                )}
+                <span className="text-xs text-muted-foreground truncate">
+                  {llmModelsData?.models?.find(
+                    (m) => `${m.provider}/${m.model}` === activeModelKey,
+                  )?.displayName ?? "모델 선택"}
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
+          <BottomSheet open={showConfigSheet} onOpenChange={setShowConfigSheet} title="검증 모델 설정">
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
+                <div className="divide-y rounded-lg border overflow-hidden">
+                  {(llmModelsData?.models ?? []).map((m) => {
+                    const key = `${m.provider}/${m.model}`;
+                    const isDefault =
+                      m.provider === llmModelsData?.defaultModelId.provider &&
+                      m.model === llmModelsData?.defaultModelId.model;
+                    return (
+                      <button
+                        type="button"
+                        key={key}
+                        onClick={() => {
+                          setSelectedModelKey(key);
+                          setShowConfigSheet(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
+                          key === activeModelKey && "bg-primary/10 font-medium",
+                        )}
+                      >
+                        <div>
+                          {m.displayName}
+                          {isDefault && " \u2713"}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          ${m.inputPricePerMillionTokens}/${m.outputPricePerMillionTokens} per 1M
+                          tokens
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </BottomSheet>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
@@ -833,6 +916,46 @@ export function ValidateWorkspace() {
             </SelectContent>
           </Select>
           <div className="ml-auto flex items-center gap-3">
+            {/* LLM 모델 선택 */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Select
+                value={activeModelKey ?? undefined}
+                onValueChange={(value) => setSelectedModelKey(value || null)}
+                disabled={!llmModelsData?.models?.length}
+              >
+                <SelectTrigger size="sm" className="w-auto min-w-[120px] max-w-[200px] text-sm">
+                  <SelectValue placeholder="모델 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {llmModelsData?.availableProviders?.map((provider) => (
+                    <SelectGroup key={provider}>
+                      <SelectLabel>
+                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
+                      </SelectLabel>
+                      {llmModelsData.models
+                        .filter((m) => m.provider === provider)
+                        .map((m) => {
+                          const key = `${m.provider}/${m.model}`;
+                          const isDefault =
+                            m.provider === llmModelsData.defaultModelId.provider &&
+                            m.model === llmModelsData.defaultModelId.model;
+                          return (
+                            <SelectItem key={key} value={key}>
+                              <span className="flex items-center gap-2">
+                                <span>{m.displayName}</span>
+                                <span className="text-[10px] text-muted-foreground font-mono">
+                                  ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
+                                </span>
+                                {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>미검증: {unvalidatedCount}</span>
               {issueCount > 0 && <span className="text-red-500">문제: {issueCount}</span>}
