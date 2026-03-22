@@ -5,6 +5,7 @@
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { ClaimVerification, FactCheckResult } from "./types.js";
+import { cleanCardText } from "./utils.js";
 
 const FACT_CHECK_PROMPT = `
 당신은 컴퓨터 과학(CS) 및 프로그래밍 분야의 팩트 체커입니다.
@@ -54,14 +55,7 @@ export async function checkFacts(
   const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
   const client = createLLMClient(resolvedModelId.provider);
 
-  // Cloze 마크업 제거하여 순수 텍스트 추출
-  const cleanContent = cardContent
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
-    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
-    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
-    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
-    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
-    .trim();
+  const cleanContent = cleanCardText(cardContent);
 
   const prompt = `
 ${FACT_CHECK_PROMPT}

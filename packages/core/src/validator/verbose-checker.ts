@@ -5,6 +5,7 @@
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { VerboseResult } from "./types.js";
+import { cleanCardText } from "./utils.js";
 
 const VERBOSE_CHECK_PROMPT = `
 당신은 Anki 학습 카드의 원자성(atomicity) 분석가입니다.
@@ -50,14 +51,7 @@ export async function checkVerbose(
   cardContent: string,
   options: VerboseCheckOptions = {},
 ): Promise<VerboseResult> {
-  // Cloze 마크업 제거하여 순수 텍스트 추출
-  const cleanContent = cardContent
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
-    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
-    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
-    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
-    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
-    .trim();
+  const cleanContent = cleanCardText(cardContent);
 
   const clozeMatches = cardContent.match(/\{\{c\d+::/g);
   const actualClozeCount = clozeMatches ? clozeMatches.length : 0;
