@@ -97,6 +97,8 @@ export {
 } from "./gemini/cloze-enhancer.js";
 export {
   buildAnalysisPrompt,
+  buildOptimizationPrompt,
+  buildOptimizationPromptFromTemplate,
   buildSplitPrompt,
   buildSplitPromptFromTemplate,
   SYSTEM_PROMPT,
