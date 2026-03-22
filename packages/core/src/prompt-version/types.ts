@@ -17,12 +17,12 @@ export interface FewShotExample {
  */
 export interface PromptConfig {
   // 카드 길이 기준
-  maxClozeChars: number; // Cloze 최대 글자 수 (기본 80)
-  targetClozeChars: number; // Cloze 목표 글자 수 (기본 50)
-  maxBasicFrontChars: number; // Basic Front 최대 글자 수 (기본 40)
-  targetBasicFrontChars: number; // Basic Front 목표 글자 수 (기본 25)
-  maxBasicBackChars: number; // Basic Back 최대 글자 수 (기본 30)
-  targetBasicBackChars: number; // Basic Back 목표 글자 수 (기본 20)
+  maxClozeChars: number;
+  targetClozeChars: number;
+  maxBasicFrontChars: number;
+  targetBasicFrontChars: number;
+  maxBasicBackChars: number;
+  targetBasicBackChars: number;
 
   // Cloze 규칙
   maxClozePerCard: number; // 카드당 최대 Cloze 수 (기본 1)
@@ -210,12 +210,12 @@ export interface ActiveVersionInfo {
  * 기본 프롬프트 설정
  */
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  maxClozeChars: 80,
-  targetClozeChars: 50,
-  maxBasicFrontChars: 40,
-  targetBasicFrontChars: 25,
-  maxBasicBackChars: 30,
-  targetBasicBackChars: 20,
+  maxClozeChars: 120,
+  targetClozeChars: 60,
+  maxBasicFrontChars: 70,
+  targetBasicFrontChars: 35,
+  maxBasicBackChars: 60,
+  targetBasicBackChars: 28,
   maxClozePerCard: 1,
   requireHintForBinary: true,
   allowBasicCards: true,

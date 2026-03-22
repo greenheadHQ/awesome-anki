@@ -33,22 +33,12 @@ output/prompts/
 - **ActiveVersionInfo**: versionId, activatedAt, activatedBy
 - **REJECTION_REASONS**: 6개 상수 (too-granular, context-missing, char-exceeded, cloze-inappropriate, quality-low, other)
 
-## 카드 길이 기준 (SuperMemo 기반)
+## 카드 길이 기준 / 필수 원칙
 
-| 타입 | 구성 | 기준 | 최대 |
-|------|------|------|------|
-| Cloze | 전체 | 40~60자 | 80자 |
-| Basic | Front (Q:) | 20~30자 | 40자 |
-| Basic | Back (A:) | ~20자 | 30자 |
-
-## 필수 원칙 6가지
-
-1. **Minimum Information**: 카드당 한 가지 사실만
-2. **One Answer Only**: 하나의 답만 허용
-3. **No Yes/No**: 힌트 필수 (`{{c1::값::옵션1 | 옵션2}}`)
-4. **Context-Free**: 중첩 맥락 태그 필수 (`[DNS > Record > A]`)
-5. **No Enumerations**: 개별 카드로 분리
-6. **No Example Trap**: 역방향 질문 금지 ("X의 예시?" ❌)
+코드에서 직접 확인:
+- **길이 기준**: `packages/core/src/prompt-version/types.ts` → `DEFAULT_PROMPT_CONFIG`
+- **필수 원칙**: `packages/core/src/gemini/prompts.ts` → `SYSTEM_PROMPT`
+- **이진 패턴**: `packages/core/src/gemini/cloze-enhancer.ts` → `BINARY_PATTERNS`
 
 ## LLM 경로 구분
 

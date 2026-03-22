@@ -2,11 +2,7 @@
 
 ## 카드 길이 기준
 
-| 타입 | 구성 | 기준 범위 | 최대 |
-|------|------|-----------|------|
-| Cloze | 전체 | 40~60자 | 80자 |
-| Basic | Front (Q:) | 20~30자 | 40자 |
-| Basic | Back (A:) | ~20자 | 30자 |
+코드에서 직접 확인: `packages/core/src/prompt-version/types.ts` → `DEFAULT_PROMPT_CONFIG`
 
 ## 필수 원칙 6가지 (MUST)
 

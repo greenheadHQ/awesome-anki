@@ -160,9 +160,11 @@ export async function deleteVersion(versionId: string): Promise<boolean> {
 
 /**
  * 새 버전 생성
+ * @param bumpType - major: v1.0.0→v2.0.0, minor: v1.0.0→v1.1.0, patch(기본): v1.0.0→v1.0.1
  */
 export async function createVersion(
   base: Omit<PromptVersion, "id" | "createdAt" | "updatedAt" | "metrics" | "modificationPatterns">,
+  bumpType: "major" | "minor" | "patch" = "patch",
 ): Promise<PromptVersion> {
   const versions = await listVersions();
 
@@ -174,7 +176,17 @@ export async function createVersion(
     const match = latestVersion.id.match(/v(\d+)\.(\d+)\.(\d+)/);
     if (match) {
       const [, major, minor, patch] = match.map(Number);
-      nextVersion = `v${major}.${minor}.${patch + 1}`;
+      switch (bumpType) {
+        case "major":
+          nextVersion = `v${major + 1}.0.0`;
+          break;
+        case "minor":
+          nextVersion = `v${major}.${minor + 1}.0`;
+          break;
+        case "patch":
+          nextVersion = `v${major}.${minor}.${patch + 1}`;
+          break;
+      }
     }
   }
 
