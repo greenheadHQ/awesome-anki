@@ -30,10 +30,7 @@ function removeYagniClozes(content: string, clozesToRemove: number[]): string {
 
   let result = content;
   for (const clozeNum of clozesToRemove) {
-    const pattern = new RegExp(
-      `\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`,
-      "g",
-    );
+    const pattern = new RegExp(`\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`, "g");
     result = result.replace(pattern, "");
   }
 
@@ -70,10 +67,12 @@ export function AllInOnePanel({
   const fixApply = useFixApply();
 
   // --- 적용 가능 여부 계산 ---
-  const isSplitRecommended =
-    validationResults?.verbose?.details.recommendation === "split";
+  const isSplitRecommended = validationResults?.verbose?.details.recommendation === "split";
   const isYagni = validationResults?.yagni?.details.isYagni === true;
-  const yagniClozes = validationResults?.yagni?.details.affectedClozes ?? [];
+  const yagniClozes = useMemo(
+    () => validationResults?.yagni?.details.affectedClozes ?? [],
+    [validationResults],
+  );
 
   const factCorrections = useMemo(() => {
     if (!validationResults?.factCheck?.details.claims) return [];
@@ -244,9 +243,7 @@ function CheckboxRow({
     <label
       className={cn(
         "flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors cursor-pointer",
-        disabled
-          ? "opacity-40 cursor-not-allowed"
-          : "hover:bg-white/10",
+        disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-white/10",
         checked && !disabled && "bg-white/15",
       )}
     >
@@ -258,13 +255,9 @@ function CheckboxRow({
         className="accent-white w-3.5 h-3.5 shrink-0"
       />
       <span className="text-white/80 shrink-0">{icon}</span>
-      <span className={cn("text-white/90 flex-1", !available && "line-through")}>
-        {label}
-      </span>
+      <span className={cn("text-white/90 flex-1", !available && "line-through")}>{label}</span>
       {phase3 && (
-        <span className="text-[10px] text-white/50 bg-white/10 px-1 py-0.5 rounded">
-          Phase 3
-        </span>
+        <span className="text-[10px] text-white/50 bg-white/10 px-1 py-0.5 rounded">Phase 3</span>
       )}
     </label>
   );

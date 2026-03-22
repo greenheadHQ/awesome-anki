@@ -78,14 +78,17 @@ ${cleanContent}
 
     // 타입 가드: LLM 응답을 신뢰하지 않고 각 필드를 안전하게 변환
     const wordCount =
-      typeof parsed.wordCount === "number" ? parsed.wordCount : cleanContent.replace(/\s/g, "").length;
+      typeof parsed.wordCount === "number"
+        ? parsed.wordCount
+        : cleanContent.replace(/\s/g, "").length;
     const clozeCount = typeof parsed.clozeCount === "number" ? parsed.clozeCount : actualClozeCount;
     const conceptCount = typeof parsed.conceptCount === "number" ? parsed.conceptCount : 1;
     const concepts: string[] = Array.isArray(parsed.concepts)
       ? parsed.concepts.filter((c: unknown) => typeof c === "string")
       : [];
     const recommendation = parsed.recommendation === "split" ? "split" : "ok";
-    const rawSplit = typeof parsed.suggestedSplitCount === "number" ? parsed.suggestedSplitCount : conceptCount;
+    const rawSplit =
+      typeof parsed.suggestedSplitCount === "number" ? parsed.suggestedSplitCount : conceptCount;
     const suggestedSplitCount = recommendation === "split" ? rawSplit : undefined;
     const rawConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 80;
 

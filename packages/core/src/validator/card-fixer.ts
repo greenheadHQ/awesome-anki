@@ -24,10 +24,7 @@ export interface FixResult {
  * 갭 유지 정책: 나머지 Cloze 번호를 재정렬하지 않아 Anki 스케줄링 보존.
  * 예: c1, c2, c3에서 c2 제거 → c1, c3 유지 (c2 갭 허용)
  */
-export function removeYagniClozes(
-  cardContent: string,
-  clozesToRemove: number[],
-): FixResult {
+export function removeYagniClozes(cardContent: string, clozesToRemove: number[]): FixResult {
   if (clozesToRemove.length === 0) {
     return { original: cardContent, fixed: cardContent, changes: [] };
   }
@@ -48,10 +45,7 @@ export function removeYagniClozes(
 
   for (const clozeNum of clozesToRemove) {
     // {{cN::내용}} 또는 {{cN::내용::힌트}} 전체를 제거
-    const clozePattern = new RegExp(
-      `\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`,
-      "g",
-    );
+    const clozePattern = new RegExp(`\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`, "g");
 
     const matches = [...result.matchAll(clozePattern)];
     if (matches.length === 0) continue;

@@ -34,9 +34,9 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { useCardDetail, useCards } from "../hooks/useCards";
+import { useClinicCache, useClinicValidate } from "../hooks/useClinicCache";
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
-import { useClinicCache, useClinicValidate } from "../hooks/useClinicCache";
 import type { ValidationStatus } from "../lib/api";
 import { DECK_SELECT_PLACEHOLDER } from "../lib/constants";
 import { cn } from "../lib/utils";
