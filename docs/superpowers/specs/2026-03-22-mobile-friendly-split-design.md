@@ -2,7 +2,7 @@
 
 > **Issue**: [#102](https://github.com/greenheadHQ/awesome-anki/issues/102) — split을 atomic하게 하지 말고, mobile-friendly하게만 스플릿
 > **Date**: 2026-03-22
-> **Status**: Draft
+> **Status**: Reviewed (2-pass spec review approved)
 
 ## 문제 정의
 
@@ -319,14 +319,16 @@ operation에 따라 다른 뷰 렌더링:
 `PromptVersion.splitPromptTemplate`에 저장된 기존 버전들은 구 스키마를 포함한다.
 
 **전략:**
-1. `validateOperationResponse`에 **레거시 폴백** 추가: `shouldSplit` 필드가 감지되면 자동 변환 (`shouldSplit: true` + `splitCards.length > 1` → `operation: "split"`, `shouldSplit: true` + `splitCards.length <= 1` → `operation: "compact"`, `shouldSplit: false` → `operation: "skip"`)
+1. `validateOperationResponse`에 **레거시 폴백** 추가: `shouldSplit` 필드가 감지되면 자동 변환 (`shouldSplit: true` + `splitCards.length > 1` → `operation: "split"`, `shouldSplit: true` + `splitCards.length === 1` → `operation: "compact"` (1매를 compactedContent로 변환), `shouldSplit: true` + `splitCards.length === 0` → 검증 에러 (기존 동작 유지), `shouldSplit: false` → `operation: "skip"`)
 2. 기존 프롬프트 버전을 `archived` 상태로 마킹
 3. 새 기본 프롬프트 버전 생성 (새 스키마 포함)
-4. `PromptConfig` 타입에서 `maxClozeChars`/`targetClozeChars`/`maxClozePerCard` 필드를 `@deprecated` 마킹 (향후 제거)
+4. `PromptConfig` 타입에서 모든 char limit 필드를 `@deprecated` 마킹 (향후 제거): `maxClozeChars`, `targetClozeChars`, `maxClozePerCard`, `maxBasicFrontChars`, `targetBasicFrontChars`, `maxBasicBackChars`, `targetBasicBackChars`
 
 ### `buildAnalysisPrompt` / `analyzeCardForSplit`
 
 이 함수들은 구 atomic 기준(80자 체크, 열거 감지 등)을 사용한다. 동일하게 mobile-friendly 기준으로 개편하거나, 사용처가 없으면 제거. 구현 시 사용처를 확인 후 결정.
+
+> **주의**: `analyzeCardForSplit` (client.ts)는 `buildAnalysisPrompt`를 사용하지 않고 인라인 프롬프트를 가지고 있다. 두 곳 모두 업데이트 필요.
 
 ---
 
@@ -461,7 +463,7 @@ Compact apply 응답: `newNoteIds`는 빈 배열 `[]`. `mainNoteId`는 원본 no
 | `server` | `routes/split.ts` | preview/apply 라우트에 operation 분기 추가, compact apply 경로 (updateNoteFields) |
 | `server` | `routes/cards.ts` | `CardSummary.analysis` 타입 변경: `canSplit` → `needsOptimization`, `estimatedCards` 제거, `reasons`/`textLength` 추가 |
 | `server` | `history/types.ts` | `operation` 필드 추가, `CompactPayload` 타입, `SplitGeneratedPayload.splitCards` optional, `SplitCardPayload.charCount` 제거 |
-| `server` | `history/store.ts` | compact 데이터 저장 로직, `markGenerated` compact 분기 |
+| `server` | `history/store.ts` | compact 데이터 저장 로직, `markGenerated` compact 분기 (`splitCards` optional guard 추가) |
 | `server` | DB 마이그레이션 | `operation` 컬럼 추가, 기존 레코드 `'split'` 기본값 |
 | `server` | systemPrompt 마이그레이션 | 서버 시작 시 remote systemPrompt 해시 비교 → 구버전이면 갱신 |
 | `web` | `pages/SplitWorkspace.tsx` | operation별 프리뷰 뷰 분기, compact diff 뷰, `REJECTION_REASONS` 업데이트, `SplitCandidate.analysis` 타입 변경 |
