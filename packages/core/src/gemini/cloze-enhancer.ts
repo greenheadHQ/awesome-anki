@@ -3,6 +3,8 @@
  * SuperMemo's Twenty Rules 기반
  */
 
+import { DEFAULT_PROMPT_CONFIG } from "../prompt-version/types.js";
+
 /**
  * 이진 패턴 정의
  * pattern: 감지할 정규식 패턴
@@ -244,15 +246,15 @@ export function checkCardQuality(content: string): CardQualityCheck {
   const issues: string[] = [];
 
   // 글자 수 체크
-  if (cardType === "cloze" && charCount > 80) {
-    issues.push(`Cloze 카드가 ${charCount}자로 80자 초과`);
+  if (cardType === "cloze" && charCount > DEFAULT_PROMPT_CONFIG.maxClozeChars) {
+    issues.push(`Cloze 카드가 ${charCount}자로 ${DEFAULT_PROMPT_CONFIG.maxClozeChars}자 초과`);
   }
   if (cardType === "basic") {
     const frontMatch = content.match(/Q:\s*([\s\S]+?)(?=A:|$)/);
     if (frontMatch) {
       const frontChars = frontMatch[1].trim().length;
-      if (frontChars > 40) {
-        issues.push(`Basic Front가 ${frontChars}자로 40자 초과`);
+      if (frontChars > DEFAULT_PROMPT_CONFIG.maxBasicFrontChars) {
+        issues.push(`Basic Front가 ${frontChars}자로 ${DEFAULT_PROMPT_CONFIG.maxBasicFrontChars}자 초과`);
       }
     }
   }
@@ -272,7 +274,7 @@ export function checkCardQuality(content: string): CardQualityCheck {
 
   return {
     charCount,
-    isUnder80Chars: charCount <= 80,
+    isUnder80Chars: charCount <= DEFAULT_PROMPT_CONFIG.maxClozeChars,
     hasHint: someHasHint,
     needsHint,
     hasContextTag,
