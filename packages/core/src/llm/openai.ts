@@ -11,7 +11,7 @@ import type {
   TokenUsage,
 } from "./types.js";
 
-export const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
+export const DEFAULT_OPENAI_MODEL = "gpt-5.4-mini";
 
 let openaiClient: import("openai").default | null = null;
 

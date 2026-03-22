@@ -15,12 +15,13 @@ interface ModelPricing {
 }
 ```
 
-### 현재 등록 모델 (2026-03-02 기준)
+### 현재 등록 모델 (2026-03-22 기준)
 
 | provider | model | displayName | input $/1M | output $/1M | verifiedAt |
 |----------|-------|-------------|------------|-------------|------------|
 | gemini | `gemini-3-flash-preview` | Gemini 3 Flash Preview | $0.15 | $0.60 | 2025-05-01 |
-| openai | `gpt-5-mini` | GPT-5 Mini | $0.25 | $2.00 | 2026-03-01 |
+| openai | `gpt-5.4-mini` | GPT-5.4 Mini | $0.75 | $4.50 | 2026-03-22 |
+| openai | `gpt-5.4-nano` | GPT-5.4 Nano | $0.20 | $1.25 | 2026-03-22 |
 
 ## 비용 계산 로직
 
