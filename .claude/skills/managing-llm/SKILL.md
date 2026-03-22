@@ -70,7 +70,7 @@ interface LLMProvider {
 
 - SDK: `openai` (dynamic import)
 - API: Responses API (`client.responses.create()`)
-- 기본 모델: `gpt-5-mini`
+- 기본 모델: `gpt-5.4-mini`
 - **시스템 프롬프트 role**: `developer` (OpenAI Responses API에서 `system` 대신 `developer` 사용)
 - JSON 모드: `text.format.type = "json_object"` + markdown code fence 제거
 - JSON 파싱 실패 시 temperature 0.1로 1회 재시도 (토큰 누적 합산)
