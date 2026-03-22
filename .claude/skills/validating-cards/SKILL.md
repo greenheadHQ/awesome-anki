@@ -18,12 +18,12 @@ description: |
 
 | 검증 | 파일 | API | 방식 |
 |------|------|-----|------|
-| 팩트 체크 | `fact-checker.ts` | POST /api/validate/fact-check | LLM 기반 (Gemini/OpenAI) |
-| 최신성 | `freshness-checker.ts` | POST /api/validate/freshness | LLM 기반 (Gemini/OpenAI) |
-| 유사성 | `similarity-checker.ts` | POST /api/validate/similarity | Jaccard 또는 임베딩 |
-| 문맥 일관성 | `context-checker.ts` | POST /api/validate/context | LLM 기반 (Gemini/OpenAI, nid 링크 그룹) |
+| 팩트 체크 | `fact-checker.ts` | POST /api/clinic/fact-check | LLM 기반 (Gemini/OpenAI) |
+| 최신성 | `freshness-checker.ts` | POST /api/clinic/freshness | LLM 기반 (Gemini/OpenAI) |
+| 유사성 | `similarity-checker.ts` | POST /api/clinic/similarity | Jaccard 또는 임베딩 |
+| 문맥 일관성 | `context-checker.ts` | POST /api/clinic/context | LLM 기반 (Gemini/OpenAI, nid 링크 그룹) |
 
-**전체 검증**: POST /api/validate/all — 4종 병렬 실행
+**전체 검증**: POST /api/clinic/all — 4종 병렬 실행
 
 **모델 선택 (LLM 기반 검증만 해당)**: 팩트 체크, 최신성, 문맥 일관성 API에 `provider`/`model` 파라미터 지정 가능 (미지정 시 서버 기본값, `resolveModelId()` 참조). 유사성 검사는 LLM을 사용하지 않으므로 `provider`/`model` 파라미터가 없다.
 
@@ -40,7 +40,7 @@ description: |
 - `useEmbedding: true` 옵션으로 임베딩 모드 활성화 — `managing-embeddings` 스킬 참조
 - 임베딩 실패 시 자동으로 Jaccard 폴백 (에러 로그 출력 후 Jaccard로 재시도)
 - **validate/all은 항상 Jaccard만 사용** (기본값 `useEmbedding: false`로 호출)
-- 임베딩 모드는 `/api/validate/similarity`에서 명시적으로 `useEmbedding: true` 요청할 때만 활성화
+- 임베딩 모드는 `/api/clinic/similarity`에서 명시적으로 `useEmbedding: true` 요청할 때만 활성화
 
 ### 덱 전체 유사 카드 그룹 탐지
 

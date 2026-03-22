@@ -15,9 +15,9 @@
 
 ## validate/all에서 유사성이 항상 Jaccard인 이유
 
-- **상황**: `/api/validate/all` 응답의 `similarity.details.method`가 항상 `"jaccard"`
-- **원인**: 서버 라우트(`validate.ts`)에서 `checkSimilarity({ noteId, text }, allCards)`를 옵션 없이 호출하므로 `useEmbedding` 기본값 `false`가 적용됨
-- **의도된 동작**: 전체 검증은 속도 우선이므로 Jaccard만 사용. 임베딩 유사도가 필요하면 `/api/validate/similarity`를 `useEmbedding: true`로 개별 호출해야 한다.
+- **상황**: `/api/clinic/all` 응답의 `similarity.details.method`가 항상 `"jaccard"`
+- **원인**: 서버 라우트(`clinic.ts`)에서 `checkSimilarity({ noteId, text }, allCards)`를 옵션 없이 호출하므로 `useEmbedding` 기본값 `false`가 적용됨
+- **의도된 동작**: 전체 검증은 속도 우선이므로 Jaccard만 사용. 임베딩 유사도가 필요하면 `/api/clinic/similarity`를 `useEmbedding: true`로 개별 호출해야 한다.
 
 ## 분할 미리보기 렌더링 문제
 
