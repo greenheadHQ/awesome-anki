@@ -6,7 +6,7 @@ import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { VerboseResult } from "./types.js";
 
-const VERBOSE_SYSTEM_PROMPT = `
+const VERBOSE_CHECK_PROMPT = `
 당신은 Anki 학습 카드의 원자성(atomicity) 분석가입니다.
 
 ## 역할
@@ -66,7 +66,7 @@ export async function checkVerbose(
   const actualClozeCount = clozeMatches ? clozeMatches.length : 0;
 
   const prompt = `
-${VERBOSE_SYSTEM_PROMPT}
+${VERBOSE_CHECK_PROMPT}
 
 ## 분석할 카드 내용:
 ${cleanContent}

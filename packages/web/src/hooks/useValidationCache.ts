@@ -9,7 +9,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { type AllValidationResult, api, type ValidationStatus } from "../lib/api";
 
 const CACHE_KEY = "anki-validation-cache";
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2; // verbose 필드 추가 — 구 캐시 무효화
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
 
 interface CachedValidation {

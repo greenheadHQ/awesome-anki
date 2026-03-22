@@ -759,11 +759,7 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ noteId, provider: opts?.provider, model: opts?.model }),
       }),
-    all: (
-      noteId: number,
-      deckName: string,
-      opts?: { provider?: string; model?: string },
-    ) =>
+    all: (noteId: number, deckName: string, opts?: { provider?: string; model?: string }) =>
       fetchJson<AllValidationResult>("/validate/all", {
         method: "POST",
         body: JSON.stringify({

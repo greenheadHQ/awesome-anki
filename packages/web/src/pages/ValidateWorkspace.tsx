@@ -4,7 +4,6 @@
  * 모바일: list↔detail view transition
  */
 
-import { useMutation } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -42,7 +41,11 @@ import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useLLMModels } from "../hooks/useSplit";
-import { useValidateCard, useValidationCache } from "../hooks/useValidationCache";
+import {
+  useBatchValidate,
+  useValidateCard,
+  useValidationCache,
+} from "../hooks/useValidationCache";
 import type { AllValidationResult, ValidationStatus } from "../lib/api";
 import { cn } from "../lib/utils";
 import { startViewTransition } from "../lib/view-transition";
@@ -73,6 +76,19 @@ function StatusIcon({
     default:
       return <HelpCircle className={cn(sizeClass, "text-gray-400")} />;
   }
+}
+
+const STATUS_LABELS: Record<ValidationStatus, string> = {
+  valid: "검증 통과",
+  warning: "검토 필요",
+  error: "문제 발견",
+  unknown: "검증 불가",
+};
+
+function getSimilarityBadgeClass(similarity: number): string {
+  if (similarity >= 90) return "bg-red-100 text-red-700";
+  if (similarity >= 70) return "bg-yellow-100 text-yellow-700";
+  return "bg-gray-100 text-gray-700";
 }
 
 function getStatusBg(status: ValidationStatus): string {
@@ -136,31 +152,11 @@ export function ValidateWorkspace() {
   const activeProvider = activeModelKey?.split("/")[0];
   const activeModel = activeModelKey?.split("/").slice(1).join("/");
 
-  const { getValidation, getValidationStatuses, setValidation, uncachedCount } =
-    useValidationCache();
+  const { getValidation, getValidationStatuses, uncachedCount } = useValidationCache();
 
-  const validateCard = useValidateCard(activeDeck, {
-    provider: activeProvider,
-    model: activeModel,
-  });
-
-  // 배치 검증 — 순차 실행
-  const batchValidate = useMutation({
-    mutationFn: async (noteIds: number[]) => {
-      if (!activeDeck) throw new Error("덱이 선택되지 않았습니다.");
-      const { api } = await import("../lib/api");
-      const results: AllValidationResult[] = [];
-      for (const noteId of noteIds) {
-        const result = await api.validate.all(noteId, activeDeck, {
-          provider: activeProvider,
-          model: activeModel,
-        });
-        results.push(result);
-        setValidation(noteId, result);
-      }
-      return results;
-    },
-  });
+  const modelOpts = { provider: activeProvider, model: activeModel };
+  const validateCard = useValidateCard(activeDeck, modelOpts);
+  const batchValidate = useBatchValidate(activeDeck, modelOpts);
 
   const allCards = useMemo(() => cardsData?.cards ?? [], [cardsData]);
   const noteIds = useMemo(() => allCards.map((c) => c.noteId), [allCards]);
@@ -506,11 +502,7 @@ export function ValidateWorkspace() {
                     <span
                       className={cn(
                         "px-1.5 py-0.5 rounded",
-                        card.similarity >= 90
-                          ? "bg-red-100 text-red-700"
-                          : card.similarity >= 70
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-100 text-gray-700",
+                        getSimilarityBadgeClass(card.similarity),
                       )}
                     >
                       {card.similarity}% 유사
@@ -656,12 +648,7 @@ export function ValidateWorkspace() {
               >
                 <StatusIcon status={cachedResult.status} size="md" />
                 <div>
-                  <p className="font-medium">
-                    {cachedResult.status === "valid" && "검증 통과"}
-                    {cachedResult.status === "warning" && "검토 필요"}
-                    {cachedResult.status === "error" && "문제 발견"}
-                    {cachedResult.status === "unknown" && "검증 불가"}
-                  </p>
+                  <p className="font-medium">{STATUS_LABELS[cachedResult.status]}</p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(cachedResult.validatedAt).toLocaleString("ko-KR")}
                   </p>
@@ -846,15 +833,18 @@ export function ValidateWorkspace() {
                   <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 )}
                 <span className="text-xs text-muted-foreground truncate">
-                  {llmModelsData?.models?.find(
-                    (m) => `${m.provider}/${m.model}` === activeModelKey,
-                  )?.displayName ?? "모델 선택"}
+                  {llmModelsData?.models?.find((m) => `${m.provider}/${m.model}` === activeModelKey)
+                    ?.displayName ?? "모델 선택"}
                 </span>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </button>
-          <BottomSheet open={showConfigSheet} onOpenChange={setShowConfigSheet} title="검증 모델 설정">
+          <BottomSheet
+            open={showConfigSheet}
+            onOpenChange={setShowConfigSheet}
+            title="검증 모델 설정"
+          >
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
@@ -1110,10 +1100,7 @@ export function ValidateWorkspace() {
                           <StatusIcon status={currentValidation.status} size="md" />
                           <div>
                             <p className="font-medium">
-                              {currentValidation.status === "valid" && "검증 통과"}
-                              {currentValidation.status === "warning" && "검토 필요"}
-                              {currentValidation.status === "error" && "문제 발견"}
-                              {currentValidation.status === "unknown" && "검증 불가"}
+                              {STATUS_LABELS[currentValidation.status]}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(currentValidation.validatedAt).toLocaleString("ko-KR")}

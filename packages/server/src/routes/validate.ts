@@ -229,13 +229,9 @@ validate.post("/all", async (c) => {
       checkVerbose(text, { modelId }),
     ]);
 
-  const results = [
-    factCheckResult,
-    freshnessResult,
-    similarityResult,
-    contextResult,
-    verboseResult,
-  ];
+  // overallStatus 산출에서 verbose는 제외 (기존 SplitWorkspace/CardBrowser backward compat)
+  // verbose는 Phase 2에서 액션 연동 시 반영 예정
+  const results = [factCheckResult, freshnessResult, similarityResult, contextResult];
   let overallStatus: "valid" | "warning" | "error" | "unknown" = "valid";
 
   if (results.some((r) => r.status === "error")) {
