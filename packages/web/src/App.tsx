@@ -12,6 +12,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { PromptManager } from "./pages/PromptManager";
 import { SplitHistory } from "./pages/SplitHistory";
 import { SplitWorkspace } from "./pages/SplitWorkspace";
+import { ValidateWorkspace } from "./pages/ValidateWorkspace";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,11 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Layout />} errorElement={<RouteError />}>
               <Route index element={<Dashboard />} errorElement={<RouteError />} />
+              <Route
+                path="validate"
+                element={<ValidateWorkspace />}
+                errorElement={<RouteError />}
+              />
               <Route path="split" element={<SplitWorkspace />} errorElement={<RouteError />} />
               <Route path="browse" element={<CardBrowser />} errorElement={<RouteError />} />
               <Route path="backups" element={<BackupManager />} errorElement={<RouteError />} />

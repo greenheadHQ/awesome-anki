@@ -577,6 +577,18 @@ export interface ContextResult extends ValidationResult {
   };
 }
 
+export interface VerboseResult extends ValidationResult {
+  type: "verbose";
+  details: {
+    wordCount: number;
+    clozeCount: number;
+    conceptCount: number;
+    concepts: string[];
+    recommendation: "split" | "ok";
+    suggestedSplitCount?: number;
+  };
+}
+
 export interface AllValidationResult {
   noteId: number;
   overallStatus: ValidationStatus;
@@ -585,6 +597,7 @@ export interface AllValidationResult {
     freshness: FreshnessResult;
     similarity: SimilarityResult;
     context: ContextResult;
+    verbose: VerboseResult;
   };
   validatedAt: string;
 }
@@ -740,6 +753,11 @@ export const api = {
       fetchJson<{ noteId: number; result: ContextResult }>("/validate/context", {
         method: "POST",
         body: JSON.stringify({ noteId, includeReverseLinks }),
+      }),
+    verbose: (noteId: number) =>
+      fetchJson<{ noteId: number; result: VerboseResult }>("/validate/verbose", {
+        method: "POST",
+        body: JSON.stringify({ noteId }),
       }),
     all: (noteId: number, deckName: string) =>
       fetchJson<AllValidationResult>("/validate/all", {

@@ -1,4 +1,13 @@
-import { Clock3, FileText, FolderOpen, History, LayoutDashboard, Scissors, X } from "lucide-react";
+import {
+  CheckCircle,
+  Clock3,
+  FileText,
+  FolderOpen,
+  History,
+  LayoutDashboard,
+  Scissors,
+  X,
+} from "lucide-react";
 import { useEffect, useEffectEvent, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
@@ -6,6 +15,7 @@ import { cn } from "../../lib/utils";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/validate", icon: CheckCircle, label: "Validate" },
   { to: "/split", icon: Scissors, label: "Split" },
   { to: "/browse", icon: FolderOpen, label: "Browse" },
   { to: "/history", icon: Clock3, label: "History" },
