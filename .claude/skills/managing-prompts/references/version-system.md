@@ -38,30 +38,9 @@ interface PromptVersion {
 }
 ```
 
-### PromptConfig (12 필드)
+### PromptConfig
 
-```typescript
-interface PromptConfig {
-  // 카드 길이 기준
-  maxClozeChars: number;           // Cloze 최대 글자 수 (기본 120)
-  targetClozeChars: number;        // Cloze 목표 글자 수 (기본 50)
-  maxBasicFrontChars: number;      // Basic Front 최대 (기본 70)
-  targetBasicFrontChars: number;   // Basic Front 목표 (기본 25)
-  maxBasicBackChars: number;       // Basic Back 최대 (기본 60)
-  targetBasicBackChars: number;    // Basic Back 목표 (기본 20)
-
-  // Cloze 규칙
-  maxClozePerCard: number;         // 카드당 최대 Cloze 수 (기본 1)
-  requireHintForBinary: boolean;   // 이진 패턴 힌트 필수 (기본 true)
-
-  // 카드 타입
-  allowBasicCards: boolean;        // Basic 카드 허용 (기본 true)
-  preferBasicForWhy: boolean;      // "왜?" 질문에 Basic 선호 (기본 true)
-
-  // 맥락
-  requireContextTag: boolean;     // 중첩 맥락 태그 필수 (기본 true)
-  contextTagDepth: number;        // 맥락 태그 깊이 (기본 2)
-}
+`packages/core/src/prompt-version/types.ts`에 정의. 필드 목록과 기본값은 코드에서 직접 확인.
 ```
 
 ### SplitHistoryEntry
