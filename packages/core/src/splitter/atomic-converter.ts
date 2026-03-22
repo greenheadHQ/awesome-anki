@@ -77,6 +77,7 @@ export function analyzeForOptimization(htmlContent: string): OptimizationAnalysi
 
 /**
  * 카드 분할 가능성 분석
+ * @deprecated Use analyzeForOptimization instead
  */
 export function analyzeForSplit(htmlContent: string): SplitAnalysis {
   let hasTodoBlock = false;

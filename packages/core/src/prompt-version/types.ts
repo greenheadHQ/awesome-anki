@@ -17,14 +17,21 @@ export interface FewShotExample {
  */
 export interface PromptConfig {
   // 카드 길이 기준
+  /** @deprecated Use MAX_TEXT_LENGTH + computeTextLength instead */
   maxClozeChars: number;
+  /** @deprecated Use MAX_TEXT_LENGTH + computeTextLength instead */
   targetClozeChars: number;
+  /** @deprecated Use MAX_TEXT_LENGTH + computeTextLength instead */
   maxBasicFrontChars: number;
+  /** @deprecated Use MAX_TEXT_LENGTH + computeTextLength instead */
   targetBasicFrontChars: number;
+  /** @deprecated Use MAX_TEXT_LENGTH + computeTextLength instead */
   maxBasicBackChars: number;
+  /** @deprecated Use MAX_TEXT_LENGTH + computeTextLength instead */
   targetBasicBackChars: number;
 
   // Cloze 규칙
+  /** @deprecated Use MAX_CLOZES_PER_CARD from atomic-converter instead */
   maxClozePerCard: number; // 카드당 최대 Cloze 수 (기본 1)
   requireHintForBinary: boolean; // 이진 패턴 힌트 필수 (기본 true)
 
@@ -104,9 +111,10 @@ export interface PromptVersion {
 export const REJECTION_REASONS = [
   { id: "too-granular", label: "분할이 너무 세분화" },
   { id: "context-missing", label: "맥락 태그 부적절" },
-  { id: "char-exceeded", label: "글자수 초과" },
   { id: "cloze-inappropriate", label: "Cloze 위치/내용 부적절" },
   { id: "quality-low", label: "전반적 품질 미달" },
+  { id: "over-compressed", label: "과도한 압축" },
+  { id: "info-lost", label: "핵심 정보 누락" },
   { id: "other", label: "기타" },
 ] as const;
 
