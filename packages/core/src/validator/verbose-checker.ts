@@ -50,29 +50,29 @@ export async function checkVerbose(
   cardContent: string,
   options: VerboseCheckOptions = {},
 ): Promise<VerboseResult> {
-  const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
-  const client = createLLMClient(resolvedModelId.provider);
-
   // Cloze 마크업 제거하여 순수 텍스트 추출
   const cleanContent = cardContent
-    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1")
+    .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1") // Cloze 제거
     .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
-    .replace(/<[^>]+>/g, " ")
-    .replace(/:::\s*\w+[^\n]*\n?/g, "")
-    .replace(/^:::\s*$/gm, "")
+    .replace(/<[^>]+>/g, " ") // HTML 태그 제거
+    .replace(/:::\s*\w+[^\n]*\n?/g, "") // 컨테이너 시작 제거
+    .replace(/^:::\s*$/gm, "") // 컨테이너 끝 제거
     .trim();
 
   const clozeMatches = cardContent.match(/\{\{c\d+::/g);
   const actualClozeCount = clozeMatches ? clozeMatches.length : 0;
 
-  const prompt = `
+  try {
+    const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
+    const client = createLLMClient(resolvedModelId.provider);
+
+    const prompt = `
 ${VERBOSE_CHECK_PROMPT}
 
 ## 분석할 카드 내용:
 ${cleanContent}
 `;
 
-  try {
     const llmResult = await client.generateContent(prompt, {
       responseMimeType: "application/json",
       maxOutputTokens: 2048,
@@ -82,13 +82,18 @@ ${cleanContent}
     const text = llmResult.text;
     const parsed = JSON.parse(text);
 
-    const wordCount = parsed.wordCount ?? cleanContent.replace(/\s/g, "").length;
-    const clozeCount = parsed.clozeCount ?? actualClozeCount;
-    const conceptCount = parsed.conceptCount ?? 1;
-    const concepts: string[] = parsed.concepts ?? [];
+    // 타입 가드: LLM 응답을 신뢰하지 않고 각 필드를 안전하게 변환
+    const wordCount =
+      typeof parsed.wordCount === "number" ? parsed.wordCount : cleanContent.replace(/\s/g, "").length;
+    const clozeCount = typeof parsed.clozeCount === "number" ? parsed.clozeCount : actualClozeCount;
+    const conceptCount = typeof parsed.conceptCount === "number" ? parsed.conceptCount : 1;
+    const concepts: string[] = Array.isArray(parsed.concepts)
+      ? parsed.concepts.filter((c: unknown) => typeof c === "string")
+      : [];
     const recommendation = parsed.recommendation === "split" ? "split" : "ok";
-    const suggestedSplitCount =
-      recommendation === "split" ? (parsed.suggestedSplitCount ?? conceptCount) : undefined;
+    const rawSplit = typeof parsed.suggestedSplitCount === "number" ? parsed.suggestedSplitCount : conceptCount;
+    const suggestedSplitCount = recommendation === "split" ? rawSplit : undefined;
+    const rawConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 80;
 
     // 상태 결정
     let status: VerboseResult["status"] = "valid";
@@ -100,7 +105,7 @@ ${cleanContent}
       status,
       type: "verbose",
       message: getVerboseMessage(status, conceptCount, recommendation),
-      confidence: Math.min(100, Math.max(0, parsed.confidence ?? 80)),
+      confidence: Math.min(100, Math.max(0, rawConfidence)),
       details: {
         wordCount,
         clozeCount,

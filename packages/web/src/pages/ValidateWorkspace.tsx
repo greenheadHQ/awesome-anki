@@ -41,11 +41,7 @@ import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useLLMModels } from "../hooks/useSplit";
-import {
-  useBatchValidate,
-  useValidateCard,
-  useValidationCache,
-} from "../hooks/useValidationCache";
+import { useBatchValidate, useValidateCard, useValidationCache } from "../hooks/useValidationCache";
 import type { AllValidationResult, ValidationStatus } from "../lib/api";
 import { cn } from "../lib/utils";
 import { startViewTransition } from "../lib/view-transition";
@@ -1099,9 +1095,7 @@ export function ValidateWorkspace() {
                         >
                           <StatusIcon status={currentValidation.status} size="md" />
                           <div>
-                            <p className="font-medium">
-                              {STATUS_LABELS[currentValidation.status]}
-                            </p>
+                            <p className="font-medium">{STATUS_LABELS[currentValidation.status]}</p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(currentValidation.validatedAt).toLocaleString("ko-KR")}
                             </p>
@@ -1125,48 +1119,80 @@ export function ValidateWorkspace() {
                 ) : (
                   // 연관 탭 (모바일)
                   <div className="space-y-3">
-                    {currentValidation?.results?.similarity?.details.similarCards.length ? (
+                    {currentValidation?.results ? (
                       <>
-                        <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                          <Copy className="w-4 h-4" />
-                          유사 카드
-                        </h3>
-                        {currentValidation.results.similarity.details.similarCards.map(
-                          (card, i) => (
-                            <button
-                              type="button"
-                              key={`m-sim-${card.noteId}-${i}`}
-                              onClick={() => handleSelectCard(card.noteId)}
-                              className="w-full text-left text-xs p-3 bg-background rounded border hover:bg-muted transition-colors"
-                            >
-                              <div className="flex justify-between items-start">
-                                <span className="font-mono">#{card.noteId}</span>
-                                <span
-                                  className={cn(
-                                    "px-1.5 py-0.5 rounded",
-                                    card.similarity >= 90
-                                      ? "bg-red-100 text-red-700"
-                                      : card.similarity >= 70
-                                        ? "bg-yellow-100 text-yellow-700"
-                                        : "bg-gray-100 text-gray-700",
-                                  )}
+                        {/* 유사 카드 */}
+                        {currentValidation.results.similarity?.details.similarCards.length >
+                          0 && (
+                          <>
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                              <Copy className="w-4 h-4" />
+                              유사 카드
+                            </h3>
+                            {currentValidation.results.similarity.details.similarCards.map(
+                              (card, i) => (
+                                <button
+                                  type="button"
+                                  key={`m-sim-${card.noteId}-${i}`}
+                                  onClick={() => handleSelectCard(card.noteId)}
+                                  className="w-full text-left text-xs p-3 bg-background rounded border hover:bg-muted transition-colors"
                                 >
-                                  {card.similarity}%
-                                </span>
-                              </div>
-                              <p className="text-muted-foreground mt-1 line-clamp-2">
-                                {card.matchedContent}
-                              </p>
-                            </button>
-                          ),
+                                  <div className="flex justify-between items-start">
+                                    <span className="font-mono">#{card.noteId}</span>
+                                    <span
+                                      className={cn(
+                                        "px-1.5 py-0.5 rounded",
+                                        getSimilarityBadgeClass(card.similarity),
+                                      )}
+                                    >
+                                      {card.similarity}%
+                                    </span>
+                                  </div>
+                                  <p className="text-muted-foreground mt-1 line-clamp-2">
+                                    {card.matchedContent}
+                                  </p>
+                                </button>
+                              ),
+                            )}
+                          </>
                         )}
+                        {/* 문맥 연결 카드 */}
+                        {currentValidation.results.context?.details.relatedCards.length >
+                          0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                              <Link2 className="w-4 h-4" />
+                              문맥 연결 카드
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {currentValidation.results.context.details.relatedCards.map(
+                                (nid) => (
+                                  <button
+                                    type="button"
+                                    key={`m-ctx-${nid}`}
+                                    onClick={() => handleSelectCard(nid)}
+                                    className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
+                                  >
+                                    #{nid}
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {/* 둘 다 없을 때 */}
+                        {!currentValidation.results.similarity?.details.similarCards.length &&
+                          !currentValidation.results.context?.details.relatedCards.length && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                              <p className="text-sm">연관 카드가 없습니다</p>
+                            </div>
+                          )}
                       </>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">
-                          {currentValidation ? "연관 카드가 없습니다" : "먼저 검증을 실행해주세요"}
-                        </p>
+                        <p className="text-sm">먼저 검증을 실행해주세요</p>
                       </div>
                     )}
                   </div>
