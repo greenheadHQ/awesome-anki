@@ -65,16 +65,25 @@ export interface CardSummary {
   tags: string[];
   modelName: string;
   analysis: {
-    canSplit: boolean;
+    needsOptimization: boolean;
+    reasons: {
+      clozeOverflow: boolean;
+      textOverflow: boolean;
+    };
     hasTodoBlock: boolean;
     clozeCount: number;
-    estimatedCards: number;
+    textLength: number;
   };
   clozeStats: {
     totalClozes: number;
     uniqueNumbers: number;
   };
-  isSplitable: boolean;
+  needsOptimization: boolean;
+  reasons: {
+    clozeOverflow: boolean;
+    textOverflow: boolean;
+  };
+  textLength: number;
 }
 
 export interface CardDetail extends CardSummary {
@@ -117,35 +126,48 @@ export interface ActualCost {
   totalCostUsd: number;
 }
 
-export interface SplitPreviewResult {
+export interface TokenUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+export interface OptimizationPreviewResult {
   sessionId?: string;
   noteId: number;
+  operation: "split" | "compact" | "skip";
+  operationReason: string;
   originalText?: string;
+  // Split fields (present when operation === "split")
   splitCards?: Array<{
     title: string;
     content: string;
     isMainCard?: boolean;
     cardType?: "cloze" | "basic";
-    charCount?: number;
   }>;
   mainCardIndex?: number;
-  splitReason?: string;
-  reason?: string;
+  // Compact fields (present when operation === "compact")
+  compactedContent?: string;
+  auditReport?: {
+    preserved: string[];
+    removed: string[];
+    transformed: string[];
+  };
+  // Common fields
   executionTimeMs?: number;
+  tokenUsage?: TokenUsage;
   aiModel?: string;
   provider?: string;
-  tokenUsage?: {
-    promptTokens?: number;
-    completionTokens?: number;
-    totalTokens?: number;
-  };
   estimatedCost?: CostEstimate;
   actualCost?: ActualCost;
   historyWarning?: string;
 }
 
-/** @deprecated Use SplitPreviewResult instead */
-export type SplitPreview = SplitPreviewResult;
+/** @deprecated Use OptimizationPreviewResult instead */
+export type SplitPreviewResult = OptimizationPreviewResult;
+
+/** @deprecated Use OptimizationPreviewResult instead */
+export type SplitPreview = OptimizationPreviewResult;
 
 export interface SplitApplyResult {
   success: boolean;
@@ -693,7 +715,7 @@ export const api = {
         budgetUsdCap?: number;
       },
     ) =>
-      fetchJson<SplitPreviewResult>("/split/preview", {
+      fetchJson<OptimizationPreviewResult>("/split/preview", {
         method: "POST",
         body: JSON.stringify({
           noteId,
@@ -708,7 +730,9 @@ export const api = {
       sessionId: string;
       noteId: number;
       deckName: string;
-      splitCards: Array<{
+      operation?: "split" | "compact";
+      // Split fields
+      splitCards?: Array<{
         title: string;
         content: string;
         inheritImages?: string[];
@@ -716,7 +740,9 @@ export const api = {
         preservedLinks?: string[];
         backLinks?: string[];
       }>;
-      mainCardIndex: number;
+      mainCardIndex?: number;
+      // Compact fields
+      compactedContent?: string;
     }) =>
       fetchJson<SplitApplyResult>("/split/apply", {
         method: "POST",

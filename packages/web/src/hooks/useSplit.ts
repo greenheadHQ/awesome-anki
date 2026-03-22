@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
   type LLMModelsResponse,
+  type OptimizationPreviewResult,
   type SplitApplyResult,
   type SplitPreviewResult,
 } from "../lib/api";
@@ -68,7 +69,7 @@ export function getCachedSplitPreview(
   versionId?: string,
   provider?: string,
   model?: string,
-): SplitPreviewResult | undefined {
+): OptimizationPreviewResult | undefined {
   return queryClient.getQueryData(queryKeys.split.preview(noteId, versionId, provider, model));
 }
 
@@ -80,7 +81,9 @@ export function useSplitApply() {
       sessionId: string;
       noteId: number;
       deckName: string;
-      splitCards: Array<{
+      operation?: "split" | "compact";
+      // Split fields
+      splitCards?: Array<{
         title: string;
         content: string;
         inheritImages?: string[];
@@ -88,7 +91,9 @@ export function useSplitApply() {
         preservedLinks?: string[];
         backLinks?: string[];
       }>;
-      mainCardIndex: number;
+      mainCardIndex?: number;
+      // Compact fields
+      compactedContent?: string;
     }) => api.split.apply(data),
     onSuccess: () => {
       // 카드 목록 캐시 무효화
@@ -105,4 +110,4 @@ export function useSplitReject() {
   });
 }
 
-export type { SplitPreviewResult, SplitApplyResult };
+export type { OptimizationPreviewResult, SplitPreviewResult, SplitApplyResult };
