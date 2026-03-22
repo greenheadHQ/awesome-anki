@@ -11,83 +11,12 @@ import { AlertTriangle, Minus, Plus, Scissors, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 
 import type { AllValidationResult } from "../../lib/api";
+import { computeFactDiff, computeYagniDiff } from "../../lib/card-fixer";
 import { cn } from "../../lib/utils";
 
 interface ActionPreviewProps {
   cardContent: string;
   validationResults: AllValidationResult["results"] | undefined;
-}
-
-// --- 순수 문자열 조작 (core/validator/card-fixer 미러) ---
-
-interface FixChange {
-  type: "yagni-removal" | "fact-correction";
-  before: string;
-  after: string;
-  reason: string;
-}
-
-function computeYagniDiff(
-  content: string,
-  clozesToRemove: number[],
-): { fixed: string; changes: FixChange[] } {
-  if (clozesToRemove.length === 0) return { fixed: content, changes: [] };
-
-  let result = content;
-  const changes: FixChange[] = [];
-
-  for (const clozeNum of clozesToRemove) {
-    const clozePattern = new RegExp(`\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`, "g");
-    const matches = [...result.matchAll(clozePattern)];
-    for (const match of matches) {
-      changes.push({
-        type: "yagni-removal",
-        before: match[0],
-        after: "",
-        reason: `Cloze c${clozeNum} 제거 (YAGNI): "${match[1]}"`,
-      });
-    }
-    result = result.replace(clozePattern, "");
-  }
-
-  result = result
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/^\s*\n/gm, "\n")
-    .replace(/^\n+/, "")
-    .replace(/\n+$/, "");
-
-  return { fixed: result, changes };
-}
-
-function computeFactDiff(
-  content: string,
-  corrections: Array<{ claim: string; correction: string }>,
-): { fixed: string; changes: FixChange[] } {
-  if (corrections.length === 0) return { fixed: content, changes: [] };
-
-  let result = content;
-  const changes: FixChange[] = [];
-
-  for (const { claim, correction } of corrections) {
-    if (!claim || !correction || claim === correction) continue;
-    const escaped = claim.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pattern = new RegExp(escaped, "g");
-    if (!pattern.test(result)) continue;
-
-    const fresh = new RegExp(escaped, "g");
-    const before = result;
-    result = result.replace(fresh, correction);
-    if (before !== result) {
-      changes.push({
-        type: "fact-correction",
-        before: claim,
-        after: correction,
-        reason: `팩트 정정: "${claim}" → "${correction}"`,
-      });
-    }
-  }
-
-  return { fixed: result, changes };
 }
 
 // --- diff 라인 계산 ---
