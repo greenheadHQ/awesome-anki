@@ -199,4 +199,3 @@ export async function requestBatchCardSplit(
 
   return results;
 }
-

@@ -1270,7 +1270,11 @@ export function SplitWorkspace() {
               {selectedCard && hasApplicablePreview && (
                 <div className="border-t p-3 shrink-0">
                   <div className="flex gap-2">
-                    <RejectPopover canReject={canReject} onReject={handleReject} operation={previewData?.operation} />
+                    <RejectPopover
+                      canReject={canReject}
+                      onReject={handleReject}
+                      operation={previewData?.operation}
+                    />
                     <Button onClick={handleApply} disabled={isBusy} className="flex-1">
                       {splitApply.isPending ? (
                         <>
@@ -1320,7 +1324,11 @@ export function SplitWorkspace() {
                 <div className="px-4 py-3 border-t shrink-0">
                   <div className="flex gap-2">
                     {/* 반려 버튼 */}
-                    <RejectPopover canReject={canReject} onReject={handleReject} operation={previewData?.operation} />
+                    <RejectPopover
+                      canReject={canReject}
+                      onReject={handleReject}
+                      operation={previewData?.operation}
+                    />
 
                     {/* 적용 버튼 */}
                     <Button onClick={handleApply} disabled={isBusy} className="flex-1">

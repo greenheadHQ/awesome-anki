@@ -499,7 +499,9 @@ app.post("/apply", async (c) => {
     const historyStore = await getSplitHistoryStore();
     const sessionMeta = historyStore.getSessionMetadata(sessionId);
     if (sessionMeta && sessionMeta.noteId !== noteId) {
-      throw new ValidationError(`세션의 noteId(${sessionMeta.noteId})와 요청의 noteId(${noteId})가 일치하지 않습니다.`);
+      throw new ValidationError(
+        `세션의 noteId(${sessionMeta.noteId})와 요청의 noteId(${noteId})가 일치하지 않습니다.`,
+      );
     }
   } catch (e) {
     if (e instanceof ValidationError) throw e;
@@ -560,8 +562,7 @@ app.post("/apply", async (c) => {
           });
         }
       } catch (historyError) {
-        const message =
-          historyError instanceof Error ? historyError.message : String(historyError);
+        const message = historyError instanceof Error ? historyError.message : String(historyError);
         historyWarning = `히스토리 업데이트 실패: ${message}`;
         console.warn(historyWarning);
       }

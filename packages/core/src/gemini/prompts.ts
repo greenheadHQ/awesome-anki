@@ -362,4 +362,3 @@ export function buildSplitPromptFromTemplate(
 ): string {
   return buildOptimizationPromptFromTemplate(template, noteId, text, tags);
 }
-
