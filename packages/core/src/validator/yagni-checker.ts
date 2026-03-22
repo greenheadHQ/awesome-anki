@@ -65,6 +65,18 @@ export async function checkYagni(
     ? [...new Set(clozeMatches.map((m) => Number.parseInt(m.match(/\d+/)![0], 10)))]
     : [];
 
+  // Cloze가 없는 카드는 LLM 호출 불필요 — 즉시 valid 반환
+  if (clozeNumbers.length === 0) {
+    return {
+      status: "valid",
+      type: "yagni",
+      message: "Cloze가 없는 카드입니다",
+      confidence: 100,
+      details: { isYagni: false, reason: "", affectedClozes: [] },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   try {
     const resolvedModelId: LLMModelId = options.modelId ?? getDefaultModelId();
     const client = createLLMClient(resolvedModelId.provider);
@@ -98,7 +110,7 @@ ${cleanContent}
           (c: unknown) => typeof c === "number" && Number.isInteger(c) && clozeNumbers.includes(c),
         )
       : [];
-    const affectedClozes: number[] = isYagni ? rawClozes : [];
+    const affectedClozes: number[] = isYagni ? [...new Set<number>(rawClozes)] : [];
     // isYagni=true인데 affectedClozes가 비면 LLM 응답 불일치 → isYagni를 false로 override
     const resolvedIsYagni = isYagni && affectedClozes.length > 0;
     const rawConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 80;

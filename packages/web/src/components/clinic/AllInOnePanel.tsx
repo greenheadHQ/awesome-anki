@@ -7,7 +7,7 @@
  */
 
 import { Loader2, Scissors, Tag, Link2, Trash2, AlertTriangle, Sparkles } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -51,10 +51,16 @@ export function AllInOnePanel({
 
   const hasAnyAction = isSplitRecommended || isYagni || hasFactCorrections;
 
-  // --- 체크박스 상태 ---
+  // --- 체크박스 상태 (noteId 변경 시 리셋) ---
   const [splitChecked, setSplitChecked] = useState(false);
   const [yagniChecked, setYagniChecked] = useState(false);
   const [factChecked, setFactChecked] = useState(false);
+
+  useEffect(() => {
+    setSplitChecked(false);
+    setYagniChecked(false);
+    setFactChecked(false);
+  }, [noteId]);
 
   const hasCheckedFixes = yagniChecked || factChecked;
   const hasCheckedAnything = splitChecked || hasCheckedFixes;
@@ -76,8 +82,12 @@ export function AllInOnePanel({
 
       // 3. 수정 사항이 있으면 서버에 적용 (백업 포함)
       if (hasCheckedFixes && fixedContent !== cardContent) {
-        await fixApply.mutateAsync({ noteId, fixedContent, deckName });
-        toast.success("수정 적용 완료", { description: "백업이 자동 생성되었습니다." });
+        const result = await fixApply.mutateAsync({ noteId, fixedContent, deckName });
+        if (result.warning) {
+          toast.warning("수정 적용 완료 (경고)", { description: result.warning });
+        } else {
+          toast.success("수정 적용 완료", { description: "백업이 자동 생성되었습니다." });
+        }
       }
 
       // 4. Split 체크 시 Split 페이지로 이동
