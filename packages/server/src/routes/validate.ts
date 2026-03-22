@@ -9,6 +9,7 @@ import {
   checkFacts,
   checkFreshness,
   checkSimilarity,
+  checkVerbose,
   extractTextField,
   getDeckNotes,
   getNoteById,
@@ -155,6 +156,33 @@ validate.post("/context", async (c) => {
 });
 
 /**
+ * POST /api/validate/verbose
+ * 카드 Verbose 감지
+ */
+validate.post("/verbose", async (c) => {
+  const { noteId, provider, model } = await c.req.json<{
+    noteId: number;
+    provider?: string;
+    model?: string;
+  }>();
+
+  if (!noteId) {
+    throw new ValidationError("noteId가 필요합니다");
+  }
+
+  const note = await getNoteById(noteId);
+  if (!note) {
+    throw new NotFoundError(`노트 ${noteId}를 찾을 수 없습니다`);
+  }
+
+  const text = extractTextField(note);
+  const modelId = resolveModelId(provider, model);
+  const result = await checkVerbose(text, { modelId });
+
+  return c.json({ noteId, result });
+});
+
+/**
  * POST /api/validate/all
  * 모든 검증 수행
  */
@@ -178,27 +206,31 @@ validate.post("/all", async (c) => {
   const text = extractTextField(note);
   const modelId = resolveModelId(provider, model);
 
-  const [factCheckResult, freshnessResult, similarityResult, contextResult] = await Promise.all([
-    checkFacts(text, { modelId }),
-    checkFreshness(text, { modelId }),
-    (async () => {
-      const allNotes = await getDeckNotes(deckName);
-      const allCards: CardForComparison[] = allNotes.map((n) => ({
-        noteId: n.noteId,
-        text: extractTextField(n),
-      }));
-      return checkSimilarity({ noteId, text }, allCards);
-    })(),
-    (async () => {
-      const targetCard: CardForContext = {
-        noteId,
-        text,
-        tags: note.tags,
-      };
-      return checkContext(targetCard, { includeReverseLinks: true, modelId });
-    })(),
-  ]);
+  const [factCheckResult, freshnessResult, similarityResult, contextResult, verboseResult] =
+    await Promise.all([
+      checkFacts(text, { modelId }),
+      checkFreshness(text, { modelId }),
+      (async () => {
+        const allNotes = await getDeckNotes(deckName);
+        const allCards: CardForComparison[] = allNotes.map((n) => ({
+          noteId: n.noteId,
+          text: extractTextField(n),
+        }));
+        return checkSimilarity({ noteId, text }, allCards);
+      })(),
+      (async () => {
+        const targetCard: CardForContext = {
+          noteId,
+          text,
+          tags: note.tags,
+        };
+        return checkContext(targetCard, { includeReverseLinks: true, modelId });
+      })(),
+      checkVerbose(text, { modelId }),
+    ]);
 
+  // overallStatus 산출에서 verbose는 제외 (기존 SplitWorkspace/CardBrowser backward compat)
+  // verbose는 Phase 2에서 액션 연동 시 반영 예정
   const results = [factCheckResult, freshnessResult, similarityResult, contextResult];
   let overallStatus: "valid" | "warning" | "error" | "unknown" = "valid";
 
@@ -218,6 +250,7 @@ validate.post("/all", async (c) => {
       freshness: freshnessResult,
       similarity: similarityResult,
       context: contextResult,
+      verbose: verboseResult,
     },
     validatedAt: new Date().toISOString(),
   });

@@ -8,7 +8,7 @@ import type { ActualCost, LLMModelId, TokenUsage } from "../llm/types.js";
 export type ValidationStatus = "valid" | "warning" | "error" | "unknown";
 
 // 검증 유형
-export type ValidationType = "fact-check" | "freshness" | "similarity" | "context";
+export type ValidationType = "fact-check" | "freshness" | "similarity" | "context" | "verbose";
 
 // 기본 검증 결과 인터페이스
 export interface ValidationResult {
@@ -88,6 +88,19 @@ export interface Inconsistency {
   description: string;
   conflictingNoteId?: number;
   severity: "low" | "medium" | "high";
+}
+
+// Verbose 검사 결과
+export interface VerboseResult extends ValidationResult {
+  type: "verbose";
+  details: {
+    wordCount: number;
+    clozeCount: number;
+    conceptCount: number;
+    concepts: string[];
+    recommendation: "split" | "ok";
+    suggestedSplitCount?: number;
+  };
 }
 
 // 전체 검증 결과

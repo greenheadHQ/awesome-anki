@@ -57,6 +57,7 @@ export async function checkFreshness(
   // Cloze 마크업 제거
   const cleanContent = cardContent
     .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1")
+    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
     .replace(/<[^>]+>/g, " ")
     .replace(/:::\s*\w+[^\n]*\n?/g, "")
     .replace(/^:::\s*$/gm, "")
