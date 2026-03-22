@@ -32,12 +32,12 @@ export interface SplitAnalysis {
 export interface OptimizationAnalysis {
   needsOptimization: boolean;
   reasons: {
-    clozeOverflow: boolean;   // clozeCount > MAX_CLOZES_PER_CARD
-    textOverflow: boolean;    // textLength > MAX_TEXT_LENGTH
+    clozeOverflow: boolean; // clozeCount > MAX_CLOZES_PER_CARD
+    textOverflow: boolean; // textLength > MAX_TEXT_LENGTH
   };
   hasTodoBlock: boolean;
   clozeCount: number;
-  textLength: number;         // HTML 태그 제외 순수 텍스트 길이 (computeTextLength 사용)
+  textLength: number; // HTML 태그 제외 순수 텍스트 길이 (computeTextLength 사용)
 }
 
 /**

@@ -1,5 +1,6 @@
 // packages/core/src/__tests__/optimization-analysis.test.ts
 import { describe, expect, test } from "bun:test";
+
 import {
   analyzeForOptimization,
   MAX_CLOZES_PER_CARD,
