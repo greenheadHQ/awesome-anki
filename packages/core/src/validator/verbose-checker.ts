@@ -56,6 +56,7 @@ export async function checkVerbose(
   // Cloze 마크업 제거하여 순수 텍스트 추출
   const cleanContent = cardContent
     .replace(/\{\{c\d+::([^}]+?)(?:::[^}]+)?\}\}/g, "$1")
+    .replace(/<br\s*\/?>/gi, "\n") // <br> → 줄바꿈 (줄 구조 보존)
     .replace(/<[^>]+>/g, " ")
     .replace(/:::\s*\w+[^\n]*\n?/g, "")
     .replace(/^:::\s*$/gm, "")
