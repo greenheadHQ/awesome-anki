@@ -8,7 +8,13 @@ import type { ActualCost, LLMModelId, TokenUsage } from "../llm/types.js";
 export type ValidationStatus = "valid" | "warning" | "error" | "unknown";
 
 // 검증 유형
-export type ValidationType = "fact-check" | "freshness" | "similarity" | "context" | "verbose" | "yagni";
+export type ValidationType =
+  | "fact-check"
+  | "freshness"
+  | "similarity"
+  | "context"
+  | "verbose"
+  | "yagni";
 
 // 기본 검증 결과 인터페이스
 export interface ValidationResult {

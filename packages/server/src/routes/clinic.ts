@@ -39,7 +39,9 @@ const MAX_FIXED_CONTENT_LENGTH = 1_000_000; // 1MB
  * noteId 검증 + 노트 조회 헬퍼
  * DA CLEAN_CODE 수용: 보일러플레이트 추출
  */
-async function validateAndFetchNote(noteId: unknown): Promise<{ noteId: number; note: NoteInfo; text: string }> {
+async function validateAndFetchNote(
+  noteId: unknown,
+): Promise<{ noteId: number; note: NoteInfo; text: string }> {
   if (typeof noteId !== "number" || !Number.isInteger(noteId) || noteId <= 0) {
     throw new ValidationError("noteId는 양의 정수여야 합니다");
   }
@@ -226,7 +228,8 @@ clinic.post("/fix/apply", async (c) => {
   try {
     await sync();
   } catch {
-    syncWarning = "카드 수정은 완료되었으나 Anki 동기화에 실패했습니다. 수동 동기화가 필요할 수 있습니다.";
+    syncWarning =
+      "카드 수정은 완료되었으나 Anki 동기화에 실패했습니다. 수동 동기화가 필요할 수 있습니다.";
   }
 
   return c.json({
@@ -257,29 +260,35 @@ clinic.post("/all", async (c) => {
   const { noteId: validId, note, text } = await validateAndFetchNote(noteId);
   const modelId = resolveModelId(provider, model);
 
-  const [factCheckResult, freshnessResult, similarityResult, contextResult, verboseResult, yagniResult] =
-    await Promise.all([
-      checkFacts(text, { modelId }),
-      checkFreshness(text, { modelId }),
-      (async () => {
-        const allNotes = await getDeckNotes(deckName);
-        const allCards: CardForComparison[] = allNotes.map((n) => ({
-          noteId: n.noteId,
-          text: extractTextField(n),
-        }));
-        return checkSimilarity({ noteId: validId, text }, allCards);
-      })(),
-      (async () => {
-        const targetCard: CardForContext = {
-          noteId: validId,
-          text,
-          tags: note.tags,
-        };
-        return checkContext(targetCard, { includeReverseLinks: true, modelId });
-      })(),
-      checkVerbose(text, { modelId }),
-      checkYagni(text, { modelId }),
-    ]);
+  const [
+    factCheckResult,
+    freshnessResult,
+    similarityResult,
+    contextResult,
+    verboseResult,
+    yagniResult,
+  ] = await Promise.all([
+    checkFacts(text, { modelId }),
+    checkFreshness(text, { modelId }),
+    (async () => {
+      const allNotes = await getDeckNotes(deckName);
+      const allCards: CardForComparison[] = allNotes.map((n) => ({
+        noteId: n.noteId,
+        text: extractTextField(n),
+      }));
+      return checkSimilarity({ noteId: validId, text }, allCards);
+    })(),
+    (async () => {
+      const targetCard: CardForContext = {
+        noteId: validId,
+        text,
+        tags: note.tags,
+      };
+      return checkContext(targetCard, { includeReverseLinks: true, modelId });
+    })(),
+    checkVerbose(text, { modelId }),
+    checkYagni(text, { modelId }),
+  ]);
 
   // overallStatus: verbose와 yagni는 제외 (액션 전용, SplitWorkspace/CardBrowser backward compat)
   const statusResults = [factCheckResult, freshnessResult, similarityResult, contextResult];

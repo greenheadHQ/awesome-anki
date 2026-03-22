@@ -37,10 +37,7 @@ function computeYagniDiff(
   const changes: FixChange[] = [];
 
   for (const clozeNum of clozesToRemove) {
-    const clozePattern = new RegExp(
-      `\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`,
-      "g",
-    );
+    const clozePattern = new RegExp(`\\{\\{c${clozeNum}::([^}]+?)(?:::[^}]+)?\\}\\}`, "g");
     const matches = [...result.matchAll(clozePattern)];
     for (const match of matches) {
       changes.push({
@@ -224,12 +221,7 @@ function DiffSection({
       <div className="px-3 py-2 bg-muted/50 flex items-center gap-2">
         {icon}
         <span className="text-sm font-medium flex-1">{title}</span>
-        <span
-          className={cn(
-            "text-xs px-1.5 py-0.5 rounded border",
-            badgeStyles[badgeColor],
-          )}
-        >
+        <span className={cn("text-xs px-1.5 py-0.5 rounded border", badgeStyles[badgeColor])}>
           {subtitle}
         </span>
       </div>
