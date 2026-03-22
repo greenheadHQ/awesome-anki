@@ -4,7 +4,7 @@
  */
 
 /** Cloze 마커에서 답만 추출: {{c1::답::힌트}} → 답 */
-const CLOZE_RE = /\{\{c\d+::([^:}]+)(?:::[^}]*)?\}\}/g;
+const CLOZE_RE = /\{\{c\d+::([^}]*?)(?:::([^}]*?))?\}\}/g;
 
 /** ::: type [toggleType] 까지만 제거, 나머지(title 등)는 유지 */
 const CALLOUT_MARKER_RE =

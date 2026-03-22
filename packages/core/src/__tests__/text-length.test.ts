@@ -46,6 +46,12 @@ describe("computeTextLength", () => {
     expect(computeTextLength("")).toBe(0);
   });
 
+  test("handles cloze with colon in answer", () => {
+    expect(computeTextLength("Redis의 {{c1::key:value::자료구조}} 패턴")).toBe(
+      "Redis의 key:value 패턴".length,
+    );
+  });
+
   test("handles complex real-world card", () => {
     const card =
       '[DNS > Record] A 레코드는 도메인을 {{c1::IPv4::IPv4 | IPv6}} 주소로 매핑한다. <span style="color:blue">중요</span>';
