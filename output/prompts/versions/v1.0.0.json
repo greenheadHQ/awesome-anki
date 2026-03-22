@@ -53,7 +53,7 @@
     "requireContextTag": true,
     "contextTagDepth": 2
   },
-  "status": "active",
+  "status": "archived",
   "metrics": {
     "totalSplits": 1,
     "approvedCount": 0,

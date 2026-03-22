@@ -210,12 +210,12 @@ export interface ActiveVersionInfo {
  * 기본 프롬프트 설정
  */
 export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  maxClozeChars: 80,
-  targetClozeChars: 50,
-  maxBasicFrontChars: 40,
-  targetBasicFrontChars: 25,
-  maxBasicBackChars: 30,
-  targetBasicBackChars: 20,
+  maxClozeChars: 120,
+  targetClozeChars: 60,
+  maxBasicFrontChars: 70,
+  targetBasicFrontChars: 35,
+  maxBasicBackChars: 60,
+  targetBasicBackChars: 28,
   maxClozePerCard: 1,
   requireHintForBinary: true,
   allowBasicCards: true,
