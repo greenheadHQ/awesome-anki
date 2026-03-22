@@ -17,7 +17,6 @@ export interface SplitCardPayload {
   content: string;
   isMainCard?: boolean;
   cardType?: "cloze" | "basic";
-  charCount?: number;
 }
 
 export interface SplitSessionListItem {
@@ -25,6 +24,7 @@ export interface SplitSessionListItem {
   noteId: number;
   deckName: string;
   status: HistoryStatus;
+  operation: "split" | "compact" | "skip";
   promptVersionId?: string;
   splitReason?: string;
   aiModel?: string;
@@ -51,6 +51,7 @@ export interface SplitSessionDetail {
   noteId: number;
   deckName: string;
   status: HistoryStatus;
+  operation: "split" | "compact" | "skip";
   promptVersionId?: string;
   originalText: string;
   originalTags: string[];
@@ -99,7 +100,7 @@ export interface CreateSessionInput {
 }
 
 export interface SplitGeneratedPayload {
-  splitCards: SplitCardPayload[];
+  splitCards?: SplitCardPayload[];
   aiResponse: Record<string, unknown> | null;
   splitReason?: string;
   aiModel?: string;
@@ -108,6 +109,13 @@ export interface SplitGeneratedPayload {
   actualCostUsd?: number;
   executionTimeMs?: number;
   tokenUsage?: TokenUsage;
+  operation?: "split" | "compact" | "skip";
+  compactedContent?: string;
+  auditReport?: {
+    preserved: string[];
+    removed: string[];
+    transformed: string[];
+  };
 }
 
 export interface SplitNotSplitPayload {
@@ -121,8 +129,19 @@ export interface SplitNotSplitPayload {
   aiResponse?: Record<string, unknown> | null;
 }
 
+export interface CompactPayload {
+  compactedContent: string;
+  auditReport: {
+    preserved: string[];
+    removed: string[];
+    transformed: string[];
+  };
+}
+
 export interface SplitAppliedPayload {
-  splitCards: SplitCardPayload[];
+  splitCards?: SplitCardPayload[];
+  operation?: "split" | "compact";
+  compactedContent?: string;
 }
 
 export interface SplitRejectedPayload {

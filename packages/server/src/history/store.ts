@@ -30,6 +30,7 @@ const SCHEMA_MIGRATION_INITIAL = "001-initial-schema";
 const SCHEMA_MIGRATION_LEGACY = "002-legacy-json-import-v1";
 const SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE = "003-remove-split-type";
 const SCHEMA_MIGRATION_ADD_PROVIDER_COST = "004-add-provider-and-cost";
+const SCHEMA_MIGRATION_ADD_OPERATION = "005-add-operation";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -88,6 +89,7 @@ interface SessionRow {
   provider: string;
   estimated_cost_usd: number | null;
   actual_cost_usd: number | null;
+  operation: string;
   source: "runtime" | "legacy_json";
   created_at: string;
   updated_at: string;
@@ -240,6 +242,7 @@ export class SplitHistoryStore {
 
     this.migrateRemoveSplitType();
     this.migrateAddProviderAndCost();
+    this.migrateAddOperation();
   }
 
   private migrateRemoveSplitType(): void {
@@ -346,6 +349,26 @@ export class SplitHistoryStore {
         this.db.exec("ALTER TABLE split_sessions ADD COLUMN actual_cost_usd REAL;");
       }
       this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
+    })();
+  }
+
+  private migrateAddOperation(): void {
+    if (this.hasMigration(SCHEMA_MIGRATION_ADD_OPERATION)) {
+      return;
+    }
+
+    const hasOperation = this.hasColumn("operation");
+
+    if (hasOperation) {
+      this.markMigration(SCHEMA_MIGRATION_ADD_OPERATION);
+      return;
+    }
+
+    this.db.transaction(() => {
+      this.db.exec(
+        "ALTER TABLE split_sessions ADD COLUMN operation TEXT NOT NULL DEFAULT 'split';",
+      );
+      this.markMigration(SCHEMA_MIGRATION_ADD_OPERATION);
     })();
   }
 
@@ -526,6 +549,17 @@ export class SplitHistoryStore {
 
   markGenerated(sessionId: string, payload: SplitGeneratedPayload): void {
     const updatedAt = nowIso();
+
+    // For compact: store compactedContent and auditReport in ai_response_json
+    const aiResponseJson =
+      payload.operation === "compact"
+        ? toNullableJson({
+            ...safeJsonParse<Record<string, unknown>>(toNullableJson(payload.aiResponse), {}),
+            compactedContent: payload.compactedContent,
+            auditReport: payload.auditReport,
+          })
+        : toNullableJson(payload.aiResponse);
+
     const stmt = this.db.query(
       `UPDATE split_sessions
        SET status = 'generated',
@@ -538,6 +572,7 @@ export class SplitHistoryStore {
            actual_cost_usd = ?,
            execution_time_ms = ?,
            token_usage_json = ?,
+           operation = COALESCE(?, operation),
            error_message = NULL,
            updated_at = ?
        WHERE id = ?`,
@@ -545,8 +580,8 @@ export class SplitHistoryStore {
 
     this.db.transaction(() => {
       const result = stmt.run(
-        JSON.stringify(payload.splitCards || []),
-        toNullableJson(payload.aiResponse),
+        JSON.stringify(payload.splitCards ?? []),
+        aiResponseJson,
         payload.splitReason || null,
         payload.aiModel || null,
         payload.provider || null,
@@ -554,6 +589,7 @@ export class SplitHistoryStore {
         payload.actualCostUsd ?? null,
         payload.executionTimeMs ?? null,
         toNullableJson(payload.tokenUsage ?? null),
+        payload.operation || null,
         updatedAt,
         sessionId,
       );
@@ -562,19 +598,24 @@ export class SplitHistoryStore {
         throw new HistorySessionNotFoundError(sessionId);
       }
 
-      this.insertEvent(
-        sessionId,
-        "preview_generated",
-        "generated",
-        {
-          cardCount: payload.splitCards.length,
-          splitReason: payload.splitReason,
-          aiModel: payload.aiModel,
-          executionTimeMs: payload.executionTimeMs,
-          tokenUsage: payload.tokenUsage ?? null,
-        },
-        updatedAt,
-      );
+      const eventPayload: Record<string, unknown> = {
+        cardCount: payload.splitCards?.length ?? 0,
+        splitReason: payload.splitReason,
+        aiModel: payload.aiModel,
+        executionTimeMs: payload.executionTimeMs,
+        tokenUsage: payload.tokenUsage ?? null,
+      };
+      if (payload.operation) {
+        eventPayload.operation = payload.operation;
+      }
+      if (payload.compactedContent !== undefined) {
+        eventPayload.compactedContent = payload.compactedContent;
+      }
+      if (payload.auditReport !== undefined) {
+        eventPayload.auditReport = payload.auditReport;
+      }
+
+      this.insertEvent(sessionId, "preview_generated", "generated", eventPayload, updatedAt);
     })();
   }
 
@@ -635,6 +676,7 @@ export class SplitHistoryStore {
       `UPDATE split_sessions
        SET status = 'applied',
            split_cards_json = ?,
+           operation = COALESCE(?, operation),
            rejection_reason = NULL,
            error_message = NULL,
            applied_at = ?,
@@ -642,9 +684,12 @@ export class SplitHistoryStore {
        WHERE id = ?`,
     );
 
+    const cards = payload.splitCards ?? [];
+
     this.db.transaction(() => {
       const result = stmt.run(
-        JSON.stringify(payload.splitCards || []),
+        JSON.stringify(cards),
+        payload.operation || null,
         timestamp,
         timestamp,
         sessionId,
@@ -659,7 +704,8 @@ export class SplitHistoryStore {
         "split_applied",
         "applied",
         {
-          cardCount: payload.splitCards.length,
+          cardCount: cards.length,
+          ...(payload.operation ? { operation: payload.operation } : {}),
         },
         timestamp,
       );
@@ -757,6 +803,7 @@ export class SplitHistoryStore {
       noteId: row.note_id,
       deckName: row.deck_name,
       status: row.status,
+      operation: (row.operation as "split" | "compact" | "skip") ?? "split",
       promptVersionId: row.prompt_version_id ?? undefined,
       originalText: row.original_text,
       originalTags: safeJsonParse(row.original_tags_json, []),
@@ -813,6 +860,7 @@ export class SplitHistoryStore {
       noteId: row.note_id,
       deckName: row.deck_name,
       status: row.status,
+      operation: (row.operation as "split" | "compact" | "skip") ?? "split",
       promptVersionId: row.prompt_version_id ?? undefined,
       splitReason: row.split_reason ?? undefined,
       aiModel: row.ai_model ?? undefined,
