@@ -257,9 +257,9 @@ export function CardBrowser() {
             <span className="text-xs bg-muted px-2 py-0.5 rounded flex items-center gap-1">
               Cloze <span className="font-medium">{cardDetail.clozeStats.totalClozes}</span>
             </span>
-            {cardDetail.analysis.canSplit && (
+            {cardDetail.analysis.needsOptimization && (
               <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
-                분할 가능
+                최적화 필요
               </span>
             )}
             {cardDetail.nidLinks.length > 0 && (
@@ -471,9 +471,9 @@ export function CardBrowser() {
                               />
                               <span className="font-mono text-xs">{card.noteId}</span>
                             </div>
-                            {card.isSplitable && (
+                            {card.needsOptimization && (
                               <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">
-                                분할
+                                최적화
                               </span>
                             )}
                           </div>
@@ -559,7 +559,7 @@ export function CardBrowser() {
                       <TableHead>카드</TableHead>
                       <TableHead>검증</TableHead>
                       <TableHead className="hidden xl:table-cell">Cloze</TableHead>
-                      <TableHead>분할</TableHead>
+                      <TableHead>최적화</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -585,7 +585,7 @@ export function CardBrowser() {
                           {card.clozeStats.totalClozes}
                         </TableCell>
                         <TableCell>
-                          {card.isSplitable && (
+                          {card.needsOptimization && (
                             <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">
                               가능
                             </span>

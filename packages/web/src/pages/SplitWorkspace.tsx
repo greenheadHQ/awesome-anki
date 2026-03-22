@@ -13,6 +13,7 @@ import {
   ChevronRight,
   FileText,
   Loader2,
+  Minimize2,
   Scissors,
   Shield,
   Sparkles,
@@ -21,6 +22,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { CompactDiffView } from "../components/card/CompactDiffView";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { SplitPreviewCard } from "../components/card/DiffViewer";
 import { HelpTooltip } from "../components/help/HelpTooltip";
@@ -63,9 +65,10 @@ import { startViewTransition } from "../lib/view-transition";
 const REJECTION_REASONS = [
   { id: "too-granular", label: "분할이 너무 세분화" },
   { id: "context-missing", label: "맥락 태그 부적절" },
-  { id: "char-exceeded", label: "글자수 초과" },
   { id: "cloze-inappropriate", label: "Cloze 위치/내용 부적절" },
   { id: "quality-low", label: "전반적 품질 미달" },
+  { id: "over-compressed", label: "과도한 압축" },
+  { id: "info-lost", label: "핵심 정보 누락" },
   { id: "other", label: "기타" },
 ] as const;
 
@@ -77,8 +80,13 @@ interface SplitCandidate {
   noteId: number;
   text: string;
   analysis: {
-    canSplit: boolean;
+    needsOptimization: boolean;
     clozeCount: number;
+    textLength: number;
+    reasons: {
+      clozeOverflow: boolean;
+      textOverflow: boolean;
+    };
   };
   difficulty?: {
     score: number;
@@ -95,8 +103,13 @@ function mapDifficultToCandidate(card: DifficultCard): SplitCandidate {
     noteId: card.noteId,
     text: card.text,
     analysis: {
-      canSplit: true,
+      needsOptimization: true,
       clozeCount: 0,
+      textLength: card.text.length,
+      reasons: {
+        clozeOverflow: false,
+        textOverflow: false,
+      },
     },
     difficulty: {
       score: card.difficultyScore,
@@ -114,8 +127,13 @@ function mapCardSummaryToCandidate(card: CardSummary): SplitCandidate {
     noteId: card.noteId,
     text: card.text,
     analysis: {
-      canSplit: card.analysis.canSplit,
+      needsOptimization: card.analysis.needsOptimization,
       clozeCount: card.analysis.clozeCount,
+      textLength: card.analysis.textLength,
+      reasons: {
+        clozeOverflow: card.analysis.reasons.clozeOverflow,
+        textOverflow: card.analysis.reasons.textOverflow,
+      },
     },
   };
 }
@@ -432,64 +450,80 @@ export function SplitWorkspace() {
 
   const candidates = (cardsData?.cards || [])
     .map(mapCardSummaryToCandidate)
-    .filter((card) => card.analysis.canSplit);
+    .filter((card) => card.analysis.needsOptimization);
 
   const difficultCards = (difficultData?.cards || []).map(mapDifficultToCandidate);
 
   const handleApply = () => {
-    if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
+    if (!selectedCard || !activeDeck || !previewData) return;
+    const operation = previewData.operation;
+    // split requires splitCards, compact requires compactedContent
+    if (operation === "split" && !previewData.splitCards) return;
+    if (operation === "compact" && !previewData.compactedContent) return;
+    if (operation === "skip") return;
     if (!previewData.sessionId) {
       toast.warning("히스토리 세션이 없어 적용할 수 없습니다. 미리보기를 다시 실행해주세요.");
       return;
     }
 
-    splitApply.mutate(
-      {
-        sessionId: previewData.sessionId,
-        noteId: selectedCard.noteId,
-        deckName: activeDeck,
-        splitCards: previewData.splitCards.map((c) => ({
-          title: c.title,
-          content: c.content,
-        })),
-        mainCardIndex: previewData.mainCardIndex ?? 0,
+    const mutationData =
+      operation === "compact"
+        ? {
+            sessionId: previewData.sessionId,
+            noteId: selectedCard.noteId,
+            deckName: activeDeck,
+            operation: "compact" as const,
+            compactedContent: previewData.compactedContent,
+          }
+        : {
+            sessionId: previewData.sessionId,
+            noteId: selectedCard.noteId,
+            deckName: activeDeck,
+            operation: "split" as const,
+            splitCards: previewData.splitCards!.map((c) => ({
+              title: c.title,
+              content: c.content,
+            })),
+            mainCardIndex: previewData.mainCardIndex ?? 0,
+          };
+
+    splitApply.mutate(mutationData, {
+      onSuccess: (result) => {
+        const syncState = recordSyncAttempt(result.syncResult);
+
+        if (syncState.hasPendingChanges) {
+          toast.warning(
+            `${operation === "compact" ? "압축" : "분할"}은 적용되었지만 동기화는 실패했습니다: ${syncState.lastError || "unknown"}`,
+          );
+        } else {
+          toast.success(
+            `${operation === "compact" ? "압축" : "분할"}이 적용되고 서버와 동기화되었습니다`,
+          );
+        }
+
+        if (result.historyWarning) {
+          toast.warning(result.historyWarning);
+        }
+
+        // 성공 후 목록에서 제거하고 다음 카드 선택
+        const activeList = mode === "candidates" ? candidates : difficultCards;
+        const nextCard = activeList.find((c) => c.noteId !== selectedCard.noteId);
+        if (nextCard) {
+          handleSelectCard(nextCard);
+        } else {
+          handleSelectCard(null);
+          if (isMobile) setActivePanel("list");
+        }
       },
-      {
-        onSuccess: (result) => {
-          const syncState = recordSyncAttempt(result.syncResult);
-
-          if (syncState.hasPendingChanges) {
-            toast.warning(
-              `분할은 적용되었지만 동기화는 실패했습니다: ${syncState.lastError || "unknown"}`,
-            );
-          } else {
-            toast.success("분할이 적용되고 서버와 동기화되었습니다");
-          }
-
-          if (result.historyWarning) {
-            toast.warning(result.historyWarning);
-          }
-
-          // 성공 후 목록에서 제거하고 다음 카드 선택
-          const activeList = mode === "candidates" ? candidates : difficultCards;
-          const nextCard = activeList.find((c) => c.noteId !== selectedCard.noteId);
-          if (nextCard) {
-            handleSelectCard(nextCard);
-          } else {
-            handleSelectCard(null);
-            if (isMobile) setActivePanel("list");
-          }
-        },
-        onError: (error) => {
-          const message = error instanceof Error ? error.message : String(error);
-          toast.error(`분할 적용 실패: ${message}`);
-        },
+      onError: (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        toast.error(`${operation === "compact" ? "압축" : "분할"} 적용 실패: ${message}`);
       },
-    );
+    });
   };
 
   const handleReject = (rejectionReason: string) => {
-    if (!selectedCard || !activeDeck || !previewData?.splitCards) return;
+    if (!selectedCard || !activeDeck || !previewData?.operation) return;
     if (!previewData.sessionId) {
       toast.warning("히스토리 세션이 없어 반려할 수 없습니다. 미리보기를 다시 실행해주세요.");
       return;
@@ -528,12 +562,9 @@ export function SplitWorkspace() {
   const activeCount = mode === "candidates" ? candidates.length : (difficultData?.total ?? 0);
 
   const isBusy = splitReject.isPending || splitApply.isPending;
+  const hasApplicablePreview = !!previewData?.operation && previewData.operation !== "skip";
   const canReject =
-    !!selectedCard &&
-    !!activeDeck &&
-    !!previewData?.splitCards &&
-    !!previewData.sessionId &&
-    !isBusy;
+    !!selectedCard && !!activeDeck && hasApplicablePreview && !!previewData?.sessionId && !isBusy;
 
   // 카드 리스트 아이템 렌더러
   const renderCardListItem = (card: SplitCandidate) => {
@@ -560,9 +591,14 @@ export function SplitWorkspace() {
             </p>
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1">
-            {card.analysis.clozeCount > 0 && (
+            {card.analysis.reasons.clozeOverflow && (
               <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
-                C{card.analysis.clozeCount}
+                Cloze {card.analysis.clozeCount}개
+              </span>
+            )}
+            {card.analysis.reasons.textOverflow && (
+              <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded">
+                {card.analysis.textLength}자
               </span>
             )}
           </div>
@@ -817,7 +853,7 @@ export function SplitWorkspace() {
               다시 시도
             </Button>
           </div>
-        ) : previewData?.splitCards ? (
+        ) : previewData?.operation ? (
           <div className="space-y-4">
             {/* 캐시 표시 */}
             {cachedPreview && (
@@ -826,16 +862,22 @@ export function SplitWorkspace() {
                 {activeVersionId && ` (${activeVersionId})`}
               </span>
             )}
-            {/* 분할 요약 */}
+            {/* 요약 */}
             <div className="p-3 bg-muted rounded-lg text-sm">
               <div className="flex items-center gap-2 mb-1">
-                <p className="font-medium">{previewData.splitCards.length}개 카드로 분할</p>
+                <p className="font-medium">
+                  {previewData.operation === "split" && previewData.splitCards
+                    ? `${previewData.splitCards.length}개 카드로 분할`
+                    : previewData.operation === "compact"
+                      ? "텍스트 압축"
+                      : "변경 불필요"}
+                </p>
                 {previewData.provider && (
                   <ModelBadge provider={previewData.provider} model={previewData.aiModel} />
                 )}
               </div>
-              {previewData.splitReason && (
-                <p className="text-muted-foreground text-xs">{previewData.splitReason}</p>
+              {previewData.operationReason && (
+                <p className="text-muted-foreground text-xs">{previewData.operationReason}</p>
               )}
               <p className="text-muted-foreground text-xs mt-1">
                 {previewData.executionTimeMs != null &&
@@ -848,11 +890,31 @@ export function SplitWorkspace() {
             </div>
 
             {/* 분할 카드 미리보기 */}
-            <div className="space-y-3">
-              {previewData.splitCards.map((card, idx) => (
-                <SplitPreviewCard key={`split-${card.title}-${idx}`} card={card} index={idx} />
-              ))}
-            </div>
+            {previewData.operation === "split" && previewData.splitCards && (
+              <div className="space-y-3">
+                {previewData.splitCards.map((card, idx) => (
+                  <SplitPreviewCard key={`split-${card.title}-${idx}`} card={card} index={idx} />
+                ))}
+              </div>
+            )}
+
+            {/* 압축 미리보기 */}
+            {previewData.operation === "compact" && (
+              <CompactDiffView
+                originalText={previewData.originalText ?? ""}
+                compactedContent={previewData.compactedContent ?? ""}
+                auditReport={
+                  previewData.auditReport ?? { preserved: [], removed: [], transformed: [] }
+                }
+              />
+            )}
+
+            {/* 스킵 — 변경 불필요 */}
+            {previewData.operation === "skip" && (
+              <div className="p-4 text-muted-foreground text-center">
+                변경 불필요: {previewData.operationReason}
+              </div>
+            )}
 
             {/* 데스크톱에서만 미리보기 내 반려 Popover 표시 (모바일은 footer에 표시) */}
           </div>
@@ -1203,7 +1265,7 @@ export function SplitWorkspace() {
               </div>
 
               {/* Sticky footer — 적용/반려 버튼 */}
-              {selectedCard && previewData?.splitCards && (
+              {selectedCard && hasApplicablePreview && (
                 <div className="border-t p-3 shrink-0">
                   <div className="flex gap-2">
                     <RejectPopover canReject={canReject} onReject={handleReject} />
@@ -1212,6 +1274,11 @@ export function SplitWorkspace() {
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           적용 중...
+                        </>
+                      ) : previewData?.operation === "compact" ? (
+                        <>
+                          <Minimize2 className="w-4 h-4 mr-2" />
+                          압축 적용
                         </>
                       ) : (
                         <>
@@ -1247,7 +1314,7 @@ export function SplitWorkspace() {
               {renderPreviewContent()}
 
               {/* 하단 액션 영역 */}
-              {selectedCard && previewData && previewData.splitCards && (
+              {selectedCard && hasApplicablePreview && (
                 <div className="px-4 py-3 border-t shrink-0">
                   <div className="flex gap-2">
                     {/* 반려 버튼 */}
@@ -1259,6 +1326,11 @@ export function SplitWorkspace() {
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           적용 중...
+                        </>
+                      ) : previewData?.operation === "compact" ? (
+                        <>
+                          <Minimize2 className="w-4 h-4 mr-2" />
+                          압축 적용
                         </>
                       ) : (
                         <>
