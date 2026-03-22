@@ -50,7 +50,7 @@ export default {
 
 - **factory 패턴**: `createLLMClient(provider)` → `LLMProvider` 어댑터 반환
 - **프로바이더**: Gemini (`@google/genai`), OpenAI (`openai` Responses API)
-- **기본 모델**: Gemini 3 Flash Preview (`gemini-3-flash-preview`), GPT-5 Mini (`gpt-5-mini`)
+- **기본 모델**: Gemini 3 Flash Preview (`gemini-3-flash-preview`), GPT-5.4 Mini (`gpt-5.4-mini`), GPT-5.4 Nano (`gpt-5.4-nano`)
 - **환경변수**:
   - `GEMINI_API_KEY` (필수) — Split, 검증, 임베딩용
   - `OPENAI_API_KEY` (선택) — OpenAI 프로바이더 사용 시

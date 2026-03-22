@@ -29,11 +29,19 @@ export const MODEL_PRICING_TABLE: ModelPricing[] = [
   // OpenAI
   {
     provider: "openai",
-    model: "gpt-5-mini",
-    displayName: "GPT-5 Mini",
-    inputPricePerMillionTokens: 0.25,
-    outputPricePerMillionTokens: 2.0,
-    verifiedAt: "2026-03-01",
+    model: "gpt-5.4-mini",
+    displayName: "GPT-5.4 Mini",
+    inputPricePerMillionTokens: 0.75,
+    outputPricePerMillionTokens: 4.5,
+    verifiedAt: "2026-03-22",
+  },
+  {
+    provider: "openai",
+    model: "gpt-5.4-nano",
+    displayName: "GPT-5.4 Nano",
+    inputPricePerMillionTokens: 0.2,
+    outputPricePerMillionTokens: 1.25,
+    verifiedAt: "2026-03-22",
   },
 ];
 
