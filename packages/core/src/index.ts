@@ -103,10 +103,15 @@ export {
 } from "./gemini/prompts.js";
 export {
   type AnalysisResponse,
+  type CompactOperationResponse,
+  type OperationResponse,
+  type SkipOperationResponse,
+  type SplitOperationResponse,
   type SplitResponse,
   validateAllCardsHaveCloze,
   validateAnalysisResponse,
   validateClozePresence,
+  validateOperationResponse,
   validateSplitResponse,
   validateStylePreservation,
 } from "./gemini/validator.js";
