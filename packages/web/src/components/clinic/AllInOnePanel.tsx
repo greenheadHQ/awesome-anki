@@ -1,12 +1,14 @@
 /**
  * AllInOnePanel - 일괄 수정 패널
  *
- * 우측 패널 하단에 고정 배치.
+ * 우측 패널 body 내부 (검증 결과 아래)에 배치.
+ * Mockup v2: gradient header + #f5f3ff body + checkbox items + cost footer
+ *
  * 적용 가능한 수정(YAGNI 제거, 팩트 정정)을 체크박스로 선택하고
  * 한 번의 Apply로 백업 + 수정 + (선택 시) Split 이동을 처리한다.
  */
 
-import { Loader2, Scissors, Tag, Link2, Trash2, AlertTriangle, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,8 +16,6 @@ import { toast } from "sonner";
 import { useFixApply } from "../../hooks/useClinicCache";
 import type { AllValidationResult } from "../../lib/api";
 import { applyFactCorrections, removeYagniClozes } from "../../lib/card-fixer";
-import { cn } from "../../lib/utils";
-import { Button } from "../ui/button";
 
 interface AllInOnePanelProps {
   cardContent: string;
@@ -64,6 +64,12 @@ export function AllInOnePanel({
 
   const hasCheckedFixes = yagniChecked || factChecked;
   const hasCheckedAnything = splitChecked || hasCheckedFixes;
+
+  // 체크된 항목 수
+  const checkedCount = [splitChecked, yagniChecked, factChecked].filter(Boolean).length;
+
+  // 권장 항목 수
+  const recommendedCount = [isSplitRecommended, isYagni, hasFactCorrections].filter(Boolean).length;
 
   // --- Apply 로직 ---
   const handleApply = useCallback(async () => {
@@ -115,127 +121,184 @@ export function AllInOnePanel({
   if (!validationResults || !hasAnyAction) return null;
 
   return (
-    <div className="border-t bg-gradient-to-r from-purple-600 to-indigo-600 p-3 shrink-0">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold text-white/90">All-in-One 수정</p>
-
-        {/* 체크박스 목록 */}
-        <div className="space-y-1.5">
-          {/* Split */}
-          <CheckboxRow
-            checked={splitChecked}
-            onChange={setSplitChecked}
-            disabled={!isSplitRecommended}
-            icon={<Scissors className="w-3.5 h-3.5" />}
-            label="Split 분할"
-            available={isSplitRecommended}
-          />
-
-          {/* YAGNI */}
-          <CheckboxRow
-            checked={yagniChecked}
-            onChange={setYagniChecked}
-            disabled={!isYagni}
-            icon={<Trash2 className="w-3.5 h-3.5" />}
-            label={`YAGNI 제거 (${yagniClozes.length}개)`}
-            available={isYagni}
-          />
-
-          {/* Fact Correction */}
-          <CheckboxRow
-            checked={factChecked}
-            onChange={setFactChecked}
-            disabled={!hasFactCorrections}
-            icon={<AlertTriangle className="w-3.5 h-3.5" />}
-            label={`팩트 정정 (${factCorrections.length}개)`}
-            available={hasFactCorrections}
-          />
-
-          {/* Phase 3 — disabled */}
-          <CheckboxRow
-            checked={false}
-            onChange={() => {}}
-            disabled={true}
-            icon={<Link2 className="w-3.5 h-3.5" />}
-            label="nid 링크 정리"
-            available={false}
-            phase3
-          />
-          <CheckboxRow
-            checked={false}
-            onChange={() => {}}
-            disabled={true}
-            icon={<Tag className="w-3.5 h-3.5" />}
-            label="태그 정리"
-            available={false}
-            phase3
-          />
+    <div className="mt-4" style={{ border: "2px solid #4f46e5", borderRadius: 10, overflow: "hidden" }}>
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-3 text-white"
+        style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}
+      >
+        <div className="flex items-center gap-2 text-sm font-bold">
+          <span>⚡</span>
+          <span>All-in-One 적용</span>
         </div>
+        <span
+          className="text-[11px] px-2 py-0.5 rounded-full"
+          style={{ background: "rgba(255,255,255,0.2)" }}
+        >
+          {recommendedCount}건 권장
+        </span>
+      </div>
 
-        {/* Apply 버튼 */}
-        <Button
-          size="sm"
-          className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30"
-          variant="outline"
+      {/* Body */}
+      <div className="px-4 py-3" style={{ background: "#f5f3ff" }}>
+        {/* Split */}
+        <AllInOneCheckboxItem
+          checked={splitChecked}
+          onChange={setSplitChecked}
+          disabled={!isSplitRecommended}
+          available={isSplitRecommended}
+          icon="✂️"
+          typeLabel="Split"
+          typeColor="#4f46e5"
+          detail={
+            isSplitRecommended
+              ? `${validationResults.verbose?.details.suggestedSplitCount ?? validationResults.verbose?.details.conceptCount}개 카드로 분할`
+              : "해당 없음"
+          }
+        />
+
+        {/* YAGNI */}
+        <AllInOneCheckboxItem
+          checked={yagniChecked}
+          onChange={setYagniChecked}
+          disabled={!isYagni}
+          available={isYagni}
+          icon="🗑️"
+          typeLabel="YAGNI 제거"
+          typeColor="#d97706"
+          detail={
+            isYagni
+              ? `Cloze ${yagniClozes.length}개 제거`
+              : "해당 없음"
+          }
+        />
+
+        {/* Fact Correction */}
+        <AllInOneCheckboxItem
+          checked={factChecked}
+          onChange={setFactChecked}
+          disabled={!hasFactCorrections}
+          available={hasFactCorrections}
+          icon="🔧"
+          typeLabel="팩트 정정"
+          typeColor={hasFactCorrections ? "#2563eb" : "#9ca3af"}
+          detail={
+            hasFactCorrections
+              ? `${factCorrections.length}건 수정`
+              : "해당 없음"
+          }
+        />
+
+        {/* Phase 3 — nid 링크 (disabled) */}
+        <AllInOneCheckboxItem
+          checked={false}
+          onChange={() => {}}
+          disabled
+          available={false}
+          icon="📎"
+          typeLabel="nid 링크"
+          typeColor="#9ca3af"
+          detail="제안 없음"
+        />
+
+        {/* Phase 3 — 태그 추가 (disabled) */}
+        <AllInOneCheckboxItem
+          checked={false}
+          onChange={() => {}}
+          disabled
+          available={false}
+          icon="🏷️"
+          typeLabel="태그 추가"
+          typeColor="#9ca3af"
+          detail="제안 없음"
+          isLast
+        />
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{ background: "#f5f3ff", borderTop: "1px solid #ede9fe" }}
+      >
+        <div className="text-xs text-[#6b7280]">
+          예상 비용: $0.04
+          <br />
+          <span className="text-[11px]">백업 자동 생성됨</span>
+        </div>
+        <button
+          type="button"
           onClick={handleApply}
           disabled={!hasCheckedAnything || fixApply.isPending}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold text-white border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:-translate-y-px"
+          style={{
+            background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+            boxShadow: "0 2px 8px rgba(79,70,229,0.3)",
+          }}
         >
           {fixApply.isPending ? (
             <>
-              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
               적용 중...
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4 mr-1.5" />
-              {splitChecked && !hasCheckedFixes
-                ? "Split으로 이동"
-                : `선택 항목 적용${splitChecked ? " + Split" : ""}`}
+              <span>⚡</span>
+              <span>전체 적용 ({checkedCount > 0 ? checkedCount : recommendedCount}건)</span>
             </>
           )}
-        </Button>
+        </button>
       </div>
     </div>
   );
 }
 
-function CheckboxRow({
+function AllInOneCheckboxItem({
   checked,
   onChange,
   disabled,
-  icon,
-  label,
   available,
-  phase3,
+  icon,
+  typeLabel,
+  typeColor,
+  detail,
+  isLast,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled: boolean;
-  icon: React.ReactNode;
-  label: string;
   available: boolean;
-  phase3?: boolean;
+  icon: string;
+  typeLabel: string;
+  typeColor: string;
+  detail: string;
+  isLast?: boolean;
 }) {
   return (
-    <label
-      className={cn(
-        "flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors cursor-pointer",
-        disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-white/10",
-        checked && !disabled && "bg-white/15",
-      )}
+    <div
+      className="flex items-center gap-2 py-1.5 text-[13px]"
+      style={{
+        borderBottom: isLast ? "none" : "1px solid #ede9fe",
+        opacity: available ? 1 : 0.4,
+      }}
     >
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         disabled={disabled}
-        className="accent-white w-3.5 h-3.5 shrink-0"
+        className="w-4 h-4 shrink-0"
+        style={{ accentColor: "#4f46e5" }}
       />
-      <span className="text-white/80 shrink-0">{icon}</span>
-      <span className={cn("text-white/90 flex-1", !available && "line-through")}>{label}</span>
-      {phase3 && (
-        <span className="text-[10px] text-white/50 bg-white/10 px-1 py-0.5 rounded">Phase 3</span>
-      )}
-    </label>
+      <span className="text-base">{icon}</span>
+      <span className="font-semibold min-w-[80px]" style={{ color: typeColor }}>
+        {typeLabel}
+      </span>
+      <span
+        className="flex-1 text-xs"
+        style={{ color: available ? "#6b7280" : "#bbbbbb" }}
+      >
+        {detail}
+      </span>
+    </div>
   );
 }

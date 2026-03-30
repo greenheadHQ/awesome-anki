@@ -1,29 +1,23 @@
 /**
  * ClinicWorkspace - 카드 검진 작업 공간
- * 데스크톱: 3단 레이아웃 (카드 목록 | 원본 카드 + 수정 미리보기 | 검증 결과 + All-in-One)
- * 모바일: list ↔ detail view transition
+ *
+ * Mockup v2 디자인 기준 완전 재작성.
+ *
+ * 데스크톱: 3단 레이아웃 (카드 목록 260px | 원본 카드 + 수정 미리보기 flex-1 | 검증/연관/액션 360px)
+ * 모바일: list <-> detail view transition
  */
 
 import {
-  AlertTriangle,
   ArrowLeft,
-  CheckCircle,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
-  Clock,
   Copy,
-  Hash,
-  HelpCircle,
   Link2,
   Loader2,
   Search,
   Shield,
   Sparkles,
-  Trash2,
-  XCircle,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { ActionPreview } from "../components/clinic/ActionPreview";
@@ -34,9 +28,7 @@ import { ModelBadge } from "../components/ui/model-badge";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
@@ -50,90 +42,145 @@ import { cn } from "../lib/utils";
 import { startViewTransition } from "../lib/view-transition";
 
 type MobilePanel = "list" | "detail";
-type DetailTab = "validate" | "related";
+type DetailTab = "validate" | "related" | "action";
 
-// --- 검증 상태 아이콘 ---
-function StatusIcon({
-  status,
-  size = "sm",
-}: {
-  status: ValidationStatus | null;
-  size?: "sm" | "md";
-}) {
-  const sizeClass = size === "sm" ? "w-4 h-4" : "w-5 h-5";
+type FilterMode = "all" | "needs-review" | "unvalidated";
 
-  if (status === null) {
-    return <HelpCircle className={cn(sizeClass, "text-gray-300")} />;
-  }
-  switch (status) {
-    case "valid":
-      return <CheckCircle className={cn(sizeClass, "text-green-500")} />;
-    case "warning":
-      return <AlertTriangle className={cn(sizeClass, "text-yellow-500")} />;
-    case "error":
-      return <XCircle className={cn(sizeClass, "text-red-500")} />;
-    default:
-      return <HelpCircle className={cn(sizeClass, "text-gray-400")} />;
-  }
-}
-
-const STATUS_LABELS: Record<ValidationStatus, string> = {
-  valid: "검증 통과",
-  warning: "검토 필요",
-  error: "문제 발견",
-  unknown: "검증 불가",
-};
-
-function getSimilarityBadgeClass(similarity: number): string {
-  if (similarity >= 90) return "bg-red-100 text-red-700";
-  if (similarity >= 70) return "bg-yellow-100 text-yellow-700";
-  return "bg-gray-100 text-gray-700";
-}
-
-function getStatusBg(status: ValidationStatus): string {
-  switch (status) {
-    case "valid":
-      return "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800";
-    case "warning":
-      return "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800";
-    case "error":
-      return "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800";
-    default:
-      return "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700";
-  }
-}
-
-/** 카드 목록의 왼쪽 3px 색상 바 */
-function getStatusBorderColor(status: ValidationStatus | null): string {
-  switch (status) {
-    case "valid":
-      return "border-l-green-500";
-    case "warning":
-      return "border-l-yellow-500";
-    case "error":
-      return "border-l-red-500";
-    default:
-      return "border-l-gray-300";
-  }
-}
-
-// 6종 검증 유형 (yagni 추가)
+// 6종 검증 유형
 const VALIDATION_TYPES = [
-  { key: "factCheck", icon: CheckCircle, label: "팩트 체크" },
-  { key: "freshness", icon: Clock, label: "최신성 검사" },
-  { key: "similarity", icon: Copy, label: "유사성 검사" },
-  { key: "context", icon: Link2, label: "문맥 일관성" },
-  { key: "verbose", icon: Sparkles, label: "Verbose 감지" },
-  { key: "yagni", icon: Trash2, label: "YAGNI 감지" },
+  { key: "verbose", label: "Verbose", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
+  { key: "yagni", label: "YAGNI 의심", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
+  { key: "factCheck", label: "팩트체크", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
+  { key: "freshness", label: "최신성", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
+  { key: "similarity", label: "유사도", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
+  { key: "context", label: "문맥 정합성", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
 ] as const;
 
-type FilterMode = "all" | "unvalidated" | "needs-review";
+// --- helper: badge color by status ---
+function getBadgeClasses(status: ValidationStatus | null): string {
+  switch (status) {
+    case "error":
+      return "bg-[#fef2f2] text-[#dc2626]";
+    case "warning":
+      return "bg-[#fffbeb] text-[#d97706]";
+    case "valid":
+      return "bg-[#f0fdf4] text-[#16a34a]";
+    default:
+      return "bg-gray-100 text-gray-500";
+  }
+}
 
-const FILTER_LABELS: Record<FilterMode, string> = {
-  all: "전체",
-  unvalidated: "미검증",
-  "needs-review": "검토 필요",
-};
+function getCardBorderClass(status: ValidationStatus | null): string {
+  switch (status) {
+    case "error":
+      return "border-l-[3px] border-l-[#dc2626]";
+    case "warning":
+      return "border-l-[3px] border-l-[#d97706]";
+    case "valid":
+      return "border-l-[3px] border-l-[#16a34a]";
+    default:
+      return "";
+  }
+}
+
+function getStatusEmoji(status: ValidationStatus): string {
+  switch (status) {
+    case "error":
+      return "🔴";
+    case "warning":
+      return "🟡";
+    case "valid":
+      return "✅";
+    default:
+      return "⚪";
+  }
+}
+
+/** validation-item variant class */
+function getValidationItemClass(status: ValidationStatus): string {
+  switch (status) {
+    case "error":
+      return "border-[#fecaca] bg-[#fef2f2]";
+    case "warning":
+      return "border-[#fed7aa] bg-[#fffbeb]";
+    case "valid":
+      return "border-[#bbf7d0] bg-[#f0fdf4]";
+    default:
+      return "border-[#e5e7eb] bg-[#f9fafb]";
+  }
+}
+
+/** short description for each validation type */
+function getValidationDescription(
+  typeKey: string,
+  result: AllValidationResult["results"][keyof AllValidationResult["results"]],
+): string {
+  const details = result.details as Record<string, unknown>;
+  switch (typeKey) {
+    case "verbose": {
+      const clozeCount = (details.clozeCount as number) ?? 0;
+      const wordCount = (details.wordCount as number) ?? 0;
+      if (result.status === "error" || result.status === "warning") {
+        return `Cloze ${clozeCount}개, ${wordCount}단어. 여러 개념이 혼합되어 있습니다.`;
+      }
+      return result.message || "적절한 분량입니다.";
+    }
+    case "yagni": {
+      const reason = details.reason as string;
+      if (details.isYagni) return reason || "YAGNI Cloze가 감지되었습니다.";
+      return "YAGNI Cloze가 감지되지 않았습니다.";
+    }
+    case "factCheck": {
+      const claims = (details.claims as Array<{ isVerified: boolean }>) ?? [];
+      const wrongCount = claims.filter((c) => !c.isVerified).length;
+      if (wrongCount > 0) return `${wrongCount}건의 사실 오류가 발견되었습니다.`;
+      return result.message || "기술적 사실이 정확합니다.";
+    }
+    case "freshness":
+      return result.message || "최신 정보를 반영하고 있습니다.";
+    case "similarity": {
+      const similarCards = (details.similarCards as Array<{ similarity: number }>) ?? [];
+      const maxSim = similarCards.reduce((max, c) => Math.max(max, c.similarity), 0);
+      if (similarCards.length > 0 && maxSim >= 70)
+        return `유사 카드 ${similarCards.length}개 (최대 ${maxSim}%)`;
+      return `중복 카드 없음 (유사도 최대 ${maxSim > 0 ? (maxSim / 100).toFixed(2) : "0.00"})`;
+    }
+    case "context":
+      return result.message || "nid 링크된 카드 간 내용이 일관적입니다.";
+    default:
+      return result.message || "";
+  }
+}
+
+/** determine what action button to show for a validation result */
+function getActionButton(
+  typeKey: string,
+  result: AllValidationResult["results"][keyof AllValidationResult["results"]],
+): { label: string; className: string; previewId: string } | null {
+  if (result.status === "valid") return null;
+
+  switch (typeKey) {
+    case "verbose":
+      if (result.details && (result.details as Record<string, unknown>).recommendation === "split") {
+        return { label: "✂️ Split 미리보기", className: "bg-[#4f46e5] text-white", previewId: "preview-split" };
+      }
+      return null;
+    case "yagni":
+      if (result.details && (result.details as Record<string, unknown>).isYagni) {
+        return { label: "🗑 제거 미리보기", className: "bg-[#f59e0b] text-white", previewId: "preview-yagni" };
+      }
+      return null;
+    case "factCheck": {
+      const claims = ((result.details as Record<string, unknown>).claims as Array<{ isVerified: boolean; correction?: string }>) ?? [];
+      if (claims.some((c) => !c.isVerified && c.correction)) {
+        return { label: "🔧 정정 미리보기", className: "bg-[#2563eb] text-white", previewId: "preview-fact" };
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
+}
 
 export function ClinicWorkspace() {
   const isMobile = useIsMobile("xl");
@@ -142,10 +189,11 @@ export function ClinicWorkspace() {
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const [activePanel, setActivePanel] = useState<MobilePanel>("list");
   const [detailTab, setDetailTab] = useState<DetailTab>("validate");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfigSheet, setShowConfigSheet] = useState(false);
+
+  const middlePanelRef = useRef<HTMLDivElement>(null);
 
   const { data: decksData } = useDecks();
   const activeDeck = selectedDeck ?? decksData?.decks?.[0] ?? null;
@@ -197,32 +245,22 @@ export function ClinicWorkspace() {
   const currentValidation = selectedNoteId ? getValidation(selectedNoteId) : null;
 
   // 통계
-  const totalCards = allCards.length;
   const unvalidatedCount2 = uncachedCount(noteIds);
-  const issueCount = useMemo(() => {
-    let count = 0;
+  const statusCounts = useMemo(() => {
+    let red = 0;
+    let yellow = 0;
+    let green = 0;
     for (const [, status] of validationStatuses) {
-      if (status === "warning" || status === "error") count++;
+      if (status === "error") red++;
+      else if (status === "warning") yellow++;
+      else if (status === "valid") green++;
     }
-    return count;
+    return { red, yellow, green };
   }, [validationStatuses]);
-
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(section)) {
-        next.delete(section);
-      } else {
-        next.add(section);
-      }
-      return next;
-    });
-  };
 
   const handleSelectCard = useCallback(
     (noteId: number | null) => {
       setSelectedNoteId(noteId);
-      setExpandedSections(new Set());
       if (noteId && isMobile) {
         startViewTransition(() => setActivePanel("detail"));
       }
@@ -247,377 +285,147 @@ export function ClinicWorkspace() {
     batchValidate.mutate(unvalidated);
   };
 
-  // --- 검증 유형별 세부 내용 렌더러 ---
-  const renderValidationDetails = (
-    typeKey: string,
-    result: AllValidationResult["results"][keyof AllValidationResult["results"]],
-  ) => {
-    const details = result.details as Record<string, unknown>;
-
-    switch (typeKey) {
-      case "factCheck": {
-        const claims =
-          (details.claims as Array<{
-            claim: string;
-            isVerified: boolean;
-            confidence: number;
-            correction?: string;
-          }>) ?? [];
-        if (claims.length === 0) return null;
-        return (
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground mb-1">
-              정확도: {(details.overallAccuracy as number) ?? 0}%
-            </div>
-            {claims.map((claim, i) => (
-              <div key={`claim-${i}`} className="text-xs p-2 bg-background rounded">
-                <div className="flex items-start gap-2">
-                  {claim.isVerified ? (
-                    <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
-                  ) : (
-                    <XCircle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
-                  )}
-                  <div>
-                    <p>{claim.claim}</p>
-                    {claim.correction && (
-                      <p className="text-red-600 mt-1">수정: {claim.correction}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case "freshness": {
-        const items =
-          (details.outdatedItems as Array<{
-            content: string;
-            reason: string;
-            currentInfo?: string;
-            severity: string;
-          }>) ?? [];
-        if (items.length === 0) return null;
-        return (
-          <div className="space-y-1">
-            {items.map((item, i) => (
-              <div key={`fresh-${i}`} className="text-xs p-2 bg-background rounded">
-                <p className="font-medium">{item.content}</p>
-                <p className="text-muted-foreground">{item.reason}</p>
-                {item.currentInfo && (
-                  <p className="text-green-600 mt-1">현재: {item.currentInfo}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case "similarity": {
-        const similarCards =
-          (details.similarCards as Array<{
-            noteId: number;
-            similarity: number;
-            matchedContent: string;
-          }>) ?? [];
-        const method = details.method as string | undefined;
-        return (
-          <div className="space-y-1">
-            {method && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium mb-1",
-                  method === "embedding"
-                    ? "bg-purple-100 text-purple-700"
-                    : "bg-gray-100 text-gray-700",
-                )}
-              >
-                {method === "embedding" ? (
-                  <Sparkles className="w-3 h-3" />
-                ) : (
-                  <Hash className="w-3 h-3" />
-                )}
-                {method === "embedding" ? "임베딩" : "Jaccard"}
-              </span>
-            )}
-            {similarCards.length > 0 ? (
-              similarCards.map((card, i) => (
-                <div key={`sim-${card.noteId}-${i}`} className="text-xs p-2 bg-background rounded">
-                  <div className="flex justify-between items-start">
-                    <span className="font-mono">#{card.noteId}</span>
-                    <span
-                      className={cn(
-                        "px-1.5 py-0.5 rounded",
-                        getSimilarityBadgeClass(card.similarity),
-                      )}
-                    >
-                      {card.similarity}% 유사
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground mt-1 line-clamp-2">{card.matchedContent}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground">유사한 카드가 없습니다</p>
-            )}
-          </div>
-        );
-      }
-
-      case "context": {
-        const inconsistencies =
-          (details.inconsistencies as Array<{
-            description: string;
-            conflictingNoteId?: number;
-            severity: string;
-          }>) ?? [];
-        const relatedCards = (details.relatedCards as number[]) ?? [];
-        return (
-          <div className="space-y-1">
-            {relatedCards.length > 0 && (
-              <div className="text-xs text-muted-foreground mb-1">
-                연결된 카드: {relatedCards.length}개
-              </div>
-            )}
-            {inconsistencies.map((inc, i) => (
-              <div key={`inc-${i}`} className="text-xs p-2 bg-background rounded">
-                <div className="flex items-start gap-2">
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
-                      inc.severity === "high"
-                        ? "bg-red-100 text-red-700"
-                        : inc.severity === "medium"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-700",
-                    )}
-                  >
-                    {inc.severity === "high" ? "심각" : inc.severity === "medium" ? "주의" : "경미"}
-                  </span>
-                  {inc.conflictingNoteId && (
-                    <span className="font-mono text-muted-foreground">
-                      #{inc.conflictingNoteId}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1">{inc.description}</p>
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case "verbose": {
-        const concepts = (details.concepts as string[]) ?? [];
-        const recommendation = details.recommendation as string;
-        const conceptCount = (details.conceptCount as number) ?? 0;
-        const suggestedSplitCount = details.suggestedSplitCount as number | undefined;
-        return (
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="px-2 py-0.5 bg-muted rounded">개념 {conceptCount}개</span>
-              <span className="px-2 py-0.5 bg-muted rounded">
-                Cloze {(details.clozeCount as number) ?? 0}개
-              </span>
-              <span className="px-2 py-0.5 bg-muted rounded">
-                {(details.wordCount as number) ?? 0}자
-              </span>
-              {recommendation === "split" && suggestedSplitCount && (
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                  {suggestedSplitCount}장 분할 권장
-                </span>
-              )}
-            </div>
-            {concepts.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">감지된 개념:</p>
-                {concepts.map((concept, i) => (
-                  <div key={`concept-${i}`} className="text-xs p-2 bg-background rounded">
-                    {i + 1}. {concept}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      case "yagni": {
-        const isYagni = details.isYagni as boolean;
-        const reason = details.reason as string;
-        const affectedClozes = (details.affectedClozes as number[]) ?? [];
-        return (
-          <div className="space-y-2">
-            {isYagni ? (
-              <div className="flex items-start gap-2 text-xs">
-                <Trash2 className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-orange-700 dark:text-orange-400">{reason}</p>
-                  {affectedClozes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {affectedClozes.map((c) => (
-                        <span
-                          key={`yagni-c${c}`}
-                          className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-mono"
-                        >
-                          c{c}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">YAGNI Cloze가 감지되지 않았습니다</p>
-            )}
-          </div>
-        );
-      }
-
-      default:
-        return null;
+  // scroll middle panel to a preview section
+  const scrollToPreview = useCallback((previewId: string) => {
+    const el = document.getElementById(previewId);
+    if (el && middlePanelRef.current) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
-  };
+  }, []);
 
-  // --- 검증 결과 섹션 렌더러 ---
-  const renderValidationSection = (
-    typeKey: string,
-    icon: React.ElementType,
-    label: string,
-    result: AllValidationResult["results"][keyof AllValidationResult["results"]] | undefined,
-  ) => {
-    if (!result) return null;
-    const Icon = icon;
-    const isExpanded = expandedSections.has(typeKey);
-
-    return (
-      <div key={typeKey} className="border rounded-lg overflow-hidden">
-        <button
-          type="button"
-          className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
-          onClick={() => toggleSection(typeKey)}
-        >
-          <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4" />
-            <span className="font-medium text-sm">{label}</span>
-            <StatusIcon status={result.status} />
-          </div>
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-        {isExpanded && (
-          <div className="p-3 border-t bg-muted/30 text-sm">
-            <p className="mb-2">{result.message}</p>
-            {renderValidationDetails(typeKey, result)}
-          </div>
-        )}
-      </div>
-    );
-  };
+  // --- active model display name ---
+  const activeModelDisplayName = useMemo(() => {
+    if (!llmModelsData?.models || !activeModelKey) return null;
+    const m = llmModelsData.models.find((m) => `${m.provider}/${m.model}` === activeModelKey);
+    return m?.displayName ?? null;
+  }, [llmModelsData, activeModelKey]);
 
   // --- 카드 목록 패널 ---
   const renderCardList = () => (
     <>
-      {/* 필터 + 검색 */}
-      <div className="py-3 px-4 border-b shrink-0 space-y-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="카드 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md">
-          {(Object.keys(FILTER_LABELS) as FilterMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setFilterMode(mode)}
-              className={cn(
-                "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
-                filterMode === mode
-                  ? "bg-background shadow-sm font-medium"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {FILTER_LABELS[mode]}
-              {mode === "needs-review" && issueCount > 0 && (
-                <span className="ml-1 text-red-500">({issueCount})</span>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Filter bar */}
+      <div className="flex gap-2 px-4 py-3" style={{ borderBottom: "1px solid #e5e7eb" }}>
+        {(["all", "needs-review", "unvalidated"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setFilterMode(mode)}
+            className={cn(
+              "flex-1 py-1.5 px-2.5 text-xs rounded-md text-center cursor-pointer transition-colors",
+              filterMode === mode
+                ? "border-[#4f46e5] text-[#4f46e5] bg-[#eef2ff]"
+                : "text-[#6b7280] bg-[#f9fafb] hover:bg-gray-100",
+            )}
+            style={{ border: `1px solid ${filterMode === mode ? "#4f46e5" : "#e5e7eb"}` }}
+          >
+            {mode === "all" ? "전체" : mode === "needs-review" ? "⚠ 문제" : "미검증"}
+          </button>
+        ))}
       </div>
-      {/* 카드 리스트 */}
+
+      {/* Search (mobile only) */}
+      {isMobile && (
+        <div className="px-4 py-2" style={{ borderBottom: "1px solid #e5e7eb" }}>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6b7280]" />
+            <input
+              type="text"
+              placeholder="카드 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-[#e5e7eb] rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Card items */}
       <div className="flex-1 overflow-y-auto">
         {isLoadingCards ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#6b7280]" />
           </div>
         ) : filteredCards.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
+          <div className="text-center py-8 text-[#6b7280] text-sm">
             {searchQuery ? "검색 결과가 없습니다" : "카드가 없습니다"}
           </div>
         ) : (
-          <div className="divide-y">
-            {filteredCards.map((card) => {
-              const status = validationStatuses.get(card.noteId) ?? null;
-              return (
-                <button
-                  type="button"
-                  key={card.noteId}
-                  onClick={() => handleSelectCard(card.noteId)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 hover:bg-muted transition-colors border-l-[3px]",
-                    getStatusBorderColor(status),
-                    selectedNoteId === card.noteId && "bg-primary/10",
+          filteredCards.map((card) => {
+            const status = validationStatuses.get(card.noteId) ?? null;
+            const isSelected = selectedNoteId === card.noteId;
+            return (
+              <button
+                type="button"
+                key={card.noteId}
+                onClick={() => handleSelectCard(card.noteId)}
+                className={cn(
+                  "w-full text-left px-4 py-3 cursor-pointer transition-colors",
+                  getCardBorderClass(status),
+                  isSelected ? "bg-[#eef2ff]" : "hover:bg-[#f9fafb]",
+                )}
+                style={{ borderBottom: "1px solid #f3f4f6" }}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-mono text-[#9ca3af]">{card.noteId}</span>
+                  {card.analysis.clozeCount > 0 && (
+                    <span
+                      className={cn(
+                        "text-[11px] font-semibold px-1.5 py-px rounded",
+                        getBadgeClasses(status),
+                      )}
+                    >
+                      C{card.analysis.clozeCount}
+                    </span>
                   )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <StatusIcon status={status} />
-                        <p className="text-sm font-medium truncate">{card.noteId}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {card.text.slice(0, 60)}
-                        {card.text.length > 60 ? "..." : ""}
-                      </p>
-                    </div>
-                    {card.analysis.clozeCount > 0 && (
-                      <span className="shrink-0 text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
-                        C{card.analysis.clozeCount}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                </div>
+                <div className="text-[13px] text-[#374151] leading-snug line-clamp-2">
+                  {card.text.slice(0, 80)}
+                </div>
+              </button>
+            );
+          })
         )}
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5 text-xs text-[#9ca3af]"
+        style={{ borderTop: "1px solid #e5e7eb" }}
+      >
+        <span>{filteredCards.length}개 카드</span>
+        <div className="flex gap-1.5 items-center text-[11px]">
+          {statusCounts.red > 0 && <span>🔴 {statusCounts.red}</span>}
+          {statusCounts.yellow > 0 && <span>🟡 {statusCounts.yellow}</span>}
+          {statusCounts.green > 0 && <span>🟢 {statusCounts.green}</span>}
+        </div>
       </div>
     </>
   );
 
   // --- 원본 카드 + 수정 미리보기 패널 ---
-  const renderOriginalCard = () => (
+  const renderMiddlePanel = () => (
     <>
+      {/* Header */}
       {!isMobile && (
-        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-          <span className="text-sm font-semibold">원본 카드</span>
-          {selectedNoteId && (
-            <span className="text-xs text-muted-foreground">NID: {selectedNoteId}</span>
-          )}
+        <div
+          className="flex items-center justify-between px-6 py-4 sticky top-0 bg-white z-10"
+          style={{ borderBottom: "1px solid #e5e7eb" }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-[15px] font-semibold">원본 카드</span>
+            {selectedNoteId && (
+              <span className="text-xs text-[#9ca3af] font-mono">NID: {selectedNoteId}</span>
+            )}
+          </div>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto py-4">
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto p-6" ref={middlePanelRef}>
         {selectedNoteId ? (
           isLoadingDetail ? (
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#6b7280]" />
             </div>
           ) : (
             <>
@@ -626,7 +434,10 @@ export function ClinicWorkspace() {
                 showToggle={true}
                 defaultView="rendered"
               />
-              {/* 수정 미리보기 (ActionPreview) */}
+              {/* Preview areas with anchor IDs */}
+              <div id="preview-split" />
+              <div id="preview-yagni" />
+              <div id="preview-fact" />
               <ActionPreview
                 cardContent={cardDetail?.text || ""}
                 validationResults={currentValidation?.results}
@@ -634,7 +445,7 @@ export function ClinicWorkspace() {
             </>
           )
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
+          <div className="flex items-center justify-center h-full text-[#6b7280]">
             <div className="text-center">
               <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p>왼쪽에서 카드를 선택하세요</p>
@@ -645,190 +456,186 @@ export function ClinicWorkspace() {
     </>
   );
 
-  // --- 검증 결과 패널 ---
+  // --- 검증 결과 패널 (우측) ---
   const renderValidationPanel = () => {
     const cachedResult = currentValidation;
     const isValidating = validateCard.isPending;
 
     return (
       <div className="flex flex-col min-h-0 h-full">
-        {!isMobile && (
-          <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-            <span className="text-sm font-semibold">검증 결과</span>
-            {selectedNoteId && (
-              <Button size="sm" onClick={handleValidateSelected} disabled={isValidating}>
-                {isValidating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    검증 중...
-                  </>
-                ) : cachedResult ? (
-                  "재검증"
-                ) : (
-                  "검증 시작"
-                )}
-              </Button>
-            )}
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {!selectedNoteId ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">카드를 선택하면 검증 결과가 표시됩니다</p>
-            </div>
-          ) : isValidating && !cachedResult ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : cachedResult?.results ? (
-            <>
-              {/* 전체 상태 */}
-              <div
-                className={cn(
-                  "p-3 rounded-lg border flex items-center gap-3",
-                  getStatusBg(cachedResult.status),
-                )}
-              >
-                <StatusIcon status={cachedResult.status} size="md" />
-                <div>
-                  <p className="font-medium">{STATUS_LABELS[cachedResult.status]}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(cachedResult.validatedAt).toLocaleString("ko-KR")}
-                  </p>
-                </div>
-                {isValidating && <Loader2 className="w-4 h-4 animate-spin ml-auto" />}
-              </div>
-
-              {/* 서브탭: 검증 / 연관 */}
-              <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md">
-                <button
-                  type="button"
-                  onClick={() => setDetailTab("validate")}
-                  className={cn(
-                    "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
-                    detailTab === "validate"
-                      ? "bg-background shadow-sm font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Shield className="w-3 h-3 inline mr-1" />
-                  검증
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDetailTab("related")}
-                  className={cn(
-                    "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
-                    detailTab === "related"
-                      ? "bg-background shadow-sm font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Link2 className="w-3 h-3 inline mr-1" />
-                  연관
-                </button>
-              </div>
-
-              {detailTab === "validate" ? (
-                // 6종 검증 결과
-                <div className="space-y-2">
-                  {VALIDATION_TYPES.map(({ key, icon, label }) =>
-                    renderValidationSection(
-                      key,
-                      icon,
-                      label,
-                      cachedResult.results![key as keyof NonNullable<typeof cachedResult.results>],
-                    ),
-                  )}
-                </div>
-              ) : (
-                // 연관 노트 탭
-                <div className="space-y-3">
-                  {/* 유사 카드 */}
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                      <Copy className="w-4 h-4" />
-                      유사 카드
-                    </h3>
-                    {cachedResult.results!.similarity?.details.similarCards.length > 0 ? (
-                      <div className="space-y-1">
-                        {cachedResult.results!.similarity.details.similarCards.map((card, i) => (
-                          <button
-                            type="button"
-                            key={`related-${card.noteId}-${i}`}
-                            onClick={() => handleSelectCard(card.noteId)}
-                            className="w-full text-left text-xs p-2 bg-background rounded border hover:bg-muted transition-colors"
-                          >
-                            <div className="flex justify-between items-start">
-                              <span className="font-mono">#{card.noteId}</span>
-                              <span
-                                className={cn(
-                                  "px-1.5 py-0.5 rounded",
-                                  card.similarity >= 90
-                                    ? "bg-red-100 text-red-700"
-                                    : card.similarity >= 70
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-gray-100 text-gray-700",
-                                )}
-                              >
-                                {card.similarity}%
-                              </span>
-                            </div>
-                            <p className="text-muted-foreground mt-1 line-clamp-2">
-                              {card.matchedContent}
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground p-3 bg-muted rounded">
-                        유사한 카드가 없습니다
-                      </p>
-                    )}
-                  </div>
-                  {/* 문맥 관련 카드 */}
-                  {cachedResult.results!.context?.details.relatedCards.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                        <Link2 className="w-4 h-4" />
-                        문맥 연결 카드
-                      </h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {cachedResult.results!.context.details.relatedCards.map((nid) => (
-                          <button
-                            type="button"
-                            key={`ctx-${nid}`}
-                            onClick={() => handleSelectCard(nid)}
-                            className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
-                          >
-                            #{nid}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+        {/* Tabs */}
+        <div className="flex" style={{ borderBottom: "1px solid #e5e7eb" }}>
+          {(["validate", "related", "action"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setDetailTab(tab)}
+              className={cn(
+                "flex-1 py-3 text-center text-[13px] font-medium cursor-pointer transition-colors",
+                detailTab === tab
+                  ? "text-[#4f46e5] border-b-2 border-[#4f46e5]"
+                  : "text-[#6b7280] border-b-2 border-transparent",
               )}
-            </>
+            >
+              {tab === "validate" ? "검증" : tab === "related" ? "연관" : "액션"}
+            </button>
+          ))}
+        </div>
+
+        {/* Panel body */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {detailTab === "validate" ? (
+            renderValidateTab(cachedResult, isValidating)
+          ) : detailTab === "related" ? (
+            renderRelatedTab()
           ) : (
-            // 미검증 상태 — 검증 시작 CTA
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <Shield className="w-12 h-12 mb-4 text-blue-400" />
-              <p className="text-center mb-4">
-                6종 검증으로 카드 건강을 진단합니다.
-                <br />
-                <span className="text-xs">API 비용이 발생할 수 있습니다.</span>
-              </p>
-              <Button onClick={handleValidateSelected} disabled={isValidating}>
-                <Shield className="w-4 h-4 mr-2" />
-                검증 시작
-              </Button>
-            </div>
+            renderActionTab()
           )}
         </div>
 
-        {/* All-in-One Panel (우측 패널 하단 고정) */}
+        {/* Panel footer */}
+        {selectedNoteId && (
+          <div className="px-4 py-3 shrink-0" style={{ borderTop: "1px solid #e5e7eb" }}>
+            <div className="text-[11px] text-[#9ca3af] text-right mb-2">
+              총 예상 비용: $0.04 · 토큰: ~3.1K
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                className="flex-1 py-2 rounded-md text-[13px] font-medium text-[#374151] cursor-pointer transition-colors hover:bg-gray-100"
+                style={{ background: "#f3f4f6", border: "1px solid #e5e7eb" }}
+              >
+                전체 무시
+              </button>
+              <button
+                type="button"
+                onClick={handleValidateSelected}
+                disabled={isValidating || !selectedNoteId}
+                className="flex-1 py-2 rounded-md text-[13px] font-medium text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                style={{ background: "#4f46e5" }}
+              >
+                {isValidating ? "검증 중..." : "✅ 검증 실행"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // --- 검증 탭 내용 ---
+  const renderValidateTab = (
+    cachedResult: ReturnType<typeof getValidation>,
+    isValidating: boolean,
+  ) => {
+    if (!selectedNoteId) {
+      return (
+        <div className="text-center py-6 text-[#6b7280]">
+          <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">카드를 선택하면 검증 결과가 표시됩니다</p>
+        </div>
+      );
+    }
+
+    if (isValidating && !cachedResult) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-[#4f46e5]" />
+        </div>
+      );
+    }
+
+    if (!cachedResult?.results) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-[#6b7280]">
+          <Shield className="w-12 h-12 mb-4 text-blue-400" />
+          <p className="text-center mb-4">
+            6종 검증으로 카드 건강을 진단합니다.
+            <br />
+            <span className="text-xs">API 비용이 발생할 수 있습니다.</span>
+          </p>
+        </div>
+      );
+    }
+
+    // We have results
+    const results = cachedResult.results;
+    const completedCount = VALIDATION_TYPES.filter(
+      (t) => results[t.key as keyof typeof results],
+    ).length;
+
+    return (
+      <>
+        {/* Scan progress / complete indicator */}
+        <div
+          className="rounded-lg p-3 mb-3"
+          style={{
+            background: isValidating ? "#eef2ff" : "#f0fdf4",
+            border: `1px solid ${isValidating ? "#c7d2fe" : "#bbf7d0"}`,
+          }}
+        >
+          <div
+            className="flex justify-between text-xs"
+            style={{ color: isValidating ? "#4f46e5" : "#16a34a" }}
+          >
+            <span>{isValidating ? "🔄 스캔 진행 중..." : "✅ 스캔 완료"}</span>
+            <span>{completedCount}/{VALIDATION_TYPES.length} 검증 완료</span>
+          </div>
+          <div className="h-1 bg-[#e5e7eb] rounded-full mt-2 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${(completedCount / VALIDATION_TYPES.length) * 100}%`,
+                background: isValidating ? "#4f46e5" : "#16a34a",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Validation result cards */}
+        {VALIDATION_TYPES.map(({ key, label }) => {
+          const result = results[key as keyof typeof results];
+          if (!result) return null;
+          const status = result.status;
+          const emoji = getStatusEmoji(status);
+          const desc = getValidationDescription(key, result);
+          const action = getActionButton(key, result);
+
+          return (
+            <div
+              key={key}
+              className={cn("border rounded-lg p-3 mb-2.5", getValidationItemClass(status))}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base">{emoji}</span>
+                <span className="text-[13px] font-semibold flex-1">{label}</span>
+              </div>
+              <div className="text-xs text-[#6b7280] leading-relaxed mb-2">{desc}</div>
+              {action && (
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => scrollToPreview(action.previewId)}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] text-xs font-medium cursor-pointer border-none",
+                      action.className,
+                    )}
+                  >
+                    {action.label}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] text-xs font-medium cursor-pointer border-none bg-[#f3f4f6] text-[#6b7280]"
+                  >
+                    무시
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* All-in-One section */}
         {selectedNoteId && activeDeck && cardDetail?.text && currentValidation?.results && (
           <AllInOnePanel
             cardContent={cardDetail.text}
@@ -837,32 +644,152 @@ export function ClinicWorkspace() {
             validationResults={currentValidation.results}
           />
         )}
+
+        {/* Related tab hint */}
+        <div
+          className="mt-3 p-2.5 text-center text-xs text-[#9ca3af] rounded-lg"
+          style={{ background: "#f9fafb", border: "1px dashed #d1d5db" }}
+        >
+          <strong>[연관]</strong> 탭에서 연관 노트 및 nid 링크 제안을 확인하세요
+        </div>
+      </>
+    );
+  };
+
+  // --- 연관 탭 ---
+  const renderRelatedTab = () => {
+    if (!currentValidation?.results) {
+      return (
+        <div className="text-center py-8 text-[#6b7280]">
+          <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">먼저 검증을 실행해주세요</p>
+        </div>
+      );
+    }
+
+    const results = currentValidation.results;
+    const similarCards = results.similarity?.details.similarCards ?? [];
+    const relatedCards = results.context?.details.relatedCards ?? [];
+
+    if (similarCards.length === 0 && relatedCards.length === 0) {
+      return (
+        <div className="text-center py-8 text-[#6b7280]">
+          <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">연관 카드가 없습니다</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {/* 유사 카드 */}
+        {similarCards.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Copy className="w-4 h-4" />
+              유사 카드
+            </h3>
+            <div className="space-y-1.5">
+              {similarCards.map((card, i) => (
+                <button
+                  type="button"
+                  key={`related-${card.noteId}-${i}`}
+                  onClick={() => handleSelectCard(card.noteId)}
+                  className="w-full text-left text-xs p-2.5 bg-white rounded-md border border-[#e5e7eb] hover:bg-[#f9fafb] transition-colors cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="font-mono text-[#9ca3af]">#{card.noteId}</span>
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.5 rounded text-[11px] font-medium",
+                        card.similarity >= 90
+                          ? "bg-[#fef2f2] text-[#dc2626]"
+                          : card.similarity >= 70
+                            ? "bg-[#fffbeb] text-[#d97706]"
+                            : "bg-gray-100 text-gray-700",
+                      )}
+                    >
+                      {card.similarity}%
+                    </span>
+                  </div>
+                  <p className="text-[#6b7280] mt-1 line-clamp-2">{card.matchedContent}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 문맥 연결 카드 */}
+        {relatedCards.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Link2 className="w-4 h-4" />
+              문맥 연결 카드
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {relatedCards.map((nid) => (
+                <button
+                  type="button"
+                  key={`ctx-${nid}`}
+                  onClick={() => handleSelectCard(nid)}
+                  className="text-xs font-mono px-2 py-1 bg-white border border-[#e5e7eb] rounded hover:bg-[#f9fafb] transition-colors cursor-pointer"
+                >
+                  #{nid}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
+
+  // --- 액션 탭 ---
+  const renderActionTab = () => {
+    if (!selectedNoteId || !activeDeck || !cardDetail?.text || !currentValidation?.results) {
+      return (
+        <div className="text-center py-8 text-[#6b7280]">
+          <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">검증 완료 후 액션을 확인할 수 있습니다</p>
+        </div>
+      );
+    }
+
+    return (
+      <AllInOnePanel
+        cardContent={cardDetail.text}
+        noteId={selectedNoteId}
+        deckName={activeDeck}
+        validationResults={currentValidation.results}
+      />
+    );
+  };
+
+  // =================== RENDER ===================
 
   // 높이: 모바일 dvh-5rem, 데스크톱 vh-4rem (Layout 기준)
   return (
     <div className="h-[calc(100dvh-5rem)] md:h-[calc(100vh-4rem)] flex flex-col">
       {/* ===== 헤더 ===== */}
       {isMobile ? (
-        <div className="flex flex-col gap-3 overflow-hidden">
-          <div className="flex items-center gap-2.5">
-            <h1 className="typo-h1">Clinic</h1>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary tabular-nums">
-              {totalCards}개
-            </span>
-          </div>
+        renderMobileHeader()
+      ) : (
+        <div
+          className="flex items-center gap-4 px-6 py-4 bg-white shrink-0"
+          style={{ borderBottom: "1px solid #e5e7eb" }}
+        >
+          <h1 className="text-[22px] font-bold shrink-0">검증 작업</h1>
           <Select
             value={activeDeck ?? undefined}
             onValueChange={(value) => {
               setSelectedDeck(value || null);
               setSelectedNoteId(null);
-              setActivePanel("list");
             }}
             disabled={!decksData?.decks?.length}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger
+              className="w-auto min-w-[140px] max-w-[240px] text-[13px] border-[#d1d5db] rounded-md"
+            >
               <SelectValue placeholder="덱 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -873,418 +800,323 @@ export function ClinicWorkspace() {
               ))}
             </SelectContent>
           </Select>
-          {/* 모델 선택 바 — 터치 시 설정 시트 */}
+
+          <div className="flex-1" />
+
+          {/* Model info (green dot + name) */}
+          <div className="flex items-center gap-1.5 text-[13px] text-[#6b7280]">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+            <span>{activeModelDisplayName ?? "모델 없음"}</span>
+          </div>
+
+          {/* 개별 검증 button */}
           <button
             type="button"
-            onClick={() => setShowConfigSheet(true)}
-            className="flex items-center gap-3 w-full rounded-lg border border-primary/20 bg-gradient-to-r from-card to-primary/5 px-3.5 py-2.5 text-left transition-colors hover:bg-accent"
+            onClick={handleValidateSelected}
+            disabled={validateCard.isPending || !selectedNoteId}
+            className="px-4 py-[7px] rounded-md text-[13px] font-medium text-[#374151] bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-gray-50"
+            style={{ border: "1px solid #d1d5db" }}
           >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                {activeProvider ? (
-                  <ModelBadge provider={activeProvider} />
-                ) : (
-                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                )}
-                <span className="text-xs text-muted-foreground truncate">
-                  {llmModelsData?.models?.find((m) => `${m.provider}/${m.model}` === activeModelKey)
-                    ?.displayName ?? "모델 선택"}
-                </span>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            {validateCard.isPending ? "검증 중..." : "개별 검증"}
           </button>
-          <BottomSheet
-            open={showConfigSheet}
-            onOpenChange={setShowConfigSheet}
-            title="검증 모델 설정"
+
+          {/* 전체 스캔 button */}
+          <button
+            type="button"
+            onClick={handleBatchValidate}
+            disabled={batchValidate.isPending || unvalidatedCount2 === 0}
+            className="px-4 py-[7px] rounded-md text-[13px] font-medium text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style={{ background: "#4f46e5" }}
           >
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
-                <div className="divide-y rounded-lg border overflow-hidden">
-                  {(llmModelsData?.models ?? []).map((m) => {
-                    const key = `${m.provider}/${m.model}`;
-                    const isDefault =
-                      m.provider === llmModelsData?.defaultModelId.provider &&
-                      m.model === llmModelsData?.defaultModelId.model;
-                    return (
-                      <button
-                        type="button"
-                        key={key}
-                        onClick={() => {
-                          setSelectedModelKey(key);
-                          setShowConfigSheet(false);
-                        }}
-                        className={cn(
-                          "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
-                          key === activeModelKey && "bg-primary/10 font-medium",
-                        )}
-                      >
-                        <div>
-                          {m.displayName}
-                          {isDefault && " \u2713"}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens} per 1M
-                          tokens
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </BottomSheet>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
-          <h1 className="typo-h1 shrink-0">Clinic</h1>
-          <Select
-            value={activeDeck ?? undefined}
-            onValueChange={(value) => {
-              setSelectedDeck(value || null);
-              setSelectedNoteId(null);
-            }}
-            disabled={!decksData?.decks?.length}
-          >
-            <SelectTrigger className="w-auto min-w-[140px] max-w-[220px] text-sm">
-              <SelectValue placeholder="덱 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              {decksData?.decks?.map((deck) => (
-                <SelectItem key={deck} value={deck}>
-                  {deck}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="ml-auto flex items-center gap-3">
-            {/* LLM 모델 선택 */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Select
-                value={activeModelKey ?? undefined}
-                onValueChange={(value) => setSelectedModelKey(value || null)}
-                disabled={!llmModelsData?.models?.length}
-              >
-                <SelectTrigger size="sm" className="w-auto min-w-[120px] max-w-[200px] text-sm">
-                  <SelectValue placeholder="모델 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {llmModelsData?.availableProviders?.map((provider) => (
-                    <SelectGroup key={provider}>
-                      <SelectLabel>
-                        {{ gemini: "Gemini", openai: "OpenAI" }[provider] ?? provider}
-                      </SelectLabel>
-                      {llmModelsData.models
-                        .filter((m) => m.provider === provider)
-                        .map((m) => {
-                          const key = `${m.provider}/${m.model}`;
-                          const isDefault =
-                            m.provider === llmModelsData.defaultModelId.provider &&
-                            m.model === llmModelsData.defaultModelId.model;
-                          return (
-                            <SelectItem key={key} value={key}>
-                              <span className="flex items-center gap-2">
-                                <span>{m.displayName}</span>
-                                <span className="text-[10px] text-muted-foreground font-mono">
-                                  ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens}
-                                </span>
-                                {isDefault && <span className="text-[10px]">{"\u2713"}</span>}
-                              </span>
-                            </SelectItem>
-                          );
-                        })}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>미검증: {unvalidatedCount2}</span>
-              {issueCount > 0 && <span className="text-red-500">문제: {issueCount}</span>}
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleBatchValidate}
-              disabled={batchValidate.isPending || unvalidatedCount2 === 0}
-            >
-              {batchValidate.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  검증 중...
-                </>
-              ) : (
-                <>
-                  <Shield className="w-4 h-4 mr-1" />
-                  전체 검증
-                </>
-              )}
-            </Button>
-          </div>
+            {batchValidate.isPending ? "스캔 중..." : "🔍 전체 스캔"}
+          </button>
         </div>
       )}
 
       {/* ===== 콘텐츠 ===== */}
       {isMobile ? (
-        // 모바일: list <-> detail 전환
-        <div className="flex-1 flex flex-col min-h-0">
-          {activePanel === "list" ? (
-            <div
-              key="list"
-              className="vt-list flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-left-2 duration-200"
-            >
-              {renderCardList()}
-              {/* 모바일 배치 검증 */}
-              {unvalidatedCount2 > 0 && (
-                <div className="px-4 py-3 border-t shrink-0">
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={handleBatchValidate}
-                    disabled={batchValidate.isPending}
-                  >
-                    {batchValidate.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        검증 중...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="w-4 h-4 mr-1" />
-                        미검증 {unvalidatedCount2}개 전체 검증
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div
-              key="detail"
-              className="vt-detail flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-right-2 duration-200"
-            >
-              {/* 뒤로 헤더 */}
-              <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
-                <Button variant="ghost" size="sm" onClick={handleBackToList}>
-                  <ArrowLeft className="w-4 h-4 mr-1" />
-                  뒤로
-                </Button>
-                {selectedNoteId && (
-                  <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                    {selectedNoteId}
-                  </span>
-                )}
-              </div>
-              {/* 원본/검증 탭 */}
-              <div role="tablist" className="flex border-b shrink-0">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={detailTab === "validate"}
-                  onClick={() => setDetailTab("validate")}
-                  className={cn(
-                    "flex-1 py-2 text-sm font-medium text-center transition-colors",
-                    detailTab === "validate"
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  원본 + 검증
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={detailTab === "related"}
-                  onClick={() => setDetailTab("related")}
-                  className={cn(
-                    "flex-1 py-2 text-sm font-medium text-center transition-colors",
-                    detailTab === "related"
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  연관
-                </button>
-              </div>
-              {/* 탭 콘텐츠 */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {detailTab === "validate" ? (
-                  <div className="space-y-4">
-                    {/* 원본 카드 */}
-                    {isLoadingDetail ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : (
-                      <>
-                        <ContentRenderer
-                          content={cardDetail?.text || ""}
-                          showToggle={true}
-                          defaultView="rendered"
-                        />
-                        {/* 수정 미리보기 */}
-                        <ActionPreview
-                          cardContent={cardDetail?.text || ""}
-                          validationResults={currentValidation?.results}
-                        />
-                      </>
-                    )}
-                    {/* 검증 버튼 */}
-                    <div className="flex justify-center">
-                      <Button onClick={handleValidateSelected} disabled={validateCard.isPending}>
-                        {validateCard.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                            검증 중...
-                          </>
-                        ) : currentValidation ? (
-                          "재검증"
-                        ) : (
-                          <>
-                            <Shield className="w-4 h-4 mr-1" />
-                            검증 시작
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    {/* 검증 결과 */}
-                    {currentValidation?.results && (
-                      <>
-                        <div
-                          className={cn(
-                            "p-3 rounded-lg border flex items-center gap-3",
-                            getStatusBg(currentValidation.status),
-                          )}
-                        >
-                          <StatusIcon status={currentValidation.status} size="md" />
-                          <div>
-                            <p className="font-medium">{STATUS_LABELS[currentValidation.status]}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(currentValidation.validatedAt).toLocaleString("ko-KR")}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {VALIDATION_TYPES.map(({ key, icon, label }) =>
-                            renderValidationSection(
-                              key,
-                              icon,
-                              label,
-                              currentValidation.results![
-                                key as keyof typeof currentValidation.results
-                              ],
-                            ),
-                          )}
-                        </div>
-                      </>
-                    )}
-                    {/* 모바일 All-in-One */}
-                    {selectedNoteId &&
-                      activeDeck &&
-                      cardDetail?.text &&
-                      currentValidation?.results && (
-                        <AllInOnePanel
-                          cardContent={cardDetail.text}
-                          noteId={selectedNoteId}
-                          deckName={activeDeck}
-                          validationResults={currentValidation.results}
-                        />
-                      )}
-                  </div>
-                ) : (
-                  // 연관 탭 (모바일)
-                  <div className="space-y-3">
-                    {currentValidation?.results ? (
-                      <>
-                        {/* 유사 카드 */}
-                        {currentValidation.results.similarity?.details.similarCards.length > 0 && (
-                          <>
-                            <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                              <Copy className="w-4 h-4" />
-                              유사 카드
-                            </h3>
-                            {currentValidation.results.similarity.details.similarCards.map(
-                              (card, i) => (
-                                <button
-                                  type="button"
-                                  key={`m-sim-${card.noteId}-${i}`}
-                                  onClick={() => handleSelectCard(card.noteId)}
-                                  className="w-full text-left text-xs p-3 bg-background rounded border hover:bg-muted transition-colors"
-                                >
-                                  <div className="flex justify-between items-start">
-                                    <span className="font-mono">#{card.noteId}</span>
-                                    <span
-                                      className={cn(
-                                        "px-1.5 py-0.5 rounded",
-                                        getSimilarityBadgeClass(card.similarity),
-                                      )}
-                                    >
-                                      {card.similarity}%
-                                    </span>
-                                  </div>
-                                  <p className="text-muted-foreground mt-1 line-clamp-2">
-                                    {card.matchedContent}
-                                  </p>
-                                </button>
-                              ),
-                            )}
-                          </>
-                        )}
-                        {/* 문맥 연결 카드 */}
-                        {currentValidation.results.context?.details.relatedCards.length > 0 && (
-                          <div>
-                            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                              <Link2 className="w-4 h-4" />
-                              문맥 연결 카드
-                            </h3>
-                            <div className="flex flex-wrap gap-1.5">
-                              {currentValidation.results.context.details.relatedCards.map((nid) => (
-                                <button
-                                  type="button"
-                                  key={`m-ctx-${nid}`}
-                                  onClick={() => handleSelectCard(nid)}
-                                  className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
-                                >
-                                  #{nid}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {/* 둘 다 없을 때 */}
-                        {!currentValidation.results.similarity?.details.similarCards.length &&
-                          !currentValidation.results.context?.details.relatedCards.length && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                              <p className="text-sm">연관 카드가 없습니다</p>
-                            </div>
-                          )}
-                      </>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">먼저 검증을 실행해주세요</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        renderMobileContent()
       ) : (
-        // 데스크톱: 3패널 레이아웃 — border-l dividers ("island" 제거)
-        <div className="flex-1 grid grid-cols-[280px_1fr_360px] min-h-0 border rounded-lg overflow-hidden">
-          {/* 좌측: 카드 목록 */}
-          <div className="flex flex-col min-h-0">{renderCardList()}</div>
-          {/* 가운데: 원본 카드 + 수정 미리보기 */}
-          <div className="flex flex-col min-h-0 border-l">{renderOriginalCard()}</div>
-          {/* 우측: 검증 결과 + All-in-One */}
-          <div className="flex flex-col min-h-0 border-l">{renderValidationPanel()}</div>
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          {/* 좌측: 카드 목록 (260px) */}
+          <div
+            className="flex flex-col min-h-0 bg-white shrink-0"
+            style={{ width: 260, borderRight: "1px solid #e5e7eb" }}
+          >
+            {renderCardList()}
+          </div>
+          {/* 가운데: 원본 카드 + 수정 미리보기 (flex-1) */}
+          <div className="flex-1 flex flex-col min-h-0 bg-white overflow-hidden">
+            {renderMiddlePanel()}
+          </div>
+          {/* 우측: 검증/연관/액션 패널 (360px) */}
+          <div
+            className="flex flex-col min-h-0 bg-white shrink-0"
+            style={{ width: 360, borderLeft: "1px solid #e5e7eb" }}
+          >
+            {renderValidationPanel()}
+          </div>
         </div>
       )}
     </div>
   );
+
+  // ===== Mobile sub-renderers =====
+
+  function renderMobileHeader() {
+    return (
+      <div className="flex flex-col gap-3 overflow-hidden">
+        <div className="flex items-center gap-2.5">
+          <h1 className="typo-h1">검증 작업</h1>
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary tabular-nums">
+            {allCards.length}개
+          </span>
+        </div>
+        <Select
+          value={activeDeck ?? undefined}
+          onValueChange={(value) => {
+            setSelectedDeck(value || null);
+            setSelectedNoteId(null);
+            setActivePanel("list");
+          }}
+          disabled={!decksData?.decks?.length}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="덱 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {decksData?.decks?.map((deck) => (
+              <SelectItem key={deck} value={deck}>
+                {deck}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {/* 모델 선택 바 — 터치 시 설정 시트 */}
+        <button
+          type="button"
+          onClick={() => setShowConfigSheet(true)}
+          className="flex items-center gap-3 w-full rounded-lg border border-primary/20 bg-gradient-to-r from-card to-primary/5 px-3.5 py-2.5 text-left transition-colors hover:bg-accent"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              {activeProvider ? (
+                <ModelBadge provider={activeProvider} />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              )}
+              <span className="text-xs text-muted-foreground truncate">
+                {activeModelDisplayName ?? "모델 선택"}
+              </span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </button>
+        <BottomSheet
+          open={showConfigSheet}
+          onOpenChange={setShowConfigSheet}
+          title="검증 모델 설정"
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5 px-0.5">LLM 모델</p>
+              <div className="divide-y rounded-lg border overflow-hidden">
+                {(llmModelsData?.models ?? []).map((m) => {
+                  const key = `${m.provider}/${m.model}`;
+                  const isDefault =
+                    m.provider === llmModelsData?.defaultModelId.provider &&
+                    m.model === llmModelsData?.defaultModelId.model;
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => {
+                        setSelectedModelKey(key);
+                        setShowConfigSheet(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-3 text-sm transition-colors hover:bg-accent",
+                        key === activeModelKey && "bg-primary/10 font-medium",
+                      )}
+                    >
+                      <div>
+                        {m.displayName}
+                        {isDefault && " \u2713"}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens} per 1M tokens
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </BottomSheet>
+      </div>
+    );
+  }
+
+  function renderMobileContent() {
+    return (
+      <div className="flex-1 flex flex-col min-h-0">
+        {activePanel === "list" ? (
+          <div
+            key="list"
+            className="vt-list flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-left-2 duration-200"
+          >
+            {renderCardList()}
+            {/* 모바일 배치 검증 */}
+            {unvalidatedCount2 > 0 && (
+              <div className="px-4 py-3 border-t shrink-0">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleBatchValidate}
+                  disabled={batchValidate.isPending}
+                >
+                  {batchValidate.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      검증 중...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-4 h-4 mr-1" />
+                      미검증 {unvalidatedCount2}개 전체 스캔
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            key="detail"
+            className="vt-detail flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-right-2 duration-200"
+          >
+            {/* 뒤로 헤더 */}
+            <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
+              <Button variant="ghost" size="sm" onClick={handleBackToList}>
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                뒤로
+              </Button>
+              {selectedNoteId && (
+                <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                  {selectedNoteId}
+                </span>
+              )}
+            </div>
+            {/* 탭 */}
+            <div role="tablist" className="flex border-b shrink-0">
+              {(["validate", "related", "action"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === tab}
+                  onClick={() => setDetailTab(tab)}
+                  className={cn(
+                    "flex-1 py-2 text-sm font-medium text-center transition-colors",
+                    detailTab === tab
+                      ? "border-b-2 border-[#4f46e5] text-[#4f46e5]"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {tab === "validate" ? "원본 + 검증" : tab === "related" ? "연관" : "액션"}
+                </button>
+              ))}
+            </div>
+            {/* 탭 콘텐츠 */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {detailTab === "validate" ? (
+                <div className="space-y-4">
+                  {/* 원본 카드 */}
+                  {isLoadingDetail ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#6b7280]" />
+                    </div>
+                  ) : (
+                    <>
+                      <ContentRenderer
+                        content={cardDetail?.text || ""}
+                        showToggle={true}
+                        defaultView="rendered"
+                      />
+                      <ActionPreview
+                        cardContent={cardDetail?.text || ""}
+                        validationResults={currentValidation?.results}
+                      />
+                    </>
+                  )}
+                  {/* 검증 버튼 */}
+                  <div className="flex justify-center">
+                    <Button onClick={handleValidateSelected} disabled={validateCard.isPending}>
+                      {validateCard.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          검증 중...
+                        </>
+                      ) : currentValidation ? (
+                        "재검증"
+                      ) : (
+                        <>
+                          <Shield className="w-4 h-4 mr-1" />
+                          검증 시작
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {/* 검증 결과 (compact cards) */}
+                  {currentValidation?.results && (
+                    <div className="space-y-2">
+                      {VALIDATION_TYPES.map(({ key, label }) => {
+                        const result =
+                          currentValidation.results![key as keyof typeof currentValidation.results];
+                        if (!result) return null;
+                        const status = result.status;
+                        const emoji = getStatusEmoji(status);
+                        const desc = getValidationDescription(key, result);
+                        return (
+                          <div
+                            key={key}
+                            className={cn(
+                              "border rounded-lg p-3",
+                              getValidationItemClass(status),
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-base">{emoji}</span>
+                              <span className="text-[13px] font-semibold">{label}</span>
+                            </div>
+                            <div className="text-xs text-[#6b7280] leading-relaxed">{desc}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* 모바일 All-in-One */}
+                  {selectedNoteId &&
+                    activeDeck &&
+                    cardDetail?.text &&
+                    currentValidation?.results && (
+                      <AllInOnePanel
+                        cardContent={cardDetail.text}
+                        noteId={selectedNoteId}
+                        deckName={activeDeck}
+                        validationResults={currentValidation.results}
+                      />
+                    )}
+                </div>
+              ) : detailTab === "related" ? (
+                renderRelatedTab()
+              ) : (
+                renderActionTab()
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 }

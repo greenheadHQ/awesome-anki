@@ -2,50 +2,21 @@
  * ActionPreview - 검증 결과 기반 수정 미리보기
  *
  * 중앙 패널 하단에 표시되며, 적용 가능한 수정을 diff 형태로 보여준다.
- * - verbose recommendation === "split" → Split 추천 배너
- * - yagni isYagni → YAGNI 제거 diff
- * - factCheck corrections → 팩트 정정 diff
+ * - verbose recommendation === "split" → Split 미리보기 (gray header)
+ * - yagni isYagni → YAGNI 제거 미리보기 (amber header)
+ * - factCheck corrections → 팩트 정정 미리보기 (blue header)
+ *
+ * Mockup v2: preview-area 스타일 (border rounded-lg, header+body 구조)
  */
 
-import { AlertTriangle, Minus, Plus, Scissors, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 
 import type { AllValidationResult } from "../../lib/api";
 import { computeFactDiff, computeYagniDiff } from "../../lib/card-fixer";
-import { cn } from "../../lib/utils";
 
 interface ActionPreviewProps {
   cardContent: string;
   validationResults: AllValidationResult["results"] | undefined;
-}
-
-// --- diff 라인 계산 ---
-interface DiffLine {
-  type: "added" | "removed" | "unchanged";
-  content: string;
-}
-
-function computeLineDiff(original: string, modified: string): DiffLine[] {
-  const origLines = original.split("\n");
-  const modLines = modified.split("\n");
-  const result: DiffLine[] = [];
-  const maxLen = Math.max(origLines.length, modLines.length);
-
-  for (let i = 0; i < maxLen; i++) {
-    const o = origLines[i];
-    const m = modLines[i];
-    if (o === m) {
-      if (o !== undefined) result.push({ type: "unchanged", content: o });
-    } else if (o === undefined) {
-      result.push({ type: "added", content: m });
-    } else if (m === undefined) {
-      result.push({ type: "removed", content: o });
-    } else {
-      result.push({ type: "removed", content: o });
-      result.push({ type: "added", content: m });
-    }
-  }
-  return result;
 }
 
 export function ActionPreview({ cardContent, validationResults }: ActionPreviewProps) {
@@ -76,113 +47,94 @@ export function ActionPreview({ cardContent, validationResults }: ActionPreviewP
   if (!isSplitRecommended && !isYagni && !hasFactCorrections) return null;
 
   return (
-    <div className="border-t pt-4 mt-4 space-y-3">
-      <h3 className="text-sm font-semibold text-muted-foreground px-4">수정 미리보기</h3>
-
-      {/* Split 추천 배너 */}
+    <div className="space-y-3 mt-6">
+      {/* Split 미리보기 */}
       {isSplitRecommended && (
-        <div className="mx-4 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-purple-50 border border-purple-200 dark:bg-purple-950/30 dark:border-purple-800">
-          <Scissors className="w-4 h-4 text-purple-600 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-purple-800 dark:text-purple-300">Split 추천</p>
-            <p className="text-xs text-purple-600 dark:text-purple-400">
-              {verboseResult?.details.conceptCount}개 개념 감지
+        <div className="border border-[#e5e7eb] rounded-lg overflow-hidden">
+          <div
+            className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#374151]"
+            style={{ background: "#f3f4f6" }}
+          >
+            <span>✂️ Split 미리보기</span>
+            <span className="font-normal text-[#6b7280]">
               {verboseResult?.details.suggestedSplitCount
-                ? ` — ${verboseResult.details.suggestedSplitCount}장 분할 권장`
-                : ""}
-            </p>
+                ? `${verboseResult.details.suggestedSplitCount}개 카드로 분할`
+                : `${verboseResult?.details.conceptCount}개 개념 감지`}
+            </span>
+          </div>
+          <div className="p-3 text-xs leading-relaxed">
+            {verboseResult?.details.concepts?.map((concept, i) => (
+              <div key={`split-concept-${i}`}>
+                {i > 0 && (
+                  <hr className="border-none border-t border-dashed border-[#e5e7eb] my-2" />
+                )}
+                <p className="mb-1">
+                  <strong>카드 {String.fromCharCode(65 + i)}</strong> — {concept}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* YAGNI 제거 diff */}
+      {/* YAGNI 제거 미리보기 */}
       {isYagni && yagniDiff && yagniDiff.changes.length > 0 && (
-        <DiffSection
-          icon={<Trash2 className="w-4 h-4 text-orange-600" />}
-          title="YAGNI Cloze 제거"
-          subtitle={`${yagniDiff.changes.length}개 Cloze 제거`}
-          original={cardContent}
-          fixed={yagniDiff.fixed}
-          badgeColor="orange"
-        />
-      )}
-
-      {/* 팩트 정정 diff */}
-      {hasFactCorrections && factDiff && factDiff.changes.length > 0 && (
-        <DiffSection
-          icon={<AlertTriangle className="w-4 h-4 text-red-600" />}
-          title="팩트 정정"
-          subtitle={`${factDiff.changes.length}개 수정`}
-          original={cardContent}
-          fixed={factDiff.fixed}
-          badgeColor="red"
-        />
-      )}
-    </div>
-  );
-}
-
-function DiffSection({
-  icon,
-  title,
-  subtitle,
-  original,
-  fixed,
-  badgeColor,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  original: string;
-  fixed: string;
-  badgeColor: "orange" | "red";
-}) {
-  const diffLines = useMemo(() => computeLineDiff(original, fixed), [original, fixed]);
-  const changedLines = diffLines.filter((l) => l.type !== "unchanged");
-
-  const badgeStyles = {
-    orange: "bg-orange-100 text-orange-700 border-orange-200",
-    red: "bg-red-100 text-red-700 border-red-200",
-  };
-
-  return (
-    <div className="mx-4 border rounded-lg overflow-hidden">
-      <div className="px-3 py-2 bg-muted/50 flex items-center gap-2">
-        {icon}
-        <span className="text-sm font-medium flex-1">{title}</span>
-        <span className={cn("text-xs px-1.5 py-0.5 rounded border", badgeStyles[badgeColor])}>
-          {subtitle}
-        </span>
-      </div>
-      <div className="p-2 bg-card text-xs font-mono overflow-x-auto max-h-48 overflow-y-auto">
-        {changedLines.map((line, idx) => (
+        <div className="border border-[#e5e7eb] rounded-lg overflow-hidden">
           <div
-            key={`${line.type}-${idx}`}
-            className={cn(
-              "flex gap-1.5 py-0.5 px-1.5 -mx-1.5 rounded-sm",
-              line.type === "added" && "bg-green-500/10",
-              line.type === "removed" && "bg-red-500/10",
-            )}
+            className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#374151]"
+            style={{ background: "#fffbeb" }}
           >
-            <span className="w-4 shrink-0 text-center">
-              {line.type === "removed" ? (
-                <Minus className="w-3 h-3 text-red-500 inline" />
-              ) : (
-                <Plus className="w-3 h-3 text-green-500 inline" />
-              )}
-            </span>
-            <span
-              className={cn(
-                "flex-1 whitespace-pre-wrap break-words",
-                line.type === "removed" && "text-red-700 line-through",
-                line.type === "added" && "text-green-700",
-              )}
-            >
-              {line.content || " "}
+            <span>🗑️ YAGNI 제거 미리보기</span>
+            <span className="font-normal text-[#6b7280]">
+              Cloze {yagniDiff.changes.length}개 제거
             </span>
           </div>
-        ))}
-      </div>
+          <div className="p-3 text-xs leading-relaxed">
+            <p className="mb-1.5 font-semibold">제거 대상:</p>
+            {yagniDiff.changes.map((change, i) => (
+              <p key={`yagni-change-${i}`} className="text-[#dc2626] line-through mb-1">
+                - &quot;{change.before}&quot;
+              </p>
+            ))}
+            {yagniResult?.details.reason && (
+              <>
+                <p className="mt-2 mb-1 font-semibold">사유:</p>
+                <p className="text-[#6b7280]">{yagniResult.details.reason}</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 팩트 정정 미리보기 */}
+      {hasFactCorrections && factDiff && factDiff.changes.length > 0 && (
+        <div className="border border-[#e5e7eb] rounded-lg overflow-hidden">
+          <div
+            className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#374151]"
+            style={{ background: "#eff6ff" }}
+          >
+            <span>🔧 팩트 정정 미리보기</span>
+            <span className="font-normal text-[#6b7280]">{factDiff.changes.length}건 정정</span>
+          </div>
+          <div className="p-3 text-xs leading-relaxed">
+            {factCorrections.map((c, i) => (
+              <div key={`fact-fix-${i}`} className={i > 0 ? "mt-3" : ""}>
+                <p className="mb-1 font-semibold">정정 대상:</p>
+                <p className="mb-1">
+                  <span className="bg-[#fee2e2] text-[#991b1b] px-0.5 rounded-sm line-through">
+                    {c.claim}
+                  </span>
+                </p>
+                <p className="mb-2">
+                  <span className="bg-[#dcfce7] text-[#166534] px-0.5 rounded-sm">
+                    {c.correction}
+                  </span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
