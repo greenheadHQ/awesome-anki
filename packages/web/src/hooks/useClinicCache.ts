@@ -227,7 +227,7 @@ export function useFixApply() {
       // 카드 상세 무효화
       queryClient.invalidateQueries({ queryKey: queryKeys.cards.detail(variables.noteId) });
       // split preview 캐시 전체 무효화
-      queryClient.invalidateQueries({ queryKey: ["split"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.split.all });
       // 백업 목록 새로고침
       queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
     },

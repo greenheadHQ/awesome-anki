@@ -1,7 +1,7 @@
 /**
  * 카드 수정 유틸리티 (브라우저용)
  *
- * core/validator/card-fixer의 순수 문자열 조작 로직을 웹에서 사용.
+ * Cloze 마크업 제거, 팩트 정정 등 순수 문자열 조작 로직.
  * 미리보기(ActionPreview)와 적용(AllInOnePanel) 모두 이 유틸을 공유한다.
  */
 

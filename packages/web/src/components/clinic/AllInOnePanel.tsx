@@ -154,7 +154,6 @@ export function AllInOnePanel({
             label={`팩트 정정 (${factCorrections.length}개)`}
             available={hasFactCorrections}
           />
-
         </div>
 
         {/* Apply 버튼 */}
