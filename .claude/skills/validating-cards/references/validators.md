@@ -79,6 +79,6 @@ const result = await analyzeCardGroup(cards, options);
 
 - **API**: `POST /api/clinic/all`
 - **입력**: `{ noteId, deckName, provider?, model? }`
-- 4종 **병렬 실행**으로 속도 최적화
+- 모든 검사를 **병렬 실행**하여 속도 최적화
 - 유사성 검사는 Jaccard만 사용 (`useEmbedding` 전달 안 함)
 - `provider`/`model`은 LLM 기반 검증(팩트 체크, 최신성, 문맥)에만 적용

@@ -13,7 +13,7 @@
 - **동작**: `similarity-checker.ts`에서 `getEmbedding()` 실패 시 자동으로 `checkSimilarityWithJaccard()`로 폴백. 콘솔에 `임베딩 생성 실패, Jaccard로 폴백` 경고 출력.
 - **참고**: 개별 카드 임베딩 실패 시에는 해당 카드만 스킵하고 나머지는 임베딩으로 비교 계속
 
-## validate/all에서 유사성이 항상 Jaccard인 이유
+## clinic/all에서 유사성이 항상 Jaccard인 이유
 
 - **상황**: `/api/clinic/all` 응답의 `similarity.details.method`가 항상 `"jaccard"`
 - **원인**: 서버 라우트(`clinic.ts`)에서 `checkSimilarity({ noteId, text }, allCards)`를 옵션 없이 호출하므로 `useEmbedding` 기본값 `false`가 적용됨
