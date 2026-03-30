@@ -48,12 +48,12 @@ type FilterMode = "all" | "needs-review" | "unvalidated";
 
 // 6종 검증 유형
 const VALIDATION_TYPES = [
-  { key: "verbose", label: "Verbose", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
-  { key: "yagni", label: "YAGNI 의심", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
-  { key: "factCheck", label: "팩트체크", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
-  { key: "freshness", label: "최신성", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
-  { key: "similarity", label: "유사도", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
-  { key: "context", label: "문맥 정합성", issueIcon: "🔴", warnIcon: "🟡", okIcon: "✅" },
+  { key: "verbose", label: "Verbose" },
+  { key: "yagni", label: "YAGNI 의심" },
+  { key: "factCheck", label: "팩트체크" },
+  { key: "freshness", label: "최신성" },
+  { key: "similarity", label: "유사도" },
+  { key: "context", label: "문맥 정합성" },
 ] as const;
 
 // --- helper: badge color by status ---
@@ -315,7 +315,9 @@ export function ClinicWorkspace() {
   // --- active model display name ---
   const activeModelDisplayName = useMemo(() => {
     if (!llmModelsData?.models || !activeModelKey) return null;
-    const found = llmModelsData.models.find((mdl) => `${mdl.provider}/${mdl.model}` === activeModelKey);
+    const found = llmModelsData.models.find(
+      (mdl) => `${mdl.provider}/${mdl.model}` === activeModelKey,
+    );
     return found?.displayName ?? null;
   }, [llmModelsData, activeModelKey]);
 
@@ -514,16 +516,9 @@ export function ClinicWorkspace() {
         {selectedNoteId && (
           <div className="px-4 py-3 shrink-0" style={{ borderTop: "1px solid #e5e7eb" }}>
             <div className="text-[11px] text-[#9ca3af] text-right mb-2">
-              총 예상 비용: $0.04 · 토큰: ~3.1K
+              비용 추정 미구현
             </div>
             <div className="flex gap-1.5">
-              <button
-                type="button"
-                className="flex-1 py-2 rounded-md text-[13px] font-medium text-[#374151] cursor-pointer transition-colors hover:bg-gray-100"
-                style={{ background: "#f3f4f6", border: "1px solid #e5e7eb" }}
-              >
-                전체 무시
-              </button>
               <button
                 type="button"
                 onClick={handleValidateSelected}
@@ -641,12 +636,6 @@ export function ClinicWorkspace() {
                     )}
                   >
                     {action.label}
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] text-xs font-medium cursor-pointer border-none bg-[#f3f4f6] text-[#6b7280]"
-                  >
-                    무시
                   </button>
                 </div>
               )}

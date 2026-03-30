@@ -44,10 +44,10 @@ import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useDifficultCards } from "../hooks/useDifficultCards";
 import { useIsMobile } from "../hooks/useMediaQuery";
+import { useModelSelection } from "../hooks/useModelSelection";
 import { usePromptVersions } from "../hooks/usePrompts";
 import {
   getCachedSplitPreview,
-  useLLMModels,
   useSplitApply,
   useSplitPreview,
   useSplitReject,
@@ -238,7 +238,8 @@ export function SplitWorkspace() {
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
-  const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
+  // useModelSelection 훅은 ClinicWorkspace와 공유하지만,
+  // SplitWorkspace는 selectedModelKey를 showConfigSheet와 연동하므로 상태만 훅에서 받음
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
   const [activePanel, setActivePanel] = useState<MobilePanel>("list");
   const [detailTab, setDetailTab] = useState<"original" | "preview">("original");
@@ -268,14 +269,9 @@ export function SplitWorkspace() {
     promptVersionsData?.versions?.[0]?.id ??
     null;
 
-  // LLM 모델 관련
-  const { data: llmModelsData } = useLLMModels();
-  const defaultModelKey = llmModelsData
-    ? `${llmModelsData.defaultModelId.provider}/${llmModelsData.defaultModelId.model}`
-    : null;
-  const activeModelKey = selectedModelKey ?? defaultModelKey;
-  const activeProvider = activeModelKey?.split("/")[0];
-  const activeModel = activeModelKey?.split("/").slice(1).join("/");
+  // LLM 모델 관련 (useModelSelection 공통 훅)
+  const { activeModelKey, activeProvider, activeModel, setSelectedModelKey, llmModelsData } =
+    useModelSelection();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(

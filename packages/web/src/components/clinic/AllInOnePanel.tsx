@@ -216,9 +216,13 @@ export function AllInOnePanel({
         style={{ background: "#f5f3ff", borderTop: "1px solid #ede9fe" }}
       >
         <div className="text-xs text-[#6b7280]">
-          예상 비용: $0.04
-          <br />
-          <span className="text-[11px]">백업 자동 생성됨</span>
+          비용 추정 미구현
+          {hasCheckedFixes && (
+            <>
+              <br />
+              <span className="text-[11px]">백업 자동 생성됨</span>
+            </>
+          )}
         </div>
         <button
           type="button"
