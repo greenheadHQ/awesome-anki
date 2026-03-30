@@ -1122,8 +1122,7 @@ export function ValidateWorkspace() {
                     {currentValidation?.results ? (
                       <>
                         {/* 유사 카드 */}
-                        {currentValidation.results.similarity?.details.similarCards.length >
-                          0 && (
+                        {currentValidation.results.similarity?.details.similarCards.length > 0 && (
                           <>
                             <h3 className="text-sm font-semibold flex items-center gap-1.5">
                               <Copy className="w-4 h-4" />
@@ -1157,26 +1156,23 @@ export function ValidateWorkspace() {
                           </>
                         )}
                         {/* 문맥 연결 카드 */}
-                        {currentValidation.results.context?.details.relatedCards.length >
-                          0 && (
+                        {currentValidation.results.context?.details.relatedCards.length > 0 && (
                           <div>
                             <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
                               <Link2 className="w-4 h-4" />
                               문맥 연결 카드
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
-                              {currentValidation.results.context.details.relatedCards.map(
-                                (nid) => (
-                                  <button
-                                    type="button"
-                                    key={`m-ctx-${nid}`}
-                                    onClick={() => handleSelectCard(nid)}
-                                    className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
-                                  >
-                                    #{nid}
-                                  </button>
-                                ),
-                              )}
+                              {currentValidation.results.context.details.relatedCards.map((nid) => (
+                                <button
+                                  type="button"
+                                  key={`m-ctx-${nid}`}
+                                  onClick={() => handleSelectCard(nid)}
+                                  className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
+                                >
+                                  #{nid}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         )}
