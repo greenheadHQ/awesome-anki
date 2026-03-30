@@ -515,9 +515,7 @@ export function ClinicWorkspace() {
         {/* Panel footer */}
         {selectedNoteId && (
           <div className="px-4 py-3 shrink-0" style={{ borderTop: "1px solid #e5e7eb" }}>
-            <div className="text-[11px] text-[#9ca3af] text-right mb-2">
-              비용 추정 미구현
-            </div>
+            <div className="text-[11px] text-[#9ca3af] text-right mb-2">비용 추정 미구현</div>
             <div className="flex gap-1.5">
               <button
                 type="button"
@@ -572,9 +570,10 @@ export function ClinicWorkspace() {
 
     // We have results
     const results = cachedResult.results;
-    const completedCount = VALIDATION_TYPES.filter(
-      (t) => results[t.key as keyof typeof results],
-    ).length;
+    const completedCount = VALIDATION_TYPES.filter((t) => {
+      const r = results[t.key as keyof typeof results];
+      return r && r.status !== "unknown";
+    }).length;
 
     return (
       <>
@@ -590,7 +589,13 @@ export function ClinicWorkspace() {
             className="flex justify-between text-xs"
             style={{ color: isValidating ? "#4f46e5" : "#16a34a" }}
           >
-            <span>{isValidating ? "🔄 스캔 진행 중..." : "✅ 스캔 완료"}</span>
+            <span>
+              {isValidating
+                ? "🔄 스캔 진행 중..."
+                : completedCount < VALIDATION_TYPES.length
+                  ? "⚠️ 일부 검증 불가"
+                  : "✅ 스캔 완료"}
+            </span>
             <span>
               {completedCount}/{VALIDATION_TYPES.length} 검증 완료
             </span>
