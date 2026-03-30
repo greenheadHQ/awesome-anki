@@ -161,19 +161,38 @@ function getActionButton(
 
   switch (typeKey) {
     case "verbose":
-      if (result.details && (result.details as Record<string, unknown>).recommendation === "split") {
-        return { label: "✂️ Split 미리보기", className: "bg-[#4f46e5] text-white", previewId: "preview-split" };
+      if (
+        result.details &&
+        (result.details as Record<string, unknown>).recommendation === "split"
+      ) {
+        return {
+          label: "✂️ Split 미리보기",
+          className: "bg-[#4f46e5] text-white",
+          previewId: "preview-split",
+        };
       }
       return null;
     case "yagni":
       if (result.details && (result.details as Record<string, unknown>).isYagni) {
-        return { label: "🗑 제거 미리보기", className: "bg-[#f59e0b] text-white", previewId: "preview-yagni" };
+        return {
+          label: "🗑 제거 미리보기",
+          className: "bg-[#f59e0b] text-white",
+          previewId: "preview-yagni",
+        };
       }
       return null;
     case "factCheck": {
-      const claims = ((result.details as Record<string, unknown>).claims as Array<{ isVerified: boolean; correction?: string }>) ?? [];
+      const claims =
+        ((result.details as Record<string, unknown>).claims as Array<{
+          isVerified: boolean;
+          correction?: string;
+        }>) ?? [];
       if (claims.some((c) => !c.isVerified && c.correction)) {
-        return { label: "🔧 정정 미리보기", className: "bg-[#2563eb] text-white", previewId: "preview-fact" };
+        return {
+          label: "🔧 정정 미리보기",
+          className: "bg-[#2563eb] text-white",
+          previewId: "preview-fact",
+        };
       }
       return null;
     }
@@ -484,13 +503,11 @@ export function ClinicWorkspace() {
 
         {/* Panel body */}
         <div className="flex-1 overflow-y-auto p-4">
-          {detailTab === "validate" ? (
-            renderValidateTab(cachedResult, isValidating)
-          ) : detailTab === "related" ? (
-            renderRelatedTab()
-          ) : (
-            renderActionTab()
-          )}
+          {detailTab === "validate"
+            ? renderValidateTab(cachedResult, isValidating)
+            : detailTab === "related"
+              ? renderRelatedTab()
+              : renderActionTab()}
         </div>
 
         {/* Panel footer */}
@@ -579,7 +596,9 @@ export function ClinicWorkspace() {
             style={{ color: isValidating ? "#4f46e5" : "#16a34a" }}
           >
             <span>{isValidating ? "🔄 스캔 진행 중..." : "✅ 스캔 완료"}</span>
-            <span>{completedCount}/{VALIDATION_TYPES.length} 검증 완료</span>
+            <span>
+              {completedCount}/{VALIDATION_TYPES.length} 검증 완료
+            </span>
           </div>
           <div className="h-1 bg-[#e5e7eb] rounded-full mt-2 overflow-hidden">
             <div
@@ -787,9 +806,7 @@ export function ClinicWorkspace() {
             }}
             disabled={!decksData?.decks?.length}
           >
-            <SelectTrigger
-              className="w-auto min-w-[140px] max-w-[240px] text-[13px] border-[#d1d5db] rounded-md"
-            >
+            <SelectTrigger className="w-auto min-w-[140px] max-w-[240px] text-[13px] border-[#d1d5db] rounded-md">
               <SelectValue placeholder="덱 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -944,7 +961,8 @@ export function ClinicWorkspace() {
                         {isDefault && " \u2713"}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens} per 1M tokens
+                        ${m.inputPricePerMillionTokens}/{m.outputPricePerMillionTokens} per 1M
+                        tokens
                       </div>
                     </button>
                   );
@@ -1080,10 +1098,7 @@ export function ClinicWorkspace() {
                         return (
                           <div
                             key={key}
-                            className={cn(
-                              "border rounded-lg p-3",
-                              getValidationItemClass(status),
-                            )}
+                            className={cn("border rounded-lg p-3", getValidationItemClass(status))}
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-base">{emoji}</span>

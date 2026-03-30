@@ -121,7 +121,10 @@ export function AllInOnePanel({
   if (!validationResults || !hasAnyAction) return null;
 
   return (
-    <div className="mt-4" style={{ border: "2px solid #4f46e5", borderRadius: 10, overflow: "hidden" }}>
+    <div
+      className="mt-4"
+      style={{ border: "2px solid #4f46e5", borderRadius: 10, overflow: "hidden" }}
+    >
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 text-white"
@@ -166,11 +169,7 @@ export function AllInOnePanel({
           icon="🗑️"
           typeLabel="YAGNI 제거"
           typeColor="#d97706"
-          detail={
-            isYagni
-              ? `Cloze ${yagniClozes.length}개 제거`
-              : "해당 없음"
-          }
+          detail={isYagni ? `Cloze ${yagniClozes.length}개 제거` : "해당 없음"}
         />
 
         {/* Fact Correction */}
@@ -182,11 +181,7 @@ export function AllInOnePanel({
           icon="🔧"
           typeLabel="팩트 정정"
           typeColor={hasFactCorrections ? "#2563eb" : "#9ca3af"}
-          detail={
-            hasFactCorrections
-              ? `${factCorrections.length}건 수정`
-              : "해당 없음"
-          }
+          detail={hasFactCorrections ? `${factCorrections.length}건 수정` : "해당 없음"}
         />
 
         {/* Phase 3 — nid 링크 (disabled) */}
@@ -293,10 +288,7 @@ function AllInOneCheckboxItem({
       <span className="font-semibold min-w-[80px]" style={{ color: typeColor }}>
         {typeLabel}
       </span>
-      <span
-        className="flex-1 text-xs"
-        style={{ color: available ? "#6b7280" : "#bbbbbb" }}
-      >
+      <span className="flex-1 text-xs" style={{ color: available ? "#6b7280" : "#bbbbbb" }}>
         {detail}
       </span>
     </div>
