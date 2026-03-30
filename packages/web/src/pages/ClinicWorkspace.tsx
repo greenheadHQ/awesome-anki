@@ -143,7 +143,7 @@ function getValidationDescription(
       const maxSim = similarCards.reduce((max, c) => Math.max(max, c.similarity), 0);
       if (similarCards.length > 0 && maxSim >= 70)
         return `유사 카드 ${similarCards.length}개 (최대 ${maxSim}%)`;
-      return `중복 카드 없음 (유사도 최대 ${maxSim > 0 ? (maxSim / 100).toFixed(2) : "0.00"})`;
+      return `중복 카드 없음 (유사도 최대 ${maxSim}%)`;
     }
     case "context":
       return result.message || "nid 링크된 카드 간 내용이 일관적입니다.";

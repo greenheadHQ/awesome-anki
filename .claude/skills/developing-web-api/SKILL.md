@@ -99,6 +99,7 @@ packages/server/src/
 | POST | /api/clinic/freshness | 최신성 검사 |
 | POST | /api/clinic/similarity | 유사성 검사 (useEmbedding 옵션) |
 | POST | /api/clinic/context | 문맥 일관성 검사 |
+| POST | /api/clinic/verbose | Verbose 감지 |
 | POST | /api/clinic/yagni | YAGNI 검사 |
 | POST | /api/clinic/all | 전체 검증 (병렬) |
 | POST | /api/clinic/fix/apply | 검증 결과 수정 적용 |
