@@ -7,8 +7,6 @@ import App from "./App.tsx";
 type LocatorTarget = "cursor" | "vscode";
 type DevtoolsState = {
   locator?: boolean;
-  reactScan?: boolean;
-  reactGrab?: boolean;
 };
 
 const globals = globalThis as typeof globalThis & {
@@ -57,7 +55,7 @@ const buildLocatorTargets = (primaryTarget: LocatorTarget) => {
 //      const mod = "@locator/runtime";
 //      await import(/* @vite-ignore */ mod);
 //
-//    이 패턴은 세 라이브러리 모두 조용히 로딩 실패하게 만들었고,
+//    이 패턴은 Locator를 포함한 dev 라이브러리가 조용히 로딩 실패하게 만들었고,
 //    catch 블록의 console.warn만 출력되어 장기간 발견되지 않았음.
 //
 // [왜 깨지는가]
@@ -69,7 +67,7 @@ const buildLocatorTargets = (primaryTarget: LocatorTarget) => {
 //
 // [규칙]
 //
-//   - 문자열 리터럴 사용: await import("react-scan")          ✅
+//   - 문자열 리터럴 사용: await import("@locator/runtime")     ✅
 //   - 변수 + @vite-ignore: await import(/* @vite-ignore */ x) ❌
 //   - 프로덕션 안전성: initDevTools() 내 import.meta.env.DEV 가드로
 //     빌드 시 dead code elimination 됨. devDependencies만 참조하므로 무해함.
@@ -92,53 +90,12 @@ const initLocator = async (): Promise<void> => {
   }
 };
 
-const initReactScan = async (): Promise<void> => {
-  if (devtoolsState.reactScan || isTrue(import.meta.env.VITE_DISABLE_REACT_SCAN)) {
-    return;
-  }
-
-  try {
-    const { scan, setOptions } = await import("react-scan");
-    scan({
-      enabled: false,
-      showToolbar: true,
-    });
-    setOptions({
-      enabled: false,
-      showToolbar: true,
-    });
-    devtoolsState.reactScan = true;
-  } catch (error) {
-    console.warn("[devtools] React Scan initialization failed.", error);
-  }
-};
-
-const initReactGrab = async (): Promise<void> => {
-  if (devtoolsState.reactGrab || isTrue(import.meta.env.VITE_DISABLE_REACT_GRAB)) {
-    return;
-  }
-
-  try {
-    const reactGrabModule = await import("react-grab");
-    const reactGrabApi =
-      reactGrabModule.getGlobalApi() ??
-      reactGrabModule.init({
-        enabled: false,
-      });
-    reactGrabApi.setToolbarState({ enabled: true });
-    reactGrabApi.setEnabled(false);
-    devtoolsState.reactGrab = true;
-  } catch (error) {
-    console.warn("[devtools] React Grab initialization failed.", error);
-  }
-};
-
 const initDevTools = async (): Promise<void> => {
   if (!import.meta.env.DEV) {
     return;
   }
 
-  await Promise.all([initLocator(), initReactScan(), initReactGrab()]);
+  await initLocator();
 };
 
 void initDevTools();
