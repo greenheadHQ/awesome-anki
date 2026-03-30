@@ -6,14 +6,14 @@
  * 한 번의 Apply로 백업 + 수정 + (선택 시) Split 이동을 처리한다.
  */
 
-import { Loader2, Scissors, Tag, Link2, Trash2, AlertTriangle, Sparkles } from "lucide-react";
+import { Loader2, Scissors, Trash2, AlertTriangle, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { useFixApply } from "../../hooks/useClinicCache";
 import type { AllValidationResult } from "../../lib/api";
-import { applyFactCorrections, removeYagniClozes } from "../../lib/card-fixer";
+import { applyFactCorrections, computeFactDiff, removeYagniClozes } from "../../lib/card-fixer";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
@@ -47,7 +47,10 @@ export function AllInOnePanel({
       .filter((c) => !c.isVerified && c.correction)
       .map((c) => ({ claim: c.claim, correction: c.correction! }));
   }, [validationResults]);
-  const hasFactCorrections = factCorrections.length > 0;
+  const hasFactCorrections = useMemo(
+    () => computeFactDiff(cardContent, factCorrections).changes.length > 0,
+    [cardContent, factCorrections],
+  );
 
   const hasAnyAction = isSplitRecommended || isYagni || hasFactCorrections;
 
@@ -92,7 +95,8 @@ export function AllInOnePanel({
 
       // 4. Split 체크 시 Split 페이지로 이동
       if (splitChecked) {
-        navigate(`/split?noteId=${noteId}&deck=${encodeURIComponent(deckName)}`);
+        navigate("/split");
+        toast.info("Split 탭에서 해당 카드를 선택하여 분할하세요");
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "알 수 없는 오류";
@@ -151,25 +155,6 @@ export function AllInOnePanel({
             available={hasFactCorrections}
           />
 
-          {/* Phase 3 — disabled */}
-          <CheckboxRow
-            checked={false}
-            onChange={() => {}}
-            disabled={true}
-            icon={<Link2 className="w-3.5 h-3.5" />}
-            label="nid 링크 정리"
-            available={false}
-            phase3
-          />
-          <CheckboxRow
-            checked={false}
-            onChange={() => {}}
-            disabled={true}
-            icon={<Tag className="w-3.5 h-3.5" />}
-            label="태그 정리"
-            available={false}
-            phase3
-          />
         </div>
 
         {/* Apply 버튼 */}
@@ -206,7 +191,6 @@ function CheckboxRow({
   icon,
   label,
   available,
-  phase3,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
@@ -214,7 +198,6 @@ function CheckboxRow({
   icon: React.ReactNode;
   label: string;
   available: boolean;
-  phase3?: boolean;
 }) {
   return (
     <label
@@ -233,9 +216,6 @@ function CheckboxRow({
       />
       <span className="text-white/80 shrink-0">{icon}</span>
       <span className={cn("text-white/90 flex-1", !available && "line-through")}>{label}</span>
-      {phase3 && (
-        <span className="text-[10px] text-white/50 bg-white/10 px-1 py-0.5 rounded">Phase 3</span>
-      )}
     </label>
   );
 }

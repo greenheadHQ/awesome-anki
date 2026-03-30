@@ -47,11 +47,11 @@ import { useIsMobile } from "../hooks/useMediaQuery";
 import { usePromptVersions } from "../hooks/usePrompts";
 import {
   getCachedSplitPreview,
-  useLLMModels,
   useSplitApply,
   useSplitPreview,
   useSplitReject,
 } from "../hooks/useSplit";
+import { useModelSelection } from "../hooks/useModelSelection";
 import type { CardSummary, DifficultCard, SplitPreviewResult } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { recordSyncAttempt } from "../lib/sync-status";
@@ -238,7 +238,6 @@ export function SplitWorkspace() {
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
-  const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkspaceMode>("candidates");
   const [activePanel, setActivePanel] = useState<MobilePanel>("list");
   const [detailTab, setDetailTab] = useState<"original" | "preview">("original");
@@ -269,13 +268,8 @@ export function SplitWorkspace() {
     null;
 
   // LLM 모델 관련
-  const { data: llmModelsData } = useLLMModels();
-  const defaultModelKey = llmModelsData
-    ? `${llmModelsData.defaultModelId.provider}/${llmModelsData.defaultModelId.model}`
-    : null;
-  const activeModelKey = selectedModelKey ?? defaultModelKey;
-  const activeProvider = activeModelKey?.split("/")[0];
-  const activeModel = activeModelKey?.split("/").slice(1).join("/");
+  const { activeModelKey, activeProvider, activeModel, setSelectedModelKey, llmModelsData } =
+    useModelSelection();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
   const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(
