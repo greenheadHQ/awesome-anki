@@ -315,8 +315,8 @@ export function ClinicWorkspace() {
   // --- active model display name ---
   const activeModelDisplayName = useMemo(() => {
     if (!llmModelsData?.models || !activeModelKey) return null;
-    const m = llmModelsData.models.find((m) => `${m.provider}/${m.model}` === activeModelKey);
-    return m?.displayName ?? null;
+    const found = llmModelsData.models.find((mdl) => `${mdl.provider}/${mdl.model}` === activeModelKey);
+    return found?.displayName ?? null;
   }, [llmModelsData, activeModelKey]);
 
   // --- 카드 목록 패널 ---
