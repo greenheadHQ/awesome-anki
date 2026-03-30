@@ -186,21 +186,17 @@ bun run cli rollback <backupId>
 | `VITE_API_PROXY_TARGET`   | Vite dev 프록시 타깃(기본 `http://localhost:3000`) |
 | `VITE_LOCATOR_TARGET`     | Locator 에디터 타깃 (`cursor`/`vscode`)            |
 | `VITE_DISABLE_LOCATOR`    | Locator 강제 비활성화                              |
-| `VITE_DISABLE_REACT_SCAN` | React Scan 강제 비활성화                           |
-| `VITE_DISABLE_REACT_GRAB` | React Grab 강제 비활성화                           |
 
 ## 8. 개발 DX 도구
 
-이 섹션은 **LocatorJS / React Scan / React Grab**를 실제로 어떻게 켜고 끄는지, 어떤 설정값이 영향을 주는지, 어떤 순서로 쓰면 좋은지를 정리합니다.
+이 섹션은 **LocatorJS**를 실제로 어떻게 켜고 끄는지, 어떤 설정값이 영향을 주는지를 정리합니다.
 
 ### 8.1 공통 동작 원칙
 
-1. 세 도구는 `packages/web/src/main.tsx`에서 `import.meta.env.DEV` 조건으로만 초기화됩니다.
+1. LocatorJS는 `packages/web/src/main.tsx`에서 `import.meta.env.DEV` 조건으로만 초기화됩니다.
 2. 즉, `bun run dev`일 때만 동작하고 `bun run build` 산출물에서는 실행되지 않습니다.
-3. 도구별 비활성화는 아래 환경변수로 즉시 제어할 수 있습니다.
+3. 비활성화는 아래 환경변수로 즉시 제어할 수 있습니다.
    - `VITE_DISABLE_LOCATOR=true`
-   - `VITE_DISABLE_REACT_SCAN=true`
-   - `VITE_DISABLE_REACT_GRAB=true`
 
 ### 8.2 LocatorJS (브라우저 → 에디터 점프)
 
@@ -231,57 +227,10 @@ bun run cli rollback <backupId>
 2. 반드시 Vite 개발 서버(`bun run dev` 또는 `bun run dev:web`)에서 테스트
 3. 소스 메타가 누락되면 `packages/web/vite.config.ts`의 Babel 플러그인 설정 확인
 
-### 8.3 React Scan (렌더링 병목 시각화)
+### 8.3 권장 운영 시나리오
 
-#### 설정 방법
-
-1. 초기화 코드에서 `scan({ enabled: false, showToolbar: true })` 적용
-2. 추가로 `setOptions({ enabled: false, showToolbar: true })`를 호출해 초기 상태를 OFF로 고정
-3. 결과적으로 **툴바는 표시되지만 스캔은 비활성 상태로 시작**
-
-#### 사용 방법
-
-1. `bun run dev` 실행
-2. 우측 상단 React Scan 툴바 확인
-3. 토글을 ON으로 전환해 스캔 시작
-4. 렌더링이 잦은 컴포넌트 강조/지표를 확인
-5. 분석이 끝나면 토글을 다시 OFF
-
-#### 점검 포인트
-
-1. 툴바가 아예 없으면 `VITE_DISABLE_REACT_SCAN` 값 확인
-2. 성능 측정 시에는 필요한 시점에만 ON으로 두는 것을 권장
-
-### 8.4 React Grab (에이전트 컨텍스트 복사)
-
-#### 설정 방법
-
-1. `react-grab` 기본 엔트리를 로드해 툴바 UI를 유지
-2. 초기화 시 API를 확보한 뒤:
-   - `setToolbarState({ enabled: true })` (툴바 표시 유지)
-   - `setEnabled(false)` (초기 토글 OFF)
-3. 결과적으로 **툴바는 보이되 기본 비활성 상태로 시작**
-
-#### 사용 방법
-
-1. `bun run dev` 실행
-2. React Grab 툴바 토글을 ON으로 전환
-3. 분석할 UI 요소를 가리킴
-4. macOS는 `Cmd+C`, Windows/Linux는 `Ctrl+C`로 컨텍스트 복사
-5. 복사된 내용을 Cursor/Claude Code/Copilot 프롬프트에 붙여넣어 활용
-
-#### 점검 포인트
-
-1. 툴바가 보이지 않으면 `VITE_DISABLE_REACT_GRAB` 확인
-2. 복사가 안 되면 브라우저/페이지의 클립보드 권한 또는 단축키 충돌 여부 확인
-3. React Scan/Grab을 동시에 켤 때는 먼저 Locator 점프가 필요한지 판단 후 최소 도구만 활성화하는 것을 권장
-
-### 8.5 권장 운영 시나리오
-
-1. 평소: Locator만 활용(Scan/Grab OFF 유지)
-2. 성능 점검: React Scan만 ON
-3. 에이전트 전달: React Grab만 ON
-4. 점검 종료 후: Scan/Grab 다시 OFF
+1. 평소: Locator 활용 (기본 활성)
+2. 불필요 시: `VITE_DISABLE_LOCATOR=true`로 비활성화
 
 ## 9. API 레퍼런스
 
@@ -487,8 +436,6 @@ anki.greenhead.dev {
 - AnkiConnect: <https://ankiweb.net/shared/info/2055492159>
 - LocatorJS: <https://github.com/infi-pc/locatorjs>
 - LocatorJS React data-id 설치 가이드: <https://www.locatorjs.com/install/react-data-id?stack=Vite>
-- React Scan: <https://github.com/aidenybai/react-scan>
-- React Grab: <https://github.com/aidenybai/react-grab>
 
 ## 14. 라이선스
 
