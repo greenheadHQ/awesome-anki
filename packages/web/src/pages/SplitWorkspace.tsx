@@ -44,6 +44,7 @@ import { useCardDetail, useCards } from "../hooks/useCards";
 import { useDecks } from "../hooks/useDecks";
 import { useDifficultCards } from "../hooks/useDifficultCards";
 import { useIsMobile } from "../hooks/useMediaQuery";
+import { useModelSelection } from "../hooks/useModelSelection";
 import { usePromptVersions } from "../hooks/usePrompts";
 import {
   getCachedSplitPreview,
@@ -51,7 +52,6 @@ import {
   useSplitPreview,
   useSplitReject,
 } from "../hooks/useSplit";
-import { useModelSelection } from "../hooks/useModelSelection";
 import type { CardSummary, DifficultCard, SplitPreviewResult } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { recordSyncAttempt } from "../lib/sync-status";
