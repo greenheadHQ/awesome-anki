@@ -27,5 +27,11 @@ export {
 // Verbose 감지
 export { checkVerbose, type VerboseCheckOptions } from "./verbose-checker.js";
 
+// YAGNI 감지
+export { checkYagni, type YagniCheckOptions } from "./yagni-checker.js";
+
+// 유틸리티
+export { cleanCardText } from "./utils.js";
+
 // 타입 export
 export * from "./types.js";

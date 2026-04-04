@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"bun run dev:server\" \"bun run dev:web\"",
+    "dev": "concurrently \"bun run dev:server\" \"VITE_API_PROXY_TARGET=http://localhost:3000 bun run dev:web\"",
     "dev:server": "bun run --watch packages/server/src/index.ts",
     "dev:web": "ANKI_SPLITTER_API_KEY=${ANKI_SPLITTER_API_KEY:-} bun run --cwd packages/web dev",
     "lint": "bun run lint:core && bun run lint:server && bun run lint:web",
