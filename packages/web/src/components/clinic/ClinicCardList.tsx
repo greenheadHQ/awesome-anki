@@ -2,8 +2,8 @@ import { Loader2, Search } from "lucide-react";
 
 import type { ValidationStatus } from "../../lib/api";
 import { cn } from "../../lib/utils";
-import { getStatusBorderColor } from "./clinic-status-utils";
 import { StatusIcon } from "../ui/status-icon";
+import { getStatusBorderColor } from "./clinic-status-utils";
 
 type FilterMode = "all" | "unvalidated" | "needs-review";
 

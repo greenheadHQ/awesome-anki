@@ -3,10 +3,10 @@ import { Copy, Link2, Loader2, Shield } from "lucide-react";
 import type { AllValidationResult, ValidationStatus } from "../../lib/api";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { StatusIcon } from "../ui/status-icon";
 import { AllInOnePanel } from "./AllInOnePanel";
 import { VALIDATION_TYPES, type ValidationTypeKey } from "./clinic-constants";
 import { STATUS_LABELS, getSimilarityBadgeClass, getStatusBg } from "./clinic-status-utils";
-import { StatusIcon } from "../ui/status-icon";
 import { ValidationSection } from "./ValidationSection";
 
 type DetailTab = "validate" | "related";
@@ -164,7 +164,10 @@ export function ClinicValidationPanel({
                           <div className="flex justify-between items-start">
                             <span className="font-mono">#{card.noteId}</span>
                             <span
-                              className={cn("px-1.5 py-0.5 rounded", getSimilarityBadgeClass(card.similarity))}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded",
+                                getSimilarityBadgeClass(card.similarity),
+                              )}
                             >
                               {card.similarity}%
                             </span>

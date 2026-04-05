@@ -20,14 +20,13 @@ import { ContentRenderer } from "../components/card/ContentRenderer";
 import { ActionPreview } from "../components/clinic/ActionPreview";
 import { AllInOnePanel } from "../components/clinic/AllInOnePanel";
 import { VALIDATION_TYPES, type ValidationTypeKey } from "../components/clinic/clinic-constants";
-import { ClinicCardList } from "../components/clinic/ClinicCardList";
-import { ClinicOriginalCard } from "../components/clinic/ClinicOriginalCard";
 import {
   STATUS_LABELS,
   getStatusBg,
   getSimilarityBadgeClass,
 } from "../components/clinic/clinic-status-utils";
-import { StatusIcon } from "../components/ui/status-icon";
+import { ClinicCardList } from "../components/clinic/ClinicCardList";
+import { ClinicOriginalCard } from "../components/clinic/ClinicOriginalCard";
 import { ClinicValidationPanel } from "../components/clinic/ClinicValidationPanel";
 import { ValidationSection } from "../components/clinic/ValidationSection";
 import { BottomSheet } from "../components/ui/bottom-sheet";
@@ -42,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { StatusIcon } from "../components/ui/status-icon";
 import { useCardDetail, useCards } from "../hooks/useCards";
 import { useBatchClinicValidate, useClinicCache, useClinicValidate } from "../hooks/useClinicCache";
 import { useDecks } from "../hooks/useDecks";
