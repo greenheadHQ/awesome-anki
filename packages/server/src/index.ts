@@ -135,14 +135,21 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-// Error handler
+// Error handler — type은 공개 식별자만 노출 (내부 클래스명 차단)
+const ERROR_TYPE_MAP: Record<string, string> = {
+  AnkiConnectError: "upstream",
+  TimeoutError: "timeout",
+  ValidationError: "validation",
+  NotFoundError: "not_found",
+};
+
 app.onError((err, c) => {
   const endpoint = `${c.req.method} ${c.req.path}`;
 
   if (err instanceof AppError) {
     console.error(`[${err.statusCode}] ${err.name}:`, endpoint, err.message);
     return c.json(
-      { error: err.message, type: err.name },
+      { error: err.message, type: ERROR_TYPE_MAP[err.name] ?? "server" },
       err.statusCode as 400 | 404 | 500 | 502 | 504,
     );
   }
