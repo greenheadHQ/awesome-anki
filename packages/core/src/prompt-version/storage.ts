@@ -612,56 +612,24 @@ export async function completeExperiment(
   const experiment = await getExperiment(experimentId);
   if (!experiment) return;
 
-  // 레거시 JSON 히스토리 제거됨 — SQLite 기반 조회로 전환 필요 (#122)
-  const controlHistory: SplitHistoryEntry[] = [];
-  const treatmentHistory: SplitHistoryEntry[] = [];
+  const [controlVersion, treatmentVersion] = await Promise.all([
+    getVersion(experiment.controlVersionId),
+    getVersion(experiment.treatmentVersionId),
+  ]);
+
+  const controlMetrics = controlVersion?.metrics;
+  const treatmentMetrics = treatmentVersion?.metrics;
 
   experiment.controlResults = {
-    splitCount: controlHistory.length,
-    approvalRate:
-      controlHistory.length > 0
-        ? Math.round(
-            (controlHistory.filter((h) => h.userAction === "approved").length /
-              controlHistory.length) *
-              100,
-          )
-        : 0,
-    avgCharCount:
-      controlHistory.length > 0
-        ? Math.round(
-            controlHistory.reduce(
-              (sum, h) =>
-                sum +
-                h.splitCards.reduce((s, c) => s + (c.charCount ?? countCardChars(c.content)), 0) /
-                  h.splitCards.length,
-              0,
-            ) / controlHistory.length,
-          )
-        : 0,
+    splitCount: controlMetrics?.totalSplits ?? 0,
+    approvalRate: controlMetrics?.approvalRate ?? 0,
+    avgCharCount: controlMetrics?.avgCharCount ?? 0,
   };
 
   experiment.treatmentResults = {
-    splitCount: treatmentHistory.length,
-    approvalRate:
-      treatmentHistory.length > 0
-        ? Math.round(
-            (treatmentHistory.filter((h) => h.userAction === "approved").length /
-              treatmentHistory.length) *
-              100,
-          )
-        : 0,
-    avgCharCount:
-      treatmentHistory.length > 0
-        ? Math.round(
-            treatmentHistory.reduce(
-              (sum, h) =>
-                sum +
-                h.splitCards.reduce((s, c) => s + (c.charCount ?? countCardChars(c.content)), 0) /
-                  h.splitCards.length,
-              0,
-            ) / treatmentHistory.length,
-          )
-        : 0,
+    splitCount: treatmentMetrics?.totalSplits ?? 0,
+    approvalRate: treatmentMetrics?.approvalRate ?? 0,
+    avgCharCount: treatmentMetrics?.avgCharCount ?? 0,
   };
 
   experiment.status = "completed";
