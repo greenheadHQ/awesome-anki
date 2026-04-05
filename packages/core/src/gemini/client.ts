@@ -1,5 +1,12 @@
 /**
  * 카드 분할 클라이언트 (멀티 LLM 지원)
+ *
+ * 역할: Anki 카드 분할 요청을 llm/ 추상화 계층에 위임하는 도메인 계층.
+ * 프롬프트 구성(gemini/prompts.ts) + 응답 검증(gemini/validator.ts) + LLM 호출(llm/factory.ts) 조합.
+ *
+ * 이 디렉토리 이름("gemini/")은 역사적 이유로 유지.
+ * 내부 구현은 Gemini/OpenAI 등 멀티 프로바이더를 지원한다.
+ * 프로바이더 추상화는 llm/ 디렉토리에 있다.
  */
 
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";

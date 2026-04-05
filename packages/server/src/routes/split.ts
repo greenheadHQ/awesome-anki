@@ -70,39 +70,51 @@ function mapApplyCards(
   }));
 }
 
+// ============================================================================
+// preview 핸들러 분해 함수
+// ============================================================================
+
+interface ValidatedInput {
+  noteId: number;
+  text: string;
+  tags: string[];
+  promptVersionId: string;
+  deckName: string;
+  resolvedModelId: LLMModelId;
+  modelId: LLMModelId | undefined;
+  sessionId: string;
+  historyWarning: string | undefined;
+  budgetUsdCap: number | undefined;
+}
+
+interface PromptContext {
+  prompts: { systemPrompt: string; splitPromptTemplate: string };
+  estimatedCost:
+    | {
+        estimatedInputCostUsd: number;
+        estimatedOutputCostUsd: number;
+        estimatedTotalCostUsd: number;
+      }
+    | undefined;
+  historyWarning: string | undefined;
+}
+
 /**
- * POST /api/split/preview
- * 분할 미리보기
+ * 요청 파싱, modelId 검증, 노트 조회, 텍스트/태그 추출, 프롬프트 버전 결정, 히스토리 세션 생성
+ * 검증 실패 시 { response } 형태로 early return 응답을 반환한다.
  */
-app.post("/preview", async (c) => {
-  const {
-    noteId,
-    versionId,
-    deckName = "",
-    provider,
-    model,
-    budgetUsdCap,
-  } = await c.req.json<{
-    noteId: number;
-    versionId?: string;
-    deckName?: string;
-    provider?: string;
-    model?: string;
-    budgetUsdCap?: number;
-  }>();
+async function validateAndResolveModel(body: {
+  noteId: number;
+  versionId?: string;
+  deckName?: string;
+  provider?: string;
+  model?: string;
+  budgetUsdCap?: number;
+}): Promise<ValidatedInput> {
+  const { noteId, versionId, deckName = "", provider, model, budgetUsdCap } = body;
 
   // provider+model 유효성 검증
-  let modelId: LLMModelId | undefined;
-  try {
-    modelId = resolveModelId(provider, model);
-  } catch (e) {
-    if (e instanceof ValidationError) {
-      // API 키 미설정은 503, 나머지 검증 실패는 400
-      const status = e.message.includes("API 키") ? 503 : 400;
-      return c.json({ error: e.message }, status);
-    }
-    throw e;
-  }
+  const modelId = resolveModelId(provider, model);
 
   const note = await getNoteById(noteId);
   if (!note) {
@@ -123,7 +135,7 @@ app.post("/preview", async (c) => {
     promptVersionId = activeVersionInfo.versionId;
   }
 
-  let sessionId: string | undefined;
+  let sessionId: string;
   let historyWarning: string | undefined;
 
   try {
@@ -144,120 +156,149 @@ app.post("/preview", async (c) => {
 
   const resolvedModelId = modelId ?? getDefaultModelId();
 
-  try {
-    const resolvedVersion = await getPromptVersion(promptVersionId);
-    if (!resolvedVersion) {
-      const versionNotFoundMessage = `프롬프트 버전 '${promptVersionId}'을 찾을 수 없습니다.`;
-      if (sessionId) {
-        try {
-          const historyStore = await getSplitHistoryStore();
-          historyStore.markError(sessionId, {
-            errorMessage: versionNotFoundMessage,
-            provider: modelId?.provider,
-            aiModel: modelId?.model,
-          });
-        } catch (historyError) {
-          const message =
-            historyError instanceof Error ? historyError.message : String(historyError);
-          historyWarning = historyWarning
-            ? `${historyWarning}; ${message}`
-            : `히스토리 기록 실패: ${message}`;
-        }
-      }
+  return {
+    noteId,
+    text,
+    tags,
+    promptVersionId,
+    deckName,
+    resolvedModelId,
+    modelId,
+    sessionId,
+    historyWarning,
+    budgetUsdCap,
+  };
+}
 
-      return c.json(
+/**
+ * 프롬프트 버전 검증, 원격 systemPrompt 검증, 비용 추정 & 예산 검사.
+ * 검증/예산 실패 시 에러 throw 또는 { earlyResponse } 형태로 HTTP 응답 반환.
+ */
+async function resolvePromptsAndBudget(
+  input: ValidatedInput,
+): Promise<PromptContext | { earlyResponse: Response }> {
+  const { noteId, text, tags, promptVersionId, resolvedModelId, modelId, sessionId, budgetUsdCap } =
+    input;
+  let { historyWarning } = input;
+
+  const resolvedVersion = await getPromptVersion(promptVersionId);
+  if (!resolvedVersion) {
+    const versionNotFoundMessage = `프롬프트 버전 '${promptVersionId}'을 찾을 수 없습니다.`;
+    if (sessionId) {
+      try {
+        const historyStore = await getSplitHistoryStore();
+        historyStore.markError(sessionId, {
+          errorMessage: versionNotFoundMessage,
+          provider: modelId?.provider,
+          aiModel: modelId?.model,
+        });
+      } catch (historyError) {
+        const message = historyError instanceof Error ? historyError.message : String(historyError);
+        historyWarning = historyWarning
+          ? `${historyWarning}; ${message}`
+          : `히스토리 기록 실패: ${message}`;
+      }
+    }
+
+    return {
+      earlyResponse: Response.json(
         {
           error: versionNotFoundMessage,
           requestedVersionId: promptVersionId,
           ...(historyWarning && { historyWarning }),
         },
-        404,
-      );
+        { status: 404 },
+      ),
+    };
+  }
+
+  const remoteSystemPrompt = await getRemoteSystemPromptPayload();
+  if (!remoteSystemPrompt) {
+    const remotePromptMissingMessage =
+      "원격 systemPrompt가 초기화되지 않았습니다. /api/prompts/system에서 먼저 설정하세요.";
+    if (sessionId) {
+      try {
+        const historyStore = await getSplitHistoryStore();
+        historyStore.markError(sessionId, {
+          errorMessage: remotePromptMissingMessage,
+          provider: modelId?.provider,
+          aiModel: modelId?.model,
+        });
+      } catch (historyError) {
+        const message = historyError instanceof Error ? historyError.message : String(historyError);
+        historyWarning = historyWarning
+          ? `${historyWarning}; ${message}`
+          : `히스토리 기록 실패: ${message}`;
+      }
     }
 
-    const remoteSystemPrompt = await getRemoteSystemPromptPayload();
-    if (!remoteSystemPrompt) {
-      const remotePromptMissingMessage =
-        "원격 systemPrompt가 초기화되지 않았습니다. /api/prompts/system에서 먼저 설정하세요.";
-      if (sessionId) {
-        try {
-          const historyStore = await getSplitHistoryStore();
-          historyStore.markError(sessionId, {
-            errorMessage: remotePromptMissingMessage,
-            provider: modelId?.provider,
-            aiModel: modelId?.model,
-          });
-        } catch (historyError) {
-          const message =
-            historyError instanceof Error ? historyError.message : String(historyError);
-          historyWarning = historyWarning
-            ? `${historyWarning}; ${message}`
-            : `히스토리 기록 실패: ${message}`;
-        }
-      }
-
-      return c.json(
+    return {
+      earlyResponse: Response.json(
         {
           error: remotePromptMissingMessage,
           ...(historyWarning && { historyWarning }),
         },
-        503,
-      );
-    }
-
-    const prompts = {
-      systemPrompt: remoteSystemPrompt.systemPrompt,
-      splitPromptTemplate: resolvedVersion.splitPromptTemplate,
+        { status: 503 },
+      ),
     };
+  }
 
-    // 비용 가드레일: AI 호출 전 예상 비용 계산 (best-effort)
-    let estimatedCost:
-      | {
-          estimatedInputCostUsd: number;
-          estimatedOutputCostUsd: number;
-          estimatedTotalCostUsd: number;
-        }
-      | undefined;
+  const prompts = {
+    systemPrompt: remoteSystemPrompt.systemPrompt,
+    splitPromptTemplate: resolvedVersion.splitPromptTemplate,
+  };
 
-    // 기본 모델 경로도 pricing table 검증 적용 — 미등록 시 예산 가드레일 우회 방지
-    if (
-      !getModelPricing(resolvedModelId.provider, resolvedModelId.model) &&
-      budgetUsdCap !== undefined
-    ) {
-      return c.json(
+  // 비용 가드레일: AI 호출 전 예상 비용 계산 (best-effort)
+  let estimatedCost:
+    | {
+        estimatedInputCostUsd: number;
+        estimatedOutputCostUsd: number;
+        estimatedTotalCostUsd: number;
+      }
+    | undefined;
+
+  // 기본 모델 경로도 pricing table 검증 적용 — 미등록 시 예산 가드레일 우회 방지
+  if (
+    !getModelPricing(resolvedModelId.provider, resolvedModelId.model) &&
+    budgetUsdCap !== undefined
+  ) {
+    return {
+      earlyResponse: Response.json(
         {
           error: `모델 ${resolvedModelId.provider}/${resolvedModelId.model}의 비용 정보가 등록되지 않아 예산 검사가 불가능합니다.`,
         },
-        400,
-      );
-    }
+        { status: 400 },
+      ),
+    };
+  }
 
-    try {
-      const costEstimation = await estimateSplitCost(
-        { noteId, text, tags },
-        prompts,
-        resolvedModelId,
-      );
-      if (costEstimation) {
-        estimatedCost = costEstimation.estimatedCost;
-        // worst-case 비용(maxOutputTokens 기준)으로 예산 검사 — 상한 보장
-        const budgetCheck = checkBudget(costEstimation.worstCaseCostUsd, budgetUsdCap);
-        if (!budgetCheck.allowed) {
-          // 세션을 generating 상태로 남기지 않도록 markNotSplit 호출
-          if (sessionId) {
-            try {
-              const historyStore = await getSplitHistoryStore();
-              historyStore.markNotSplit(sessionId, {
-                splitReason: "예산 초과로 분할이 중단되었습니다.",
-                provider: resolvedModelId.provider,
-                aiModel: resolvedModelId.model,
-                estimatedCostUsd: budgetCheck.estimatedCostUsd,
-              });
-            } catch {
-              // history 에러가 402 응답을 차단하면 안 됨
-            }
+  try {
+    const costEstimation = await estimateSplitCost(
+      { noteId, text, tags },
+      prompts,
+      resolvedModelId,
+    );
+    if (costEstimation) {
+      estimatedCost = costEstimation.estimatedCost;
+      // worst-case 비용(maxOutputTokens 기준)으로 예산 검사 — 상한 보장
+      const budgetCheck = checkBudget(costEstimation.worstCaseCostUsd, budgetUsdCap);
+      if (!budgetCheck.allowed) {
+        // 세션을 generating 상태로 남기지 않도록 markNotSplit 호출
+        if (sessionId) {
+          try {
+            const historyStore = await getSplitHistoryStore();
+            historyStore.markNotSplit(sessionId, {
+              splitReason: "예산 초과로 분할이 중단되었습니다.",
+              provider: resolvedModelId.provider,
+              aiModel: resolvedModelId.model,
+              estimatedCostUsd: budgetCheck.estimatedCostUsd,
+            });
+          } catch {
+            // history 에러가 402 응답을 차단하면 안 됨
           }
-          return c.json(
+        }
+        return {
+          earlyResponse: Response.json(
             {
               error: "BUDGET_EXCEEDED",
               estimatedCostUsd: budgetCheck.estimatedCostUsd,
@@ -265,42 +306,44 @@ app.post("/preview", async (c) => {
               provider: resolvedModelId.provider,
               model: resolvedModelId.model,
             },
-            402,
-          );
-        }
+            { status: 402 },
+          ),
+        };
       }
-    } catch (costError) {
-      // 비용 추정 실패 시 보수적 폴백: 텍스트 기반 휴리스틱으로 예산 검사
-      console.warn("비용 추정 실패, 보수적 폴백 사용:", costError);
-      const fallbackPricing = getModelPricing(resolvedModelId.provider, resolvedModelId.model);
-      if (fallbackPricing) {
-        // 시스템 프롬프트 + split 템플릿 + 태그 + 카드 텍스트를 포함한 보수적 추정
-        const fullTextLen =
-          text.length +
-          prompts.systemPrompt.length +
-          prompts.splitPromptTemplate.length +
-          tags.join(" ").length;
-        // 1 char ≈ 0.5 token (한국어 보정) + 15% 안전 마진
-        const SAFETY_MARGIN_RATIO = 1.15;
-        const fallbackInputTokens = Math.ceil((fullTextLen / 2) * SAFETY_MARGIN_RATIO);
-        const fallbackOutputTokens = SPLIT_MAX_OUTPUT_TOKENS;
-        estimatedCost = estimateCost(fallbackInputTokens, fallbackOutputTokens, fallbackPricing);
-        const budgetCheck = checkBudget(estimatedCost.estimatedTotalCostUsd, budgetUsdCap);
-        if (!budgetCheck.allowed) {
-          if (sessionId) {
-            try {
-              const historyStore = await getSplitHistoryStore();
-              historyStore.markNotSplit(sessionId, {
-                splitReason: "예산 초과로 분할이 중단되었습니다 (보수적 추정).",
-                provider: resolvedModelId.provider,
-                aiModel: resolvedModelId.model,
-                estimatedCostUsd: estimatedCost.estimatedTotalCostUsd,
-              });
-            } catch {
-              // history 에러가 402 응답을 차단하면 안 됨
-            }
+    }
+  } catch (costError) {
+    // 비용 추정 실패 시 보수적 폴백: 텍스트 기반 휴리스틱으로 예산 검사
+    console.warn("비용 추정 실패, 보수적 폴백 사용:", costError);
+    const fallbackPricing = getModelPricing(resolvedModelId.provider, resolvedModelId.model);
+    if (fallbackPricing) {
+      // 시스템 프롬프트 + split 템플릿 + 태그 + 카드 텍스트를 포함한 보수적 추정
+      const fullTextLen =
+        text.length +
+        prompts.systemPrompt.length +
+        prompts.splitPromptTemplate.length +
+        tags.join(" ").length;
+      // 1 char ≈ 0.5 token (한국어 보정) + 15% 안전 마진
+      const SAFETY_MARGIN_RATIO = 1.15;
+      const fallbackInputTokens = Math.ceil((fullTextLen / 2) * SAFETY_MARGIN_RATIO);
+      const fallbackOutputTokens = SPLIT_MAX_OUTPUT_TOKENS;
+      estimatedCost = estimateCost(fallbackInputTokens, fallbackOutputTokens, fallbackPricing);
+      const budgetCheck = checkBudget(estimatedCost.estimatedTotalCostUsd, budgetUsdCap);
+      if (!budgetCheck.allowed) {
+        if (sessionId) {
+          try {
+            const historyStore = await getSplitHistoryStore();
+            historyStore.markNotSplit(sessionId, {
+              splitReason: "예산 초과로 분할이 중단되었습니다 (보수적 추정).",
+              provider: resolvedModelId.provider,
+              aiModel: resolvedModelId.model,
+              estimatedCostUsd: estimatedCost.estimatedTotalCostUsd,
+            });
+          } catch {
+            // history 에러가 402 응답을 차단하면 안 됨
           }
-          return c.json(
+        }
+        return {
+          earlyResponse: Response.json(
             {
               error: "BUDGET_EXCEEDED",
               estimatedCostUsd: budgetCheck.estimatedCostUsd,
@@ -308,74 +351,64 @@ app.post("/preview", async (c) => {
               provider: resolvedModelId.provider,
               model: resolvedModelId.model,
             },
-            402,
-          );
-        }
+            { status: 402 },
+          ),
+        };
       }
     }
+  }
 
-    const startTime = Date.now();
-    const aiResult = await requestCardSplit({ noteId, text, tags }, prompts, resolvedModelId);
-    const executionTimeMs = Date.now() - startTime;
+  return { prompts, estimatedCost, historyWarning };
+}
 
-    if (aiResult.shouldSplit && aiResult.splitCards.length > 1) {
-      const splitCards = aiResult.splitCards.map((card, idx) => ({
-        title: card.title,
-        content: card.content,
-        isMainCard: idx === aiResult.mainCardIndex,
-        cardType: card.cardType ?? detectCardType(card.content),
-        charCount: card.charCount,
-      }));
-
-      if (sessionId) {
-        try {
-          const historyStore = await getSplitHistoryStore();
-          historyStore.markGenerated(sessionId, {
-            splitCards: mapPreviewCards(splitCards),
-            aiResponse: aiResult as unknown as Record<string, unknown>,
-            splitReason: aiResult.splitReason,
-            executionTimeMs,
-            aiModel: aiResult.modelName,
-            provider: aiResult.provider,
-            tokenUsage: aiResult.tokenUsage,
-            estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
-            actualCostUsd: aiResult.actualCost?.totalCostUsd,
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          historyWarning = historyWarning
-            ? `${historyWarning}; ${message}`
-            : `히스토리 기록 실패: ${message}`;
-        }
+interface SplitExecutionInput {
+  noteId: number;
+  text: string;
+  tags: string[];
+  resolvedModelId: LLMModelId;
+  sessionId: string;
+  historyWarning: string | undefined;
+  prompts: { systemPrompt: string; splitPromptTemplate: string };
+  estimatedCost:
+    | {
+        estimatedInputCostUsd: number;
+        estimatedOutputCostUsd: number;
+        estimatedTotalCostUsd: number;
       }
+    | undefined;
+}
 
-      return c.json({
-        sessionId,
-        noteId,
-        originalText: text,
-        splitCards,
-        mainCardIndex: aiResult.mainCardIndex,
-        splitReason: aiResult.splitReason,
-        executionTimeMs,
-        tokenUsage: aiResult.tokenUsage,
-        aiModel: aiResult.modelName,
-        provider: aiResult.provider ?? "gemini",
-        estimatedCost,
-        actualCost: aiResult.actualCost,
-        ...(historyWarning && { historyWarning }),
-      });
-    }
+/**
+ * LLM 호출, 성공/불필요 응답 분기, 히스토리 기록
+ */
+async function executeSplitAndRecord(input: SplitExecutionInput): Promise<Record<string, unknown>> {
+  const { noteId, text, tags, resolvedModelId, sessionId, prompts, estimatedCost } = input;
+  let { historyWarning } = input;
+
+  const startTime = Date.now();
+  const aiResult = await requestCardSplit({ noteId, text, tags }, prompts, resolvedModelId);
+  const executionTimeMs = Date.now() - startTime;
+
+  if (aiResult.shouldSplit && aiResult.splitCards.length > 1) {
+    const splitCards = aiResult.splitCards.map((card, idx) => ({
+      title: card.title,
+      content: card.content,
+      isMainCard: idx === aiResult.mainCardIndex,
+      cardType: card.cardType ?? detectCardType(card.content),
+      charCount: card.charCount,
+    }));
 
     if (sessionId) {
       try {
         const historyStore = await getSplitHistoryStore();
-        historyStore.markNotSplit(sessionId, {
-          splitReason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+        historyStore.markGenerated(sessionId, {
+          splitCards: mapPreviewCards(splitCards),
+          aiResponse: aiResult as unknown as Record<string, unknown>,
+          splitReason: aiResult.splitReason,
           executionTimeMs,
           aiModel: aiResult.modelName,
           provider: aiResult.provider,
           tokenUsage: aiResult.tokenUsage,
-          aiResponse: aiResult as unknown as Record<string, unknown>,
           estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
           actualCostUsd: aiResult.actualCost?.totalCostUsd,
         });
@@ -387,10 +420,13 @@ app.post("/preview", async (c) => {
       }
     }
 
-    return c.json({
+    return {
       sessionId,
       noteId,
-      reason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+      originalText: text,
+      splitCards,
+      mainCardIndex: aiResult.mainCardIndex,
+      splitReason: aiResult.splitReason,
       executionTimeMs,
       tokenUsage: aiResult.tokenUsage,
       aiModel: aiResult.modelName,
@@ -398,7 +434,89 @@ app.post("/preview", async (c) => {
       estimatedCost,
       actualCost: aiResult.actualCost,
       ...(historyWarning && { historyWarning }),
+    };
+  }
+
+  if (sessionId) {
+    try {
+      const historyStore = await getSplitHistoryStore();
+      historyStore.markNotSplit(sessionId, {
+        splitReason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+        executionTimeMs,
+        aiModel: aiResult.modelName,
+        provider: aiResult.provider,
+        tokenUsage: aiResult.tokenUsage,
+        aiResponse: aiResult as unknown as Record<string, unknown>,
+        estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
+        actualCostUsd: aiResult.actualCost?.totalCostUsd,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      historyWarning = historyWarning
+        ? `${historyWarning}; ${message}`
+        : `히스토리 기록 실패: ${message}`;
+    }
+  }
+
+  return {
+    sessionId,
+    noteId,
+    reason: aiResult.splitReason || "분할이 필요하지 않다고 판단했습니다.",
+    executionTimeMs,
+    tokenUsage: aiResult.tokenUsage,
+    aiModel: aiResult.modelName,
+    provider: aiResult.provider ?? "gemini",
+    estimatedCost,
+    actualCost: aiResult.actualCost,
+    ...(historyWarning && { historyWarning }),
+  };
+}
+
+/**
+ * POST /api/split/preview
+ * 분할 미리보기
+ */
+app.post("/preview", async (c) => {
+  const body = await c.req.json<{
+    noteId: number;
+    versionId?: string;
+    deckName?: string;
+    provider?: string;
+    model?: string;
+    budgetUsdCap?: number;
+  }>();
+
+  let validated: ValidatedInput;
+  try {
+    validated = await validateAndResolveModel(body);
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      // API 키 미설정은 503, 나머지 검증 실패는 400
+      const status = e.message.includes("API 키") ? 503 : 400;
+      return c.json({ error: e.message }, status);
+    }
+    throw e;
+  }
+
+  const { resolvedModelId, sessionId } = validated;
+
+  try {
+    const promptResult = await resolvePromptsAndBudget(validated);
+    if ("earlyResponse" in promptResult) {
+      return promptResult.earlyResponse;
+    }
+
+    const result = await executeSplitAndRecord({
+      noteId: validated.noteId,
+      text: validated.text,
+      tags: validated.tags,
+      resolvedModelId,
+      sessionId,
+      historyWarning: promptResult.historyWarning,
+      prompts: promptResult.prompts,
+      estimatedCost: promptResult.estimatedCost,
     });
+    return c.json(result);
   } catch (error) {
     if (sessionId) {
       try {

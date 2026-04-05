@@ -7,27 +7,29 @@
 import {
   AlertTriangle,
   ArrowLeft,
-  CheckCircle,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
-  Clock,
   Copy,
-  Hash,
-  HelpCircle,
   Link2,
   Loader2,
-  Search,
   Shield,
   Sparkles,
-  Trash2,
-  XCircle,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { ActionPreview } from "../components/clinic/ActionPreview";
 import { AllInOnePanel } from "../components/clinic/AllInOnePanel";
+import { VALIDATION_TYPES } from "../components/clinic/clinic-constants";
+import { ClinicCardList } from "../components/clinic/ClinicCardList";
+import { ClinicOriginalCard } from "../components/clinic/ClinicOriginalCard";
+import {
+  ClinicStatusIcon,
+  STATUS_LABELS,
+  getStatusBg,
+  getSimilarityBadgeClass,
+} from "../components/clinic/ClinicStatusIcon";
+import { ClinicValidationPanel } from "../components/clinic/ClinicValidationPanel";
+import { ValidationSection } from "../components/clinic/ValidationSection";
 import { BottomSheet } from "../components/ui/bottom-sheet";
 import { Button } from "../components/ui/button";
 import { ModelBadge } from "../components/ui/model-badge";
@@ -45,95 +47,13 @@ import { useBatchClinicValidate, useClinicCache, useClinicValidate } from "../ho
 import { useDecks } from "../hooks/useDecks";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useModelSelection } from "../hooks/useModelSelection";
-import type { AllValidationResult, ValidationStatus } from "../lib/api";
+import type { AllValidationResult } from "../lib/api";
 import { cn } from "../lib/utils";
 import { startViewTransition } from "../lib/view-transition";
+import type { MobilePanel } from "../lib/workspace-types";
 
-type MobilePanel = "list" | "detail";
 type DetailTab = "validate" | "related";
-
-// --- 검증 상태 아이콘 ---
-function StatusIcon({
-  status,
-  size = "sm",
-}: {
-  status: ValidationStatus | null;
-  size?: "sm" | "md";
-}) {
-  const sizeClass = size === "sm" ? "w-4 h-4" : "w-5 h-5";
-
-  if (status === null) {
-    return <HelpCircle className={cn(sizeClass, "text-gray-300")} />;
-  }
-  switch (status) {
-    case "valid":
-      return <CheckCircle className={cn(sizeClass, "text-green-500")} />;
-    case "warning":
-      return <AlertTriangle className={cn(sizeClass, "text-yellow-500")} />;
-    case "error":
-      return <XCircle className={cn(sizeClass, "text-red-500")} />;
-    default:
-      return <HelpCircle className={cn(sizeClass, "text-gray-400")} />;
-  }
-}
-
-const STATUS_LABELS: Record<ValidationStatus, string> = {
-  valid: "검증 통과",
-  warning: "검토 필요",
-  error: "문제 발견",
-  unknown: "검증 불가",
-};
-
-function getSimilarityBadgeClass(similarity: number): string {
-  if (similarity >= 90) return "bg-red-100 text-red-700";
-  if (similarity >= 70) return "bg-yellow-100 text-yellow-700";
-  return "bg-gray-100 text-gray-700";
-}
-
-function getStatusBg(status: ValidationStatus): string {
-  switch (status) {
-    case "valid":
-      return "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800";
-    case "warning":
-      return "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800";
-    case "error":
-      return "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800";
-    default:
-      return "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700";
-  }
-}
-
-/** 카드 목록의 왼쪽 3px 색상 바 */
-function getStatusBorderColor(status: ValidationStatus | null): string {
-  switch (status) {
-    case "valid":
-      return "border-l-green-500";
-    case "warning":
-      return "border-l-yellow-500";
-    case "error":
-      return "border-l-red-500";
-    default:
-      return "border-l-gray-300";
-  }
-}
-
-// 6종 검증 유형 (yagni 추가)
-const VALIDATION_TYPES = [
-  { key: "factCheck", icon: CheckCircle, label: "팩트 체크" },
-  { key: "freshness", icon: Clock, label: "최신성 검사" },
-  { key: "similarity", icon: Copy, label: "유사성 검사" },
-  { key: "context", icon: Link2, label: "문맥 일관성" },
-  { key: "verbose", icon: Sparkles, label: "Verbose 감지" },
-  { key: "yagni", icon: Trash2, label: "YAGNI 감지" },
-] as const;
-
 type FilterMode = "all" | "unvalidated" | "needs-review";
-
-const FILTER_LABELS: Record<FilterMode, string> = {
-  all: "전체",
-  unvalidated: "미검증",
-  "needs-review": "검토 필요",
-};
 
 export function ClinicWorkspace() {
   const isMobile = useIsMobile("xl");
@@ -253,240 +173,7 @@ export function ClinicWorkspace() {
     batchValidate.mutate(unvalidated);
   };
 
-  // --- 검증 유형별 세부 내용 렌더러 ---
-  const renderValidationDetails = (
-    typeKey: string,
-    result: AllValidationResult["results"][keyof AllValidationResult["results"]],
-  ) => {
-    const details = result.details as Record<string, unknown>;
-
-    switch (typeKey) {
-      case "factCheck": {
-        const claims =
-          (details.claims as Array<{
-            claim: string;
-            isVerified: boolean;
-            confidence: number;
-            correction?: string;
-          }>) ?? [];
-        if (claims.length === 0) return null;
-        return (
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground mb-1">
-              정확도: {(details.overallAccuracy as number) ?? 0}%
-            </div>
-            {claims.map((claim, i) => (
-              <div key={`claim-${i}`} className="text-xs p-2 bg-background rounded">
-                <div className="flex items-start gap-2">
-                  {claim.isVerified ? (
-                    <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
-                  ) : (
-                    <XCircle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
-                  )}
-                  <div>
-                    <p>{claim.claim}</p>
-                    {claim.correction && (
-                      <p className="text-red-600 mt-1">수정: {claim.correction}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case "freshness": {
-        const items =
-          (details.outdatedItems as Array<{
-            content: string;
-            reason: string;
-            currentInfo?: string;
-            severity: string;
-          }>) ?? [];
-        if (items.length === 0) return null;
-        return (
-          <div className="space-y-1">
-            {items.map((item, i) => (
-              <div key={`fresh-${i}`} className="text-xs p-2 bg-background rounded">
-                <p className="font-medium">{item.content}</p>
-                <p className="text-muted-foreground">{item.reason}</p>
-                {item.currentInfo && (
-                  <p className="text-green-600 mt-1">현재: {item.currentInfo}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case "similarity": {
-        const similarCards =
-          (details.similarCards as Array<{
-            noteId: number;
-            similarity: number;
-            matchedContent: string;
-          }>) ?? [];
-        const method = details.method as string | undefined;
-        return (
-          <div className="space-y-1">
-            {method && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium mb-1",
-                  method === "embedding"
-                    ? "bg-purple-100 text-purple-700"
-                    : "bg-gray-100 text-gray-700",
-                )}
-              >
-                {method === "embedding" ? (
-                  <Sparkles className="w-3 h-3" />
-                ) : (
-                  <Hash className="w-3 h-3" />
-                )}
-                {method === "embedding" ? "임베딩" : "Jaccard"}
-              </span>
-            )}
-            {similarCards.length > 0 ? (
-              similarCards.map((card, i) => (
-                <div key={`sim-${card.noteId}-${i}`} className="text-xs p-2 bg-background rounded">
-                  <div className="flex justify-between items-start">
-                    <span className="font-mono">#{card.noteId}</span>
-                    <span
-                      className={cn(
-                        "px-1.5 py-0.5 rounded",
-                        getSimilarityBadgeClass(card.similarity),
-                      )}
-                    >
-                      {card.similarity}% 유사
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground mt-1 line-clamp-2">{card.matchedContent}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground">유사한 카드가 없습니다</p>
-            )}
-          </div>
-        );
-      }
-
-      case "context": {
-        const inconsistencies =
-          (details.inconsistencies as Array<{
-            description: string;
-            conflictingNoteId?: number;
-            severity: string;
-          }>) ?? [];
-        const relatedCards = (details.relatedCards as number[]) ?? [];
-        return (
-          <div className="space-y-1">
-            {relatedCards.length > 0 && (
-              <div className="text-xs text-muted-foreground mb-1">
-                연결된 카드: {relatedCards.length}개
-              </div>
-            )}
-            {inconsistencies.map((inc, i) => (
-              <div key={`inc-${i}`} className="text-xs p-2 bg-background rounded">
-                <div className="flex items-start gap-2">
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
-                      inc.severity === "high"
-                        ? "bg-red-100 text-red-700"
-                        : inc.severity === "medium"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-700",
-                    )}
-                  >
-                    {inc.severity === "high" ? "심각" : inc.severity === "medium" ? "주의" : "경미"}
-                  </span>
-                  {inc.conflictingNoteId && (
-                    <span className="font-mono text-muted-foreground">
-                      #{inc.conflictingNoteId}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1">{inc.description}</p>
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case "verbose": {
-        const concepts = (details.concepts as string[]) ?? [];
-        const recommendation = details.recommendation as string;
-        const conceptCount = (details.conceptCount as number) ?? 0;
-        const suggestedSplitCount = details.suggestedSplitCount as number | undefined;
-        return (
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="px-2 py-0.5 bg-muted rounded">개념 {conceptCount}개</span>
-              <span className="px-2 py-0.5 bg-muted rounded">
-                Cloze {(details.clozeCount as number) ?? 0}개
-              </span>
-              <span className="px-2 py-0.5 bg-muted rounded">
-                {(details.wordCount as number) ?? 0}자
-              </span>
-              {recommendation === "split" && suggestedSplitCount && (
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                  {suggestedSplitCount}장 분할 권장
-                </span>
-              )}
-            </div>
-            {concepts.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">감지된 개념:</p>
-                {concepts.map((concept, i) => (
-                  <div key={`concept-${i}`} className="text-xs p-2 bg-background rounded">
-                    {i + 1}. {concept}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      case "yagni": {
-        const isYagni = details.isYagni as boolean;
-        const reason = details.reason as string;
-        const affectedClozes = (details.affectedClozes as number[]) ?? [];
-        return (
-          <div className="space-y-2">
-            {isYagni ? (
-              <div className="flex items-start gap-2 text-xs">
-                <Trash2 className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-orange-700 dark:text-orange-400">{reason}</p>
-                  {affectedClozes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {affectedClozes.map((c) => (
-                        <span
-                          key={`yagni-c${c}`}
-                          className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-mono"
-                        >
-                          c{c}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">YAGNI Cloze가 감지되지 않았습니다</p>
-            )}
-          </div>
-        );
-      }
-
-      default:
-        return null;
-    }
-  };
-
-  // --- 검증 결과 섹션 렌더러 ---
+  // --- 검증 결과 섹션 렌더러 (모바일 인라인용) ---
   const renderValidationSection = (
     typeKey: string,
     icon: React.ElementType,
@@ -494,370 +181,44 @@ export function ClinicWorkspace() {
     result: AllValidationResult["results"][keyof AllValidationResult["results"]] | undefined,
   ) => {
     if (!result) return null;
-    const Icon = icon;
-    const isExpanded = expandedSections.has(typeKey);
-
     return (
-      <div key={typeKey} className="border rounded-lg overflow-hidden">
-        <button
-          type="button"
-          className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition"
-          onClick={() => toggleSection(typeKey)}
-        >
-          <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4" />
-            <span className="font-medium text-sm">{label}</span>
-            <StatusIcon status={result.status} />
-          </div>
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-        {isExpanded && (
-          <div className="p-3 border-t bg-muted/30 text-sm">
-            <p className="mb-2">{result.message}</p>
-            {renderValidationDetails(typeKey, result)}
-          </div>
-        )}
-      </div>
+      <ValidationSection
+        key={typeKey}
+        isExpanded={expandedSections.has(typeKey)}
+        onToggle={() => toggleSection(typeKey)}
+        typeKey={typeKey}
+        icon={icon}
+        label={label}
+        result={result}
+      />
     );
   };
 
-  // --- 카드 목록 패널 ---
-  const renderCardList = () => (
-    <>
-      {/* 필터 + 검색 */}
-      <div className="py-3 px-4 border-b shrink-0 space-y-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="카드 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md">
-          {(Object.keys(FILTER_LABELS) as FilterMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setFilterMode(mode)}
-              className={cn(
-                "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
-                filterMode === mode
-                  ? "bg-background shadow-sm font-medium"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {FILTER_LABELS[mode]}
-              {mode === "needs-review" && issueCount > 0 && (
-                <span className="ml-1 text-red-500">({issueCount})</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* 카드 리스트 */}
-      <div className="flex-1 overflow-y-auto">
-        {isLoadingCards ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin" />
-          </div>
-        ) : filteredCards.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            {searchQuery ? "검색 결과가 없습니다" : "카드가 없습니다"}
-          </div>
-        ) : (
-          <div className="divide-y">
-            {filteredCards.map((card) => {
-              const status = validationStatuses.get(card.noteId) ?? null;
-              return (
-                <button
-                  type="button"
-                  key={card.noteId}
-                  onClick={() => handleSelectCard(card.noteId)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 hover:bg-muted transition-colors border-l-[3px]",
-                    getStatusBorderColor(status),
-                    selectedNoteId === card.noteId && "bg-primary/10",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <StatusIcon status={status} />
-                        <p className="text-sm font-medium truncate">{card.noteId}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {card.text.slice(0, 60)}
-                        {card.text.length > 60 ? "..." : ""}
-                      </p>
-                    </div>
-                    {card.analysis.clozeCount > 0 && (
-                      <span className="shrink-0 text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
-                        C{card.analysis.clozeCount}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </>
-  );
+  const cardListProps = {
+    searchQuery,
+    onSearchQueryChange: setSearchQuery,
+    filterMode,
+    onFilterModeChange: setFilterMode,
+    issueCount,
+    isLoadingCards,
+    filteredCards,
+    validationStatuses,
+    selectedNoteId,
+    onSelectCard: handleSelectCard,
+  };
 
-  // --- 원본 카드 + 수정 미리보기 패널 ---
-  const renderOriginalCard = () => (
-    <>
-      {!isMobile && (
-        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-          <span className="text-sm font-semibold">원본 카드</span>
-          {selectedNoteId && (
-            <span className="text-xs text-muted-foreground">NID: {selectedNoteId}</span>
-          )}
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto py-4">
-        {selectedNoteId ? (
-          isLoadingDetail ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : isDetailError ? (
-            <div className="flex flex-col items-center justify-center h-full text-destructive">
-              <AlertTriangle className="w-8 h-8 mb-3" />
-              <span className="font-medium mb-2">카드 상세 조회 실패</span>
-              {detailError && (
-                <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
-                  {detailError instanceof Error ? detailError.message : String(detailError)}
-                </p>
-              )}
-              <Button onClick={() => refetchDetail()} variant="outline" size="sm" className="mt-3">
-                다시 시도
-              </Button>
-            </div>
-          ) : (
-            <>
-              <ContentRenderer
-                content={cardDetail?.text || ""}
-                showToggle={true}
-                defaultView="rendered"
-              />
-              {/* 수정 미리보기 (ActionPreview) */}
-              <ActionPreview
-                cardContent={cardDetail?.text || ""}
-                validationResults={currentValidation?.results}
-              />
-            </>
-          )
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center">
-              <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>왼쪽에서 카드를 선택하세요</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  // --- 검증 결과 패널 ---
-  const renderValidationPanel = () => {
-    const cachedResult = currentValidation;
-    const isValidating = validateCard.isPending;
-
-    return (
-      <div className="flex flex-col min-h-0 h-full">
-        {!isMobile && (
-          <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-            <span className="text-sm font-semibold">검증 결과</span>
-            {selectedNoteId && (
-              <Button size="sm" onClick={handleValidateSelected} disabled={isValidating}>
-                {isValidating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    검증 중...
-                  </>
-                ) : cachedResult ? (
-                  "재검증"
-                ) : (
-                  "검증 시작"
-                )}
-              </Button>
-            )}
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {!selectedNoteId ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">카드를 선택하면 검증 결과가 표시됩니다</p>
-            </div>
-          ) : isValidating && !cachedResult ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : cachedResult?.results ? (
-            <>
-              {/* 전체 상태 */}
-              <div
-                className={cn(
-                  "p-3 rounded-lg border flex items-center gap-3",
-                  getStatusBg(cachedResult.status),
-                )}
-              >
-                <StatusIcon status={cachedResult.status} size="md" />
-                <div>
-                  <p className="font-medium">{STATUS_LABELS[cachedResult.status]}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(cachedResult.validatedAt).toLocaleString("ko-KR")}
-                  </p>
-                </div>
-                {isValidating && <Loader2 className="w-4 h-4 animate-spin ml-auto" />}
-              </div>
-
-              {/* 서브탭: 검증 / 연관 */}
-              <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md">
-                <button
-                  type="button"
-                  onClick={() => setDetailTab("validate")}
-                  className={cn(
-                    "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
-                    detailTab === "validate"
-                      ? "bg-background shadow-sm font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Shield className="w-3 h-3 inline mr-1" />
-                  검증
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDetailTab("related")}
-                  className={cn(
-                    "flex-1 text-xs px-2 py-1.5 rounded transition-colors",
-                    detailTab === "related"
-                      ? "bg-background shadow-sm font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Link2 className="w-3 h-3 inline mr-1" />
-                  연관
-                </button>
-              </div>
-
-              {detailTab === "validate" ? (
-                // 6종 검증 결과
-                <div className="space-y-2">
-                  {VALIDATION_TYPES.map(({ key, icon, label }) =>
-                    renderValidationSection(
-                      key,
-                      icon,
-                      label,
-                      cachedResult.results![key as keyof NonNullable<typeof cachedResult.results>],
-                    ),
-                  )}
-                </div>
-              ) : (
-                // 연관 노트 탭
-                <div className="space-y-3">
-                  {/* 유사 카드 */}
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                      <Copy className="w-4 h-4" />
-                      유사 카드
-                    </h3>
-                    {cachedResult.results!.similarity?.details.similarCards.length > 0 ? (
-                      <div className="space-y-1">
-                        {cachedResult.results!.similarity.details.similarCards.map((card, i) => (
-                          <button
-                            type="button"
-                            key={`related-${card.noteId}-${i}`}
-                            onClick={() => handleSelectCard(card.noteId)}
-                            className="w-full text-left text-xs p-2 bg-background rounded border hover:bg-muted transition-colors"
-                          >
-                            <div className="flex justify-between items-start">
-                              <span className="font-mono">#{card.noteId}</span>
-                              <span
-                                className={cn(
-                                  "px-1.5 py-0.5 rounded",
-                                  card.similarity >= 90
-                                    ? "bg-red-100 text-red-700"
-                                    : card.similarity >= 70
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-gray-100 text-gray-700",
-                                )}
-                              >
-                                {card.similarity}%
-                              </span>
-                            </div>
-                            <p className="text-muted-foreground mt-1 line-clamp-2">
-                              {card.matchedContent}
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground p-3 bg-muted rounded">
-                        유사한 카드가 없습니다
-                      </p>
-                    )}
-                  </div>
-                  {/* 문맥 관련 카드 */}
-                  {cachedResult.results!.context?.details.relatedCards.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                        <Link2 className="w-4 h-4" />
-                        문맥 연결 카드
-                      </h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {cachedResult.results!.context.details.relatedCards.map((nid) => (
-                          <button
-                            type="button"
-                            key={`ctx-${nid}`}
-                            onClick={() => handleSelectCard(nid)}
-                            className="text-xs font-mono px-2 py-1 bg-background border rounded hover:bg-muted transition-colors"
-                          >
-                            #{nid}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            // 미검증 상태 — 검증 시작 CTA
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <Shield className="w-12 h-12 mb-4 text-blue-400" />
-              <p className="text-center mb-4">
-                6종 검증으로 카드 건강을 진단합니다.
-                <br />
-                <span className="text-xs">API 비용이 발생할 수 있습니다.</span>
-              </p>
-              <Button onClick={handleValidateSelected} disabled={isValidating}>
-                <Shield className="w-4 h-4 mr-2" />
-                검증 시작
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* All-in-One Panel (우측 패널 하단 고정) */}
-        {selectedNoteId && activeDeck && cardDetail?.text && currentValidation?.results && (
-          <AllInOnePanel
-            cardContent={cardDetail.text}
-            noteId={selectedNoteId}
-            deckName={activeDeck}
-            validationResults={currentValidation.results}
-          />
-        )}
-      </div>
-    );
+  const validationPanelProps = {
+    selectedNoteId,
+    activeDeck,
+    cardDetailText: cardDetail?.text,
+    currentValidation,
+    isValidating: validateCard.isPending,
+    detailTab,
+    onDetailTabChange: setDetailTab,
+    expandedSections,
+    onToggleSection: toggleSection,
+    onValidateSelected: handleValidateSelected,
+    onSelectCard: handleSelectCard,
   };
 
   // 높이: 모바일 dvh-5rem, 데스크톱 vh-4rem (Layout 기준)
@@ -1054,7 +415,7 @@ export function ClinicWorkspace() {
               key="list"
               className="vt-list flex-1 flex flex-col min-h-0 animate-in fade-in-0 slide-in-from-left-2 duration-200"
             >
-              {renderCardList()}
+              <ClinicCardList {...cardListProps} />
               {/* 모바일 배치 검증 */}
               {unvalidatedCount2 > 0 && (
                 <div className="px-4 py-3 border-t shrink-0">
@@ -1197,7 +558,7 @@ export function ClinicWorkspace() {
                             getStatusBg(currentValidation.status),
                           )}
                         >
-                          <StatusIcon status={currentValidation.status} size="md" />
+                          <ClinicStatusIcon status={currentValidation.status} size="md" />
                           <div>
                             <p className="font-medium">{STATUS_LABELS[currentValidation.status]}</p>
                             <p className="text-xs text-muted-foreground">
@@ -1317,11 +678,25 @@ export function ClinicWorkspace() {
         // 데스크톱: 3패널 레이아웃 — border-l dividers ("island" 제거)
         <div className="flex-1 grid grid-cols-[280px_1fr_360px] min-h-0 border rounded-lg overflow-hidden">
           {/* 좌측: 카드 목록 */}
-          <div className="flex flex-col min-h-0">{renderCardList()}</div>
+          <div className="flex flex-col min-h-0">
+            <ClinicCardList {...cardListProps} />
+          </div>
           {/* 가운데: 원본 카드 + 수정 미리보기 */}
-          <div className="flex flex-col min-h-0 border-l">{renderOriginalCard()}</div>
+          <div className="flex flex-col min-h-0 border-l">
+            <ClinicOriginalCard
+              selectedNoteId={selectedNoteId}
+              isLoadingDetail={isLoadingDetail}
+              isDetailError={isDetailError}
+              detailError={detailError}
+              refetchDetail={refetchDetail}
+              cardDetailText={cardDetail?.text}
+              validationResults={currentValidation?.results}
+            />
+          </div>
           {/* 우측: 검증 결과 + All-in-One */}
-          <div className="flex flex-col min-h-0 border-l">{renderValidationPanel()}</div>
+          <div className="flex flex-col min-h-0 border-l">
+            <ClinicValidationPanel {...validationPanelProps} />
+          </div>
         </div>
       )}
     </div>

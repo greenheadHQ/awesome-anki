@@ -114,33 +114,35 @@ export * from "./llm/index.js";
 // Parser exports
 export * from "./parser/index.js";
 export {
-  // Analysis
-  analyzeFailurePatterns,
-  clearRemoteSystemPromptPayload,
-  completeExperiment,
-  // Experiments
-  createExperiment,
   createVersion as createPromptVersion,
   deleteVersion as deletePromptVersion,
   getActivePrompts,
-  // Active version
   getActiveVersion,
-  getExperiment,
-  getRemoteSystemPromptPayload,
   getVersion as getPromptVersion,
-  listExperiments,
-  // Version management (renamed to avoid conflict with anki/client.ts getVersion)
   listVersions as listPromptVersions,
-  migrateLegacySystemPromptToRemoteIfNeeded,
-  type PromptMetricsEvent,
-  parseRemoteSystemPromptPayload,
-  type RemoteSystemPromptPayload,
-  recordPromptMetricsEvent,
-  SYSTEM_PROMPT_CONFIG_KEY,
   saveVersion as savePromptVersion,
   setActiveVersion,
-  setRemoteSystemPromptPayload,
 } from "./prompt-version/storage.js";
+export {
+  createExperiment,
+  completeExperiment,
+  getExperiment,
+  listExperiments,
+} from "./prompt-version/experiments.js";
+export {
+  analyzeFailurePatterns,
+  type PromptMetricsEvent,
+  recordPromptMetricsEvent,
+} from "./prompt-version/analytics.js";
+export {
+  clearRemoteSystemPromptPayload,
+  getRemoteSystemPromptPayload,
+  parseRemoteSystemPromptPayload,
+  type RemoteSystemPromptPayload,
+  setRemoteSystemPromptPayload,
+  SYSTEM_PROMPT_CONFIG_KEY,
+} from "./prompt-version/remote-prompt.js";
+export { migrateLegacySystemPromptToRemoteIfNeeded } from "./prompt-version/migration.js";
 // Prompt Version exports (명시적 export - getVersion 충돌 방지)
 export {
   type ActiveVersionInfo,
