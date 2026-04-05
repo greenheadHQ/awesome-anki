@@ -35,6 +35,7 @@ curl -s https://<서버>/api/prompts/system | jq .
 ```
 
 응답에서 `revision` 값을 확인한다 (CAS에 필요).
+404가 반환되면 원격이 미초기화 상태이며, `expectedRevision: 0`으로 최초 POST를 수행한다.
 
 ### Step 2: 새 프롬프트 푸시
 
