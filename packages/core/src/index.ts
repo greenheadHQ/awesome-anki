@@ -142,9 +142,7 @@ export {
   setRemoteSystemPromptPayload,
   SYSTEM_PROMPT_CONFIG_KEY,
 } from "./prompt-version/remote-prompt.js";
-export {
-  migrateLegacySystemPromptToRemoteIfNeeded,
-} from "./prompt-version/migration.js";
+export { migrateLegacySystemPromptToRemoteIfNeeded } from "./prompt-version/migration.js";
 // Prompt Version exports (명시적 export - getVersion 충돌 방지)
 export {
   type ActiveVersionInfo,

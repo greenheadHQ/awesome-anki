@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { parseRemoteSystemPromptPayload } from "../prompt-version/storage.js";
+import { parseRemoteSystemPromptPayload } from "../prompt-version/remote-prompt.js";
 
 describe("parseRemoteSystemPromptPayload", () => {
   test("유효한 객체 payload를 파싱한다", () => {

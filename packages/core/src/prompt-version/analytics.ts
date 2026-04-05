@@ -4,8 +4,8 @@
 
 // NOTE: countCardChars는 순수 텍스트 유틸리티. gemini 모듈에 위치하지만 순환 의존 아님.
 import { countCardChars } from "../gemini/cloze-enhancer.js";
-import type { ModificationPatterns, SplitHistoryEntry } from "./types.js";
 import { getVersion, saveVersion } from "./storage.js";
+import type { ModificationPatterns, SplitHistoryEntry } from "./types.js";
 
 export interface PromptMetricsEvent {
   promptVersionId: string;
