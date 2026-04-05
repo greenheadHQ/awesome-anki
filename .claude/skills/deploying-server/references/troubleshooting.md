@@ -89,6 +89,36 @@ podman pull ghcr.io/greenheadhq/awesome-anki:sha-<이전커밋>
 systemctl restart podman-awesome-anki
 ```
 
+## 사후보고서
+
+### 2026-04-05: chalk 유령 의존성으로 배포 crash (Severity: P1)
+
+**증상**: 컨테이너 즉시 crash, `error: Cannot find package 'chalk' from '/app/packages/core/src/utils/diff-viewer.ts'`
+
+**원인**:
+1. #122에서 `diff-viewer.ts`의 CLI 함수 3개를 삭제했으나, 파일에 남은 `createLineDiff`/`createWordDiff`가 `chalk`를 import
+2. `chalk`는 루트 `package.json`의 `dependencies`에서 제거됨
+3. 로컬에서는 hoisted `node_modules`에 `chalk`가 남아있어 typecheck/lint/test/build 모두 통과
+4. Docker `bun install --frozen-lockfile`은 깨끗한 환경이므로 `chalk` 미설치 → 런타임 crash
+
+**타임라인**:
+- 16:42 — GHA 빌드 완료, 이전 이미지(`55b8de7`) push
+- 16:45 — auto-update가 새 이미지 적용 → crash loop (5회 재시도 후 failed)
+- 16:45 — Pushover 헬스체크 실패 알림 수신
+- 16:50 — hotfix(`f750b77`): `diff-viewer.ts` 전체 삭제 + `chalk`/`diff` core에서도 제거
+- 16:53 — GHA 빌드 완료, 새 이미지 push
+- 16:55 — 수동 `podman rmi -af` + fresh pull → 서버 복구
+
+**복구 시간**: ~10분 (알림 → 복구)
+
+**근본 원인**: 의존성 제거 시 "로컬 hoisted node_modules"와 "Docker 클린 환경" 간 차이를 검증하는 안전장치 부재
+
+**재발 방지**:
+1. CI에 container smoke test 추가 — 이미지 빌드 후 실제 실행 + 헬스체크 통과해야 push (`publish.yml`)
+2. pre-push에 유령 의존성 검사 스크립트 추가 — import가 있는데 package.json에 없는 패키지 탐지 (`.claude/scripts/check-phantom-deps.sh`)
+
+**교훈**: Bun이 TypeScript를 직접 실행하므로 `tsc` 컴파일이 없고, hoisted deps 때문에 `bun install`만으로는 누락을 감지할 수 없다. Docker 환경에서의 실행이 유일한 진실.
+
 ## AnkiConnect 연결 문제
 
 ### AnkiConnect가 응답하지 않음

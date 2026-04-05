@@ -19,3 +19,5 @@ pre-push:
       run: bun run typecheck
     test:
       run: bun run test
+    phantom-deps:
+      run: .claude/scripts/check-phantom-deps.sh packages/core packages/server
