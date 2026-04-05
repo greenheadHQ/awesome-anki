@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Copy, Link2, Loader2, Shield, Sparkles, Trash2 } from "lucide-react";
+import { Copy, Link2, Loader2, Shield } from "lucide-react";
 
 import type { AllValidationResult, ValidationStatus } from "../../lib/api";
 import { cn } from "../../lib/utils";
@@ -7,15 +7,7 @@ import { AllInOnePanel } from "./AllInOnePanel";
 import { ClinicStatusIcon, STATUS_LABELS, getStatusBg } from "./ClinicStatusIcon";
 import { ValidationSection } from "./ValidationSection";
 
-// 6종 검증 유형 (yagni 추가)
-const VALIDATION_TYPES = [
-  { key: "factCheck", icon: CheckCircle, label: "팩트 체크" },
-  { key: "freshness", icon: Clock, label: "최신성 검사" },
-  { key: "similarity", icon: Copy, label: "유사성 검사" },
-  { key: "context", icon: Link2, label: "문맥 일관성" },
-  { key: "verbose", icon: Sparkles, label: "Verbose 감지" },
-  { key: "yagni", icon: Trash2, label: "YAGNI 감지" },
-] as const;
+import { VALIDATION_TYPES } from "./clinic-constants";
 
 type DetailTab = "validate" | "related";
 
@@ -27,7 +19,6 @@ interface CachedValidationShape {
 }
 
 interface ClinicValidationPanelProps {
-  isMobile: boolean;
   selectedNoteId: number | null;
   activeDeck: string | null;
   cardDetailText: string | undefined;
@@ -43,7 +34,6 @@ interface ClinicValidationPanelProps {
 
 /** 검증 결과 패널 */
 export function ClinicValidationPanel({
-  isMobile,
   selectedNoteId,
   activeDeck,
   cardDetailText,
@@ -60,25 +50,23 @@ export function ClinicValidationPanel({
 
   return (
     <div className="flex flex-col min-h-0 h-full">
-      {!isMobile && (
-        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-          <span className="text-sm font-semibold">검증 결과</span>
-          {selectedNoteId && (
-            <Button size="sm" onClick={onValidateSelected} disabled={isValidating}>
-              {isValidating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  검증 중...
-                </>
-              ) : cachedResult ? (
-                "재검증"
-              ) : (
-                "검증 시작"
-              )}
-            </Button>
-          )}
-        </div>
-      )}
+      <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
+        <span className="text-sm font-semibold">검증 결과</span>
+        {selectedNoteId && (
+          <Button size="sm" onClick={onValidateSelected} disabled={isValidating}>
+            {isValidating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                검증 중...
+              </>
+            ) : cachedResult ? (
+              "재검증"
+            ) : (
+              "검증 시작"
+            )}
+          </Button>
+        )}
+      </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {!selectedNoteId ? (
           <div className="text-center py-6 text-muted-foreground">

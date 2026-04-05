@@ -7,15 +7,12 @@
 import {
   AlertTriangle,
   ArrowLeft,
-  CheckCircle,
   ChevronRight,
-  Clock,
   Copy,
   Link2,
   Loader2,
   Shield,
   Sparkles,
-  Trash2,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
@@ -57,15 +54,7 @@ import { startViewTransition } from "../lib/view-transition";
 type DetailTab = "validate" | "related";
 type FilterMode = "all" | "unvalidated" | "needs-review";
 
-// 6종 검증 유형 (yagni 추가)
-const VALIDATION_TYPES = [
-  { key: "factCheck", icon: CheckCircle, label: "팩트 체크" },
-  { key: "freshness", icon: Clock, label: "최신성 검사" },
-  { key: "similarity", icon: Copy, label: "유사성 검사" },
-  { key: "context", icon: Link2, label: "문맥 일관성" },
-  { key: "verbose", icon: Sparkles, label: "Verbose 감지" },
-  { key: "yagni", icon: Trash2, label: "YAGNI 감지" },
-] as const;
+import { VALIDATION_TYPES } from "../components/clinic/clinic-constants";
 
 export function ClinicWorkspace() {
   const isMobile = useIsMobile("xl");
@@ -220,7 +209,6 @@ export function ClinicWorkspace() {
   };
 
   const validationPanelProps = {
-    isMobile,
     selectedNoteId,
     activeDeck,
     cardDetailText: cardDetail?.text,
@@ -697,7 +685,6 @@ export function ClinicWorkspace() {
           {/* 가운데: 원본 카드 + 수정 미리보기 */}
           <div className="flex flex-col min-h-0 border-l">
             <ClinicOriginalCard
-              isMobile={isMobile}
               selectedNoteId={selectedNoteId}
               isLoadingDetail={isLoadingDetail}
               isDetailError={isDetailError}

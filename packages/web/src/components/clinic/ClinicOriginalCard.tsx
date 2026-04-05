@@ -6,7 +6,6 @@ import { ActionPreview } from "./ActionPreview";
 import { Button } from "../ui/button";
 
 interface ClinicOriginalCardProps {
-  isMobile: boolean;
   selectedNoteId: number | null;
   isLoadingDetail: boolean;
   isDetailError: boolean;
@@ -18,7 +17,6 @@ interface ClinicOriginalCardProps {
 
 /** 원본 카드 + 수정 미리보기 패널 */
 export function ClinicOriginalCard({
-  isMobile,
   selectedNoteId,
   isLoadingDetail,
   isDetailError,
@@ -29,14 +27,12 @@ export function ClinicOriginalCard({
 }: ClinicOriginalCardProps) {
   return (
     <>
-      {!isMobile && (
-        <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
-          <span className="text-sm font-semibold">원본 카드</span>
-          {selectedNoteId && (
-            <span className="text-xs text-muted-foreground">NID: {selectedNoteId}</span>
-          )}
-        </div>
-      )}
+      <div className="py-3 px-4 border-b shrink-0 flex items-center justify-between">
+        <span className="text-sm font-semibold">원본 카드</span>
+        {selectedNoteId && (
+          <span className="text-xs text-muted-foreground">NID: {selectedNoteId}</span>
+        )}
+      </div>
       <div className="flex-1 overflow-y-auto py-4">
         {selectedNoteId ? (
           isLoadingDetail ? (
