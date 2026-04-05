@@ -10,7 +10,7 @@ import { getConfig, setConfig } from "../anki/client.js";
 import { AnkiConnectError } from "../errors.js";
 // NOTE: countCardChars는 순수 텍스트 유틸리티. gemini 모듈에 위치하지만 순환 의존 아님.
 import { countCardChars } from "../gemini/cloze-enhancer.js";
-import { atomicWriteFile, withFileMutex } from "../utils/atomic-write.js";
+import { atomicWriteFile } from "../utils/atomic-write.js";
 import type {
   ActiveVersionInfo,
   Experiment,
@@ -22,7 +22,6 @@ import type {
 // 기본 경로 (프로젝트 루트 기준)
 const BASE_PATH = join(process.cwd(), "output", "prompts");
 const VERSIONS_PATH = join(BASE_PATH, "versions");
-const HISTORY_PATH = join(BASE_PATH, "history");
 const EXPERIMENTS_PATH = join(BASE_PATH, "experiments");
 const ACTIVE_VERSION_FILE = join(BASE_PATH, "active-version.json");
 export const SYSTEM_PROMPT_CONFIG_KEY = "awesomeAnki.prompts.system";
@@ -416,14 +415,6 @@ export async function migrateLegacySystemPromptToRemoteIfNeeded(): Promise<Syste
 // 히스토리 관리
 // ============================================================================
 
-/**
- * 히스토리 파일명 생성 (날짜별)
- */
-function getHistoryFileName(date: Date = new Date()): string {
-  const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
-  return `history-${dateStr}.json`;
-}
-
 export interface PromptMetricsEvent {
   promptVersionId: string;
   userAction: "approved" | "modified" | "rejected";
@@ -436,41 +427,6 @@ export interface PromptMetricsEvent {
   }>;
   modificationDetails?: SplitHistoryEntry["modificationDetails"];
   timestamp?: string;
-}
-
-/**
- * 히스토리 항목 추가
- */
-export async function addHistoryEntry(
-  entry: Omit<SplitHistoryEntry, "id">,
-): Promise<SplitHistoryEntry> {
-  await ensureDir(HISTORY_PATH);
-
-  const fileName = getHistoryFileName();
-  const filePath = join(HISTORY_PATH, fileName);
-
-  // 파일 뮤텍스로 동시 쓰기 직렬화
-  const newEntry = await withFileMutex(filePath, async () => {
-    let history: SplitHistoryEntry[] = [];
-    if (existsSync(filePath)) {
-      const content = await readFile(filePath, "utf-8");
-      history = JSON.parse(content);
-    }
-
-    const created: SplitHistoryEntry = {
-      ...entry,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-
-    history.push(created);
-    await atomicWriteFile(filePath, JSON.stringify(history, null, 2));
-    return created;
-  });
-
-  // 해당 버전의 메트릭 업데이트
-  await updateVersionMetrics(entry.promptVersionId, newEntry);
-
-  return newEntry;
 }
 
 /**
@@ -500,45 +456,6 @@ export async function recordPromptMetricsEvent(event: PromptMetricsEvent): Promi
   };
 
   await updateVersionMetrics(event.promptVersionId, entry);
-}
-
-/**
- * 히스토리 조회 (날짜 범위)
- */
-export async function getHistory(startDate?: Date, endDate?: Date): Promise<SplitHistoryEntry[]> {
-  await ensureDir(HISTORY_PATH);
-
-  const files = await readdir(HISTORY_PATH);
-  const allEntries: SplitHistoryEntry[] = [];
-
-  for (const file of files) {
-    if (!file.startsWith("history-") || !file.endsWith(".json")) continue;
-
-    // 날짜 필터링
-    const dateMatch = file.match(/history-(\d{4}-\d{2}-\d{2})\.json/);
-    if (!dateMatch) continue;
-
-    const fileDate = new Date(dateMatch[1]);
-    if (startDate && fileDate < startDate) continue;
-    if (endDate && fileDate > endDate) continue;
-
-    const content = await readFile(join(HISTORY_PATH, file), "utf-8");
-    const entries = JSON.parse(content) as SplitHistoryEntry[];
-    allEntries.push(...entries);
-  }
-
-  // 최신순 정렬
-  return allEntries.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-  );
-}
-
-/**
- * 버전별 히스토리 조회
- */
-export async function getHistoryByVersion(versionId: string): Promise<SplitHistoryEntry[]> {
-  const allHistory = await getHistory();
-  return allHistory.filter((entry) => entry.promptVersionId === versionId);
 }
 
 // ============================================================================
@@ -695,9 +612,9 @@ export async function completeExperiment(
   const experiment = await getExperiment(experimentId);
   if (!experiment) return;
 
-  // 결과 계산 (히스토리 기반)
-  const controlHistory = await getHistoryByVersion(experiment.controlVersionId);
-  const treatmentHistory = await getHistoryByVersion(experiment.treatmentVersionId);
+  // 레거시 JSON 히스토리 제거됨 — SQLite 기반 조회로 전환 필요 (#122)
+  const controlHistory: SplitHistoryEntry[] = [];
+  const treatmentHistory: SplitHistoryEntry[] = [];
 
   experiment.controlResults = {
     splitCount: controlHistory.length,

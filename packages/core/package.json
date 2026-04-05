@@ -23,7 +23,6 @@
   "dependencies": {
     "@google/genai": "^1.0.0",
     "diff": "^5.2.0",
-    "dotenv": "^16.4.0",
     "openai": "^6.0.0",
     "zod": "^3.23.0"
   },
