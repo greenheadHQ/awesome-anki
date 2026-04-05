@@ -67,6 +67,7 @@ bun run dev          # 서버(:3000) + 웹(:5173) 동시 실행 (프록시는 �
 | TODO 뭐 남았어, 미구현 기능, 기술 부채, 다음에 뭐 해 | `tracking-todo` |
 | 스킬 감사, 스킬 점검, 문서 오래됐어, 스킬 최신화 | `checking-freshness` |
 | 서버 배포, 컨테이너 재시작, MiniPC, nixos-rebuild, Caddy | `deploying-server` |
+| 프롬프트 업데이트, 원격 프롬프트, 프롬프트 동기화, 프롬프트 푸시 | `syncing-prompts` |
 
 ## 세션 규칙
 

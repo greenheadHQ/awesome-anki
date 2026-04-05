@@ -7,6 +7,10 @@
 // ============================================================================
 // SYSTEM_PROMPT
 // ============================================================================
+// ⚠️ FALLBACK ONLY — 이 값은 원격 DB(AnkiConnect config)에 systemPrompt가
+// 없을 때의 폴백으로만 사용된다. 실제 런타임에서는 원격 값이 우선한다.
+// 프롬프트를 업데이트하려면 POST /api/prompts/system API를 호출할 것.
+// 참조: .claude/skills/syncing-prompts/SKILL.md
 
 export const SYSTEM_PROMPT = `당신은 **SuperMemo's Twenty Rules** 전체를 숙지한 카드 설계 전문가입니다.
 복잡한 개념을 학습 효율이 높은 카드로 분할하되, **Anki 복습 시 카드만 보고도 100% 이해 가능**하도록 맥락을 보존합니다.
