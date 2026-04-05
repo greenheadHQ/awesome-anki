@@ -10,8 +10,8 @@ import { join, resolve } from "node:path";
 
 import type { SplitHistoryEntry } from "@anki-splitter/core";
 
-import type { HistoryStatus } from "./types.js";
 import { hasMigration, markMigration } from "./schema-migrations.js";
+import type { HistoryStatus } from "./types.js";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
 const LEGACY_HISTORY_PATH = join(REPO_ROOT, "output", "prompts", "history");

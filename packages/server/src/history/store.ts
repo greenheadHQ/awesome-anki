@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 
+import { importLegacyJsonOnce } from "./legacy-import.js";
+import { applyAllSchemaMigrations } from "./schema-migrations.js";
 import type {
   CreateSessionInput,
   HistoryListQuery,
@@ -18,8 +20,6 @@ import type {
   SplitSessionListItem,
   TokenUsage,
 } from "./types.js";
-import { applyAllSchemaMigrations } from "./schema-migrations.js";
-import { importLegacyJsonOnce } from "./legacy-import.js";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
 const DEFAULT_DB_PATH = join(REPO_ROOT, "data", "split-history.db");
