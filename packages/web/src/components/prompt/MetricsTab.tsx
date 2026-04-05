@@ -1,14 +1,7 @@
 import type { PromptVersion } from "../../lib/api";
 import { cn } from "../../lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { MetricCard } from "./MetricCard";
 
 export interface MetricsTabProps {

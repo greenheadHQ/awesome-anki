@@ -64,9 +64,7 @@ export function ValidationDetails({ typeKey, result }: ValidationDetailsProps) {
             <div key={`fresh-${i}`} className="text-xs p-2 bg-background rounded">
               <p className="font-medium">{item.content}</p>
               <p className="text-muted-foreground">{item.reason}</p>
-              {item.currentInfo && (
-                <p className="text-green-600 mt-1">현재: {item.currentInfo}</p>
-              )}
+              {item.currentInfo && <p className="text-green-600 mt-1">현재: {item.currentInfo}</p>}
             </div>
           ))}
         </div>
@@ -155,9 +153,7 @@ export function ValidationDetails({ typeKey, result }: ValidationDetailsProps) {
                   {inc.severity === "high" ? "심각" : inc.severity === "medium" ? "주의" : "경미"}
                 </span>
                 {inc.conflictingNoteId && (
-                  <span className="font-mono text-muted-foreground">
-                    #{inc.conflictingNoteId}
-                  </span>
+                  <span className="font-mono text-muted-foreground">#{inc.conflictingNoteId}</span>
                 )}
               </div>
               <p className="mt-1">{inc.description}</p>

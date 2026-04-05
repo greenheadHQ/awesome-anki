@@ -715,9 +715,7 @@ export function SplitWorkspace() {
                     activeModel={activeModel}
                     llmModelsReady={!!llmModelsData}
                     splitPreviewIsPending={splitPreview.isPending}
-                    isAnalysisPending={pendingAnalyses.has(
-                      analysisKey(selectedCard?.noteId ?? -1),
-                    )}
+                    isAnalysisPending={pendingAnalyses.has(analysisKey(selectedCard?.noteId ?? -1))}
                     onRequestSplit={handleRequestSplit}
                   />
                 )}

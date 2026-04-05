@@ -24,7 +24,12 @@ import { ActionPreview } from "../components/clinic/ActionPreview";
 import { AllInOnePanel } from "../components/clinic/AllInOnePanel";
 import { ClinicCardList } from "../components/clinic/ClinicCardList";
 import { ClinicOriginalCard } from "../components/clinic/ClinicOriginalCard";
-import { ClinicStatusIcon, STATUS_LABELS, getStatusBg, getSimilarityBadgeClass } from "../components/clinic/ClinicStatusIcon";
+import {
+  ClinicStatusIcon,
+  STATUS_LABELS,
+  getStatusBg,
+  getSimilarityBadgeClass,
+} from "../components/clinic/ClinicStatusIcon";
 import { ClinicValidationPanel } from "../components/clinic/ClinicValidationPanel";
 import { ValidationSection } from "../components/clinic/ValidationSection";
 import { BottomSheet } from "../components/ui/bottom-sheet";

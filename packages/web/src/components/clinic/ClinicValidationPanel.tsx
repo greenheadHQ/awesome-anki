@@ -149,7 +149,9 @@ export function ClinicValidationPanel({
                     typeKey={key}
                     icon={icon}
                     label={label}
-                    result={cachedResult.results![key as keyof NonNullable<typeof cachedResult.results>]}
+                    result={
+                      cachedResult.results![key as keyof NonNullable<typeof cachedResult.results>]
+                    }
                   />
                 ))}
               </div>

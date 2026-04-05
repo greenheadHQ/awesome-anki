@@ -67,14 +67,7 @@ function insertEvent(
   const stmt = db.query(
     "INSERT INTO split_events (id, session_id, event_type, status, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
   );
-  stmt.run(
-    `evt-${randomUUID()}`,
-    sessionId,
-    eventType,
-    status,
-    toNullableJson(payload),
-    createdAt,
-  );
+  stmt.run(`evt-${randomUUID()}`, sessionId, eventType, status, toNullableJson(payload), createdAt);
 }
 
 function importLegacyEntry(db: Database, entry: SplitHistoryEntry): void {

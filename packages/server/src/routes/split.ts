@@ -177,16 +177,8 @@ async function validateAndResolveModel(body: {
 async function resolvePromptsAndBudget(
   input: ValidatedInput,
 ): Promise<PromptContext | { earlyResponse: Response }> {
-  const {
-    noteId,
-    text,
-    tags,
-    promptVersionId,
-    resolvedModelId,
-    modelId,
-    sessionId,
-    budgetUsdCap,
-  } = input;
+  const { noteId, text, tags, promptVersionId, resolvedModelId, modelId, sessionId, budgetUsdCap } =
+    input;
   let { historyWarning } = input;
 
   const resolvedVersion = await getPromptVersion(promptVersionId);
@@ -201,8 +193,7 @@ async function resolvePromptsAndBudget(
           aiModel: modelId?.model,
         });
       } catch (historyError) {
-        const message =
-          historyError instanceof Error ? historyError.message : String(historyError);
+        const message = historyError instanceof Error ? historyError.message : String(historyError);
         historyWarning = historyWarning
           ? `${historyWarning}; ${message}`
           : `히스토리 기록 실패: ${message}`;
@@ -234,8 +225,7 @@ async function resolvePromptsAndBudget(
           aiModel: modelId?.model,
         });
       } catch (historyError) {
-        const message =
-          historyError instanceof Error ? historyError.message : String(historyError);
+        const message = historyError instanceof Error ? historyError.message : String(historyError);
         historyWarning = historyWarning
           ? `${historyWarning}; ${message}`
           : `히스토리 기록 실패: ${message}`;
