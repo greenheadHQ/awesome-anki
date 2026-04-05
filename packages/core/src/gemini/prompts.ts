@@ -38,14 +38,8 @@ export const SYSTEM_PROMPT = `당신은 **SuperMemo's Twenty Rules** 전체를 �
 
 ## 카드 길이 기준
 
-| 타입 | 목표 | 상한 |
-|------|------|------|
-| Cloze 전체 | 40~80자 | 120자 |
-| Basic Front (Q:) | 20~50자 | 70자 |
-| Basic Back (A:) | 15~40자 | 60자 |
-
-**맥락 태그 \`[DNS > Record > A]\`는 글자수에서 제외한다.**
-상한 초과 시 반드시 재작성하거나 추가 분할한다.
+**모바일 AnkiDroid에서 스크롤 없이 읽을 수 있는 정도**를 기준으로 한다.
+하드 리밋은 없다. 맥락을 충분히 포함하되, 불필요하게 장황하지 않으면 된다.
 
 ## 필수 원칙 (MUST)
 
@@ -76,8 +70,12 @@ export const SYSTEM_PROMPT = `당신은 **SuperMemo's Twenty Rules** 전체를 �
 "X의 예시?" 형태가 필요하면 역방향 질문으로 전환한다.
 - ✅ "[회로 > 분류] Memory는 {{c1::비조합(non-combinational)::조합 | 비조합}} 회로이다."
 
+### 7. 과잉 분할 금지 (Mobile-Friendly 기준)
+원본 카드가 모바일에서 스크롤 없이 읽을 수 있는 분량이면 분할하지 않는다.
+분할 후 카드 수가 과도하게 늘어나지 않도록 한다 (1매 → 10매 이상은 과잉 분할).
+
 ## Cloze 규칙
-1. 카드당 **1개 Cloze** (\`{{c1::}}\`)
+1. 카드당 **1~3개 Cloze** 허용 (\`{{c1::}}\`, \`{{c2::}}\` 등). 밀접하게 관련된 사실은 한 카드에 묶을 수 있다.
 2. **Cloze 위치**: 가급적 문장 끝에 배치하여 자연스러운 인출을 유도
 3. 이진 패턴 시 **힌트 필수**:
    - 있다/없다: \`{{c1::있다::있다 | 없다}}\`
@@ -94,7 +92,7 @@ export const SYSTEM_PROMPT = `당신은 **SuperMemo's Twenty Rules** 전체를 �
 
 ## Self-Correction 루프
 생성한 카드를 다음 5단계로 자가 검증한다:
-1. **글자수 확인**: 맥락 태그를 제외한 charCount를 계산한다. 상한(Cloze 120자, Basic Front 70자) 초과 시 반드시 재작성 또는 분할한다.
+1. **모바일 친화성 확인**: 카드가 AnkiDroid에서 스크롤 없이 읽을 수 있는 분량인지 점검한다. 과도하게 길면 재작성 또는 분할한다.
 2. **길거리 쪽지 테스트**: "이 카드만 보고 무슨 질문인지 즉시 이해 가능한가?" — 불가하면 맥락을 보강한다.
 3. **유일 답 검증**: "이 질문의 답이 정확히 하나뿐인가?" — 여러 답이 가능하면 질문을 구체화한다.
 4. **고아 카드 검증**: "같은 주제에 최소 2개 이상 카드가 있는가?" — 단독 카드는 추가 관련 카드를 생성한다.
@@ -131,7 +129,6 @@ function splitCardJsonExample(): string {
       "title": "분할된 카드 제목 (간결하게)",
       "content": "분할된 내용 (HTML 포함, 모든 스타일 유지)",
       "cardType": "cloze 또는 basic",
-      "charCount": 글자수,
       "contextTag": "[주제 > 하위주제]",
       "inheritImages": ["이미지파일명.png"],
       "inheritTags": [],
@@ -157,9 +154,9 @@ ${cardText}
 
 ## 분할 목표
 - 각 카드가 **한 가지 인출 대상**에 집중하되, **맥락을 충분히 내장**
-- 카드당 **1개의 Cloze** 또는 **1개의 Q&A**만 포함
+- 카드당 **1~3개의 Cloze** 또는 **1개의 Q&A** 포함. 밀접 관련 사실은 묶기 가능
 - **중첩 맥락 태그** 추가: [주제 > 하위주제 > 세부주제]
-- 글자수 목표: Cloze 40~80자, Basic Front 20~50자 (맥락 태그 제외, 상한: Cloze 120자)
+- **모바일 AnkiDroid에서 스크롤 없이** 읽을 수 있는 분량 유지
 
 ## 지식 유형별 카드 형식 선택
 - 단일 사실(이름, 수치, 정의) → Cloze: \`[맥락] 문맥 포함 문장 {{c1::답}}\`
@@ -291,13 +288,12 @@ shouldSplit: false로 응답하고 splitCards는 빈 배열로:
 
 ## 주의사항
 1. mainCardIndex는 기존 nid를 유지할 카드의 인덱스 (가장 핵심적인 내용)
-2. 각 splitCard의 content에는 반드시 {{c1::...}} Cloze가 하나 또는 Q: ... A: ... 형식
-3. **charCount**: Self-Correction을 위해 각 카드의 글자 수 명시 (맥락 태그 제외)
-4. **contextTag**: 중첩 맥락 태그 필수
-5. preservedLinks: 해당 카드가 참조하는 다른 nid 목록
-6. backLinks: 분할 후 원본으로 돌아갈 링크 (자동 생성됨)
-7. ::: toggle todo 블록이 있으면 해당 부분은 mainCard에 그대로 유지
-8. **qualityChecks**: 모든 항목이 true여야 품질 기준 충족`;
+2. 각 splitCard의 content에는 Cloze가 1~3개 또는 Q: ... A: ... 형식
+3. **contextTag**: 중첩 맥락 태그 필수
+4. preservedLinks: 해당 카드가 참조하는 다른 nid 목록
+5. backLinks: 분할 후 원본으로 돌아갈 링크 (자동 생성됨)
+6. ::: toggle todo 블록이 있으면 해당 부분은 mainCard에 그대로 유지
+7. **qualityChecks**: 모든 항목이 true여야 품질 기준 충족`;
 }
 
 // ============================================================================
@@ -393,8 +389,8 @@ export function buildAnalysisPrompt(noteId: number, cardText: string): string {
 - 내용:
 ${cardText}
 
-## 분석 기준 (Atomic Card 원칙)
-1. **글자 수**: Cloze 80자 초과? Basic Front 40자 초과?
+## 분석 기준
+1. **모바일 친화성**: 카드가 AnkiDroid에서 스크롤 없이 읽을 수 있는가?
 2. **정보 밀도**: 한 카드에 2개 이상의 개념?
 3. **Yes/No 패턴**: 힌트 없는 이진 Cloze 존재?
 4. **맥락 태그**: 중첩 맥락 태그 [A > B > C] 없음?

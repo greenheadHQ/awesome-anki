@@ -7,6 +7,7 @@ import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { getConfig, setConfig } from "../anki/client.js";
+import { countCardChars } from "../gemini/cloze-enhancer.js";
 import { AnkiConnectError } from "../errors.js";
 import { atomicWriteFile, withFileMutex } from "../utils/atomic-write.js";
 import type {
@@ -593,9 +594,9 @@ async function updateVersionMetrics(versionId: string, entry: SplitHistoryEntry)
         ) / 10
       : entry.splitCards.length;
 
-  // 평균 글자 수 (charCount가 undefined/NaN이면 content.length 폴백)
+  // 평균 글자 수 (charCount가 없으면 countCardChars 폴백)
   const totalChars = entry.splitCards.reduce(
-    (sum, card) => sum + (card.charCount || card.content.length),
+    (sum, card) => sum + (card.charCount ?? countCardChars(card.content)),
     0,
   );
   const avgChars = entry.splitCards.length > 0 ? totalChars / entry.splitCards.length : 0;
@@ -713,7 +714,7 @@ export async function completeExperiment(
             controlHistory.reduce(
               (sum, h) =>
                 sum +
-                h.splitCards.reduce((s, c) => s + (c.charCount || c.content.length), 0) /
+                h.splitCards.reduce((s, c) => s + (c.charCount ?? countCardChars(c.content)), 0) /
                   h.splitCards.length,
               0,
             ) / controlHistory.length,
@@ -737,7 +738,7 @@ export async function completeExperiment(
             treatmentHistory.reduce(
               (sum, h) =>
                 sum +
-                h.splitCards.reduce((s, c) => s + (c.charCount || c.content.length), 0) /
+                h.splitCards.reduce((s, c) => s + (c.charCount ?? countCardChars(c.content)), 0) /
                   h.splitCards.length,
               0,
             ) / treatmentHistory.length,

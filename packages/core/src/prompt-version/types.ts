@@ -216,7 +216,7 @@ export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
   targetBasicFrontChars: 35,
   maxBasicBackChars: 60,
   targetBasicBackChars: 28,
-  maxClozePerCard: 1,
+  maxClozePerCard: 3,
   requireHintForBinary: true,
   allowBasicCards: true,
   preferBasicForWhy: true,
