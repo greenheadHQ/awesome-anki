@@ -37,14 +37,16 @@ for d in list(deps):
 
   # 소스에서 import된 외부 패키지 추출 (node: 내장, ./ ../ 상대경로 제외)
   local imported
-  imported=$(grep -rhE "^import .+ from ['\"]|^import ['\"]" "$src_dir" 2>/dev/null \
-    | sed -E "s/.*from ['\"]([^'\"]+)['\"].*/\1/" \
-    | sed -E "s/.*import ['\"]([^'\"]+)['\"].*/\1/" \
-    | grep -vE '^\.' \
-    | grep -vE '^node:' \
-    | grep -vE '^bun:' \
-    | sed -E 's|^(@[^/]+/[^/]+).*|\1|; s|^([^@/]+).*|\1|' \
-    | sort -u)
+  imported=$(
+    grep -rhE "^import .+ from ['\"]|^import ['\"]" "$src_dir" 2>/dev/null \
+      | sed -E "s/.*from ['\"]([^'\"]+)['\"].*/\1/" \
+      | sed -E "s/.*import ['\"]([^'\"]+)['\"].*/\1/" \
+      | grep -vE '^\.' \
+      | grep -vE '^node:' \
+      | grep -vE '^bun:' \
+      | sed -E 's|^(@[^/]+/[^/]+).*|\1|; s|^([^@/]+).*|\1|' \
+      | sort -u || true
+  )
 
   for pkg in $imported; do
     # 워크스페이스 패키지(@anki-splitter/*)는 건너뜀
@@ -61,10 +63,14 @@ for d in list(deps):
   return $errors
 }
 
-dirs=("${@:-packages/core packages/server}")
+if [[ $# -gt 0 ]]; then
+  dirs=("$@")
+else
+  dirs=("packages/core" "packages/server")
+fi
 total_errors=0
 
-for dir in ${dirs[@]}; do
+for dir in "${dirs[@]}"; do
   if ! check_package "$dir"; then
     total_errors=$((total_errors + 1))
   fi
