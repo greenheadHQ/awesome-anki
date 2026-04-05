@@ -161,7 +161,6 @@ export {
 } from "./prompt-version/types.js";
 // Splitter exports
 export * from "./splitter/index.js";
-export { createLineDiff, createWordDiff, type DiffResult } from "./utils/diff-viewer.js";
 // Utils exports (excluding validateStylePreservation which conflicts with gemini/validator)
 export {
   cleanupEmptyLines,
