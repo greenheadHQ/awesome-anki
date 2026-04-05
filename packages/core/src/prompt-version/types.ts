@@ -25,7 +25,7 @@ export interface PromptConfig {
   targetBasicBackChars: number;
 
   // Cloze 규칙
-  maxClozePerCard: number; // 카드당 최대 Cloze 수 (기본 1)
+  maxClozePerCard: number; // 카드당 최대 Cloze 수 (기본 3, 런타임 미사용 — 새 버전 기본값 전용)
   requireHintForBinary: boolean; // 이진 패턴 힌트 필수 (기본 true)
 
   // 카드 타입
@@ -216,7 +216,7 @@ export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
   targetBasicFrontChars: 35,
   maxBasicBackChars: 60,
   targetBasicBackChars: 28,
-  maxClozePerCard: 1,
+  maxClozePerCard: 3,
   requireHintForBinary: true,
   allowBasicCards: true,
   preferBasicForWhy: true,
