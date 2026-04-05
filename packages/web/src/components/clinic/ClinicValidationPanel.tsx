@@ -5,7 +5,7 @@ import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { AllInOnePanel } from "./AllInOnePanel";
 import { VALIDATION_TYPES } from "./clinic-constants";
-import { ClinicStatusIcon, STATUS_LABELS, getStatusBg } from "./ClinicStatusIcon";
+import { ClinicStatusIcon, STATUS_LABELS, getSimilarityBadgeClass, getStatusBg } from "./ClinicStatusIcon";
 import { ValidationSection } from "./ValidationSection";
 
 type DetailTab = "validate" | "related";
@@ -163,14 +163,7 @@ export function ClinicValidationPanel({
                           <div className="flex justify-between items-start">
                             <span className="font-mono">#{card.noteId}</span>
                             <span
-                              className={cn(
-                                "px-1.5 py-0.5 rounded",
-                                card.similarity >= 90
-                                  ? "bg-red-100 text-red-700"
-                                  : card.similarity >= 70
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-gray-100 text-gray-700",
-                              )}
+                              className={cn("px-1.5 py-0.5 rounded", getSimilarityBadgeClass(card.similarity))}
                             >
                               {card.similarity}%
                             </span>
