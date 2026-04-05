@@ -2,7 +2,8 @@ import { Loader2, Search } from "lucide-react";
 
 import type { ValidationStatus } from "../../lib/api";
 import { cn } from "../../lib/utils";
-import { ClinicStatusIcon, getStatusBorderColor } from "./ClinicStatusIcon";
+import { getStatusBorderColor } from "./clinic-status-utils";
+import { StatusIcon } from "../ui/status-icon";
 
 type FilterMode = "all" | "unvalidated" | "needs-review";
 
@@ -105,7 +106,7 @@ export function ClinicCardList({
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <ClinicStatusIcon status={status} />
+                        <StatusIcon status={status} />
                         <p className="text-sm font-medium truncate">{card.noteId}</p>
                       </div>
                       <p className="text-xs text-muted-foreground truncate mt-0.5">

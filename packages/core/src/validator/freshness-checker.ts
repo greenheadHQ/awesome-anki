@@ -2,10 +2,28 @@
  * 최신성 검사 - 기술 변화로 인한 outdated 내용 감지
  */
 
+import { z } from "zod";
+
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { FreshnessResult, OutdatedItem } from "./types.js";
 import { cleanCardText } from "./utils.js";
+
+const FreshnessResponseSchema = z.object({
+  outdatedItems: z
+    .array(
+      z.object({
+        content: z.string().optional().default(""),
+        reason: z.string().optional().default(""),
+        currentInfo: z.string().optional(),
+        severity: z.enum(["low", "medium", "high"]).catch("low"),
+      }),
+    )
+    .default([]),
+  freshness: z.number().optional(),
+  isFresh: z.boolean().optional(),
+  summary: z.string().optional(),
+});
 
 const FRESHNESS_CHECK_PROMPT = `
 당신은 컴퓨터 과학(CS) 및 프로그래밍 분야의 기술 트렌드 전문가입니다.
@@ -76,17 +94,15 @@ ${cleanContent}
     });
 
     const text = llmResult.text;
-    const parsed = JSON.parse(text);
+    const parsed = FreshnessResponseSchema.parse(JSON.parse(text));
 
     // 결과 변환
-    const outdatedItems: OutdatedItem[] = (parsed.outdatedItems || []).map(
-      (item: { content?: string; reason?: string; currentInfo?: string; severity?: string }) => ({
-        content: item.content || "",
-        reason: item.reason || "",
-        currentInfo: item.currentInfo,
-        severity: item.severity || "low",
-      }),
-    );
+    const outdatedItems: OutdatedItem[] = parsed.outdatedItems.map((item) => ({
+      content: item.content,
+      reason: item.reason,
+      currentInfo: item.currentInfo,
+      severity: item.severity,
+    }));
 
     const freshness = parsed.freshness ?? (parsed.isFresh ? 100 : 50);
 

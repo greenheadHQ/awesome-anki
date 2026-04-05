@@ -4,14 +4,12 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  AlertTriangle,
   CheckCircle,
   ChevronDown,
   ChevronUp,
   Clock,
   Copy,
   Hash,
-  HelpCircle,
   Link2,
   Loader2,
   Shield,
@@ -24,44 +22,17 @@ import {
   type AllValidationResult,
   api,
   type SimilarityResult,
-  type ValidationStatus,
 } from "../../lib/api";
 import { cn } from "../../lib/utils";
+import { getStatusBg } from "../clinic/clinic-status-utils";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { StatusIcon } from "../ui/status-icon";
 
 interface ValidationPanelProps {
   noteId: number;
   deckName: string;
   className?: string;
-}
-
-// 상태별 아이콘
-function StatusIcon({ status }: { status: ValidationStatus }) {
-  switch (status) {
-    case "valid":
-      return <CheckCircle className="w-5 h-5 text-green-500" />;
-    case "warning":
-      return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-    case "error":
-      return <XCircle className="w-5 h-5 text-red-500" />;
-    default:
-      return <HelpCircle className="w-5 h-5 text-gray-400" />;
-  }
-}
-
-// 상태별 배경색
-function getStatusBg(status: ValidationStatus): string {
-  switch (status) {
-    case "valid":
-      return "bg-green-50 border-green-200";
-    case "warning":
-      return "bg-yellow-50 border-yellow-200";
-    case "error":
-      return "bg-red-50 border-red-200";
-    default:
-      return "bg-gray-50 border-gray-200";
-  }
 }
 
 export function ValidationPanel({ noteId, deckName, className }: ValidationPanelProps) {
@@ -150,7 +121,7 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
                 getStatusBg(result.overallStatus),
               )}
             >
-              <StatusIcon status={result.overallStatus} />
+              <StatusIcon size="md" status={result.overallStatus} />
               <div>
                 <p className="font-medium">
                   {result.overallStatus === "valid" && "검증 통과"}
@@ -174,7 +145,7 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
                   <span className="font-medium">팩트 체크</span>
-                  <StatusIcon status={result.results.factCheck.status} />
+                  <StatusIcon size="md" status={result.results.factCheck.status} />
                 </div>
                 {expandedSections.has("factCheck") ? (
                   <ChevronUp className="w-4 h-4" />
@@ -226,7 +197,7 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   <span className="font-medium">최신성 검사</span>
-                  <StatusIcon status={result.results.freshness.status} />
+                  <StatusIcon size="md" status={result.results.freshness.status} />
                 </div>
                 {expandedSections.has("freshness") ? (
                   <ChevronUp className="w-4 h-4" />
@@ -414,7 +385,7 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
                 <div className="flex items-center gap-2">
                   <Link2 className="w-4 h-4" />
                   <span className="font-medium">문맥 일관성</span>
-                  <StatusIcon status={result.results.context.status} />
+                  <StatusIcon size="md" status={result.results.context.status} />
                 </div>
                 {expandedSections.has("context") ? (
                   <ChevronUp className="w-4 h-4" />

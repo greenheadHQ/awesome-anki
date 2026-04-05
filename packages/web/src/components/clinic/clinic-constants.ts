@@ -9,3 +9,5 @@ export const VALIDATION_TYPES = [
   { key: "verbose", icon: Sparkles, label: "Verbose 감지" },
   { key: "yagni", icon: Trash2, label: "YAGNI 감지" },
 ] as const;
+
+export type ValidationTypeKey = (typeof VALIDATION_TYPES)[number]["key"];

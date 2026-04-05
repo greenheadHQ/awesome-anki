@@ -460,13 +460,9 @@ export class PromptConflictError extends Error {
   }
 }
 
-export type SplitHistoryStatus =
-  | "generating"
-  | "generated"
-  | "applied"
-  | "rejected"
-  | "error"
-  | "not_split";
+import { type HistoryStatus } from "@anki-splitter/core";
+
+export type SplitHistoryStatus = HistoryStatus;
 
 export interface SplitHistoryListItem {
   sessionId: string;

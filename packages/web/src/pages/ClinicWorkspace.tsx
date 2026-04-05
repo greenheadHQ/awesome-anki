@@ -19,15 +19,15 @@ import { useCallback, useMemo, useState } from "react";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { ActionPreview } from "../components/clinic/ActionPreview";
 import { AllInOnePanel } from "../components/clinic/AllInOnePanel";
-import { VALIDATION_TYPES } from "../components/clinic/clinic-constants";
+import { VALIDATION_TYPES, type ValidationTypeKey } from "../components/clinic/clinic-constants";
 import { ClinicCardList } from "../components/clinic/ClinicCardList";
 import { ClinicOriginalCard } from "../components/clinic/ClinicOriginalCard";
 import {
-  ClinicStatusIcon,
   STATUS_LABELS,
   getStatusBg,
   getSimilarityBadgeClass,
-} from "../components/clinic/ClinicStatusIcon";
+} from "../components/clinic/clinic-status-utils";
+import { StatusIcon } from "../components/ui/status-icon";
 import { ClinicValidationPanel } from "../components/clinic/ClinicValidationPanel";
 import { ValidationSection } from "../components/clinic/ValidationSection";
 import { BottomSheet } from "../components/ui/bottom-sheet";
@@ -62,7 +62,7 @@ export function ClinicWorkspace() {
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const [activePanel, setActivePanel] = useState<MobilePanel>("list");
   const [detailTab, setDetailTab] = useState<DetailTab>("validate");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<ValidationTypeKey>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfigSheet, setShowConfigSheet] = useState(false);
@@ -133,7 +133,7 @@ export function ClinicWorkspace() {
     return count;
   }, [validationStatuses]);
 
-  const toggleSection = (section: string) => {
+  const toggleSection = (section: ValidationTypeKey) => {
     setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(section)) {
@@ -175,7 +175,7 @@ export function ClinicWorkspace() {
 
   // --- 검증 결과 섹션 렌더러 (모바일 인라인용) ---
   const renderValidationSection = (
-    typeKey: string,
+    typeKey: ValidationTypeKey,
     icon: React.ElementType,
     label: string,
     result: AllValidationResult["results"][keyof AllValidationResult["results"]] | undefined,
@@ -558,7 +558,7 @@ export function ClinicWorkspace() {
                             getStatusBg(currentValidation.status),
                           )}
                         >
-                          <ClinicStatusIcon status={currentValidation.status} size="md" />
+                          <StatusIcon status={currentValidation.status} size="md" />
                           <div>
                             <p className="font-medium">{STATUS_LABELS[currentValidation.status]}</p>
                             <p className="text-xs text-muted-foreground">

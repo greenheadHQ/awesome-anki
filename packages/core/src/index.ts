@@ -153,6 +153,8 @@ export {
   type Experiment,
   // Types
   type FewShotExample,
+  HISTORY_STATUSES,
+  type HistoryStatus,
   type ModificationPatterns,
   type PromptConfig,
   type PromptMetrics,

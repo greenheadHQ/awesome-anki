@@ -403,7 +403,7 @@ async function executeSplitAndRecord(input: SplitExecutionInput): Promise<Record
         const historyStore = await getSplitHistoryStore();
         historyStore.markGenerated(sessionId, {
           splitCards: mapPreviewCards(splitCards),
-          aiResponse: aiResult as unknown as Record<string, unknown>,
+          aiResponse: aiResult,
           splitReason: aiResult.splitReason,
           executionTimeMs,
           aiModel: aiResult.modelName,
@@ -446,7 +446,7 @@ async function executeSplitAndRecord(input: SplitExecutionInput): Promise<Record
         aiModel: aiResult.modelName,
         provider: aiResult.provider,
         tokenUsage: aiResult.tokenUsage,
-        aiResponse: aiResult as unknown as Record<string, unknown>,
+        aiResponse: aiResult,
         estimatedCostUsd: estimatedCost?.estimatedTotalCostUsd,
         actualCostUsd: aiResult.actualCost?.totalCostUsd,
       });

@@ -2,10 +2,11 @@ import { CheckCircle, Hash, Sparkles, Trash2, XCircle } from "lucide-react";
 
 import type { AllValidationResult } from "../../lib/api";
 import { cn } from "../../lib/utils";
-import { getSimilarityBadgeClass } from "./ClinicStatusIcon";
+import { getSimilarityBadgeClass } from "./clinic-status-utils";
+import type { ValidationTypeKey } from "./clinic-constants";
 
 interface ValidationDetailsProps {
-  typeKey: string;
+  typeKey: ValidationTypeKey;
   result: AllValidationResult["results"][keyof AllValidationResult["results"]];
 }
 

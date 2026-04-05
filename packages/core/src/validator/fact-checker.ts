@@ -2,10 +2,27 @@
  * 팩트 체크 - Gemini를 사용한 카드 내용 사실 검증
  */
 
+import { z } from "zod";
+
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { ClaimVerification, FactCheckResult } from "./types.js";
 import { cleanCardText } from "./utils.js";
+
+const FactCheckResponseSchema = z.object({
+  claims: z
+    .array(
+      z.object({
+        claim: z.string().optional().default(""),
+        isVerified: z.boolean().optional().default(true),
+        confidence: z.number().optional().default(50),
+        correction: z.string().optional(),
+        source: z.string().optional(),
+      }),
+    )
+    .default([]),
+  summary: z.string().optional(),
+});
 
 const FACT_CHECK_PROMPT = `
 당신은 컴퓨터 과학(CS) 및 프로그래밍 분야의 팩트 체커입니다.
@@ -71,25 +88,17 @@ ${cleanContent}
     });
 
     const text = llmResult.text;
-    const parsed = JSON.parse(text);
+    const parsed = FactCheckResponseSchema.parse(JSON.parse(text));
 
     // 결과 변환
-    const claims: ClaimVerification[] = (parsed.claims || []).map(
-      (c: {
-        claim?: string;
-        isVerified?: boolean;
-        confidence?: number;
-        correction?: string;
-        source?: string;
-      }) => ({
-        claim: c.claim || "",
-        isVerified:
-          c.correction != null && c.correction.trim() !== "" ? false : (c.isVerified ?? true),
-        confidence: c.confidence ?? 50,
-        correction: c.correction,
-        source: c.source,
-      }),
-    );
+    const claims: ClaimVerification[] = parsed.claims.map((c) => ({
+      claim: c.claim,
+      isVerified:
+        c.correction != null && c.correction.trim() !== "" ? false : c.isVerified,
+      confidence: c.confidence,
+      correction: c.correction,
+      source: c.source,
+    }));
 
     const overallAccuracy =
       claims.length > 0

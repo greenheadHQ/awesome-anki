@@ -166,19 +166,19 @@ export function VersionsTab({
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded bg-muted px-2.5 py-2 text-center">
                     <div className="text-sm font-semibold tabular-nums">
-                      {selectedVersion.config?.maxClozeChars}자
+                      {selectedVersion.config?.maxClozeChars ?? "-"}자
                     </div>
                     <div className="text-[11px] text-muted-foreground">Cloze 최대</div>
                   </div>
                   <div className="rounded bg-muted px-2.5 py-2 text-center">
                     <div className="text-sm font-semibold tabular-nums">
-                      {selectedVersion.config?.maxBasicFrontChars}자
+                      {selectedVersion.config?.maxBasicFrontChars ?? "-"}자
                     </div>
                     <div className="text-[11px] text-muted-foreground">Basic Front</div>
                   </div>
                   <div className="rounded bg-muted px-2.5 py-2 text-center">
                     <div className="text-sm font-semibold tabular-nums">
-                      {selectedVersion.config?.maxBasicBackChars}자
+                      {selectedVersion.config?.maxBasicBackChars ?? "-"}자
                     </div>
                     <div className="text-[11px] text-muted-foreground">Basic Back</div>
                   </div>

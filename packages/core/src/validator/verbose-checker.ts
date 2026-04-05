@@ -2,10 +2,22 @@
  * Verbose 감지 - LLM을 사용하여 카드가 원자적 지식 단위인지 판단
  */
 
+import { z } from "zod";
+
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { VerboseResult } from "./types.js";
 import { cleanCardText } from "./utils.js";
+
+const VerboseResponseSchema = z.object({
+  wordCount: z.number().optional(),
+  clozeCount: z.number().optional(),
+  conceptCount: z.number().optional().default(1),
+  concepts: z.array(z.string()).default([]),
+  recommendation: z.string().optional().default("ok"),
+  suggestedSplitCount: z.number().optional(),
+  confidence: z.number().optional().default(80),
+});
 
 const VERBOSE_CHECK_PROMPT = `
 당신은 Anki 학습 카드의 원자성(atomicity) 분석가입니다.
@@ -74,23 +86,16 @@ ${cleanContent}
     });
 
     const text = llmResult.text;
-    const parsed = JSON.parse(text);
+    const parsed = VerboseResponseSchema.parse(JSON.parse(text));
 
-    // 타입 가드: LLM 응답을 신뢰하지 않고 각 필드를 안전하게 변환
-    const wordCount =
-      typeof parsed.wordCount === "number"
-        ? parsed.wordCount
-        : cleanContent.replace(/\s/g, "").length;
-    const clozeCount = typeof parsed.clozeCount === "number" ? parsed.clozeCount : actualClozeCount;
-    const conceptCount = typeof parsed.conceptCount === "number" ? parsed.conceptCount : 1;
-    const concepts: string[] = Array.isArray(parsed.concepts)
-      ? parsed.concepts.filter((c: unknown) => typeof c === "string")
-      : [];
+    const wordCount = parsed.wordCount ?? cleanContent.replace(/\s/g, "").length;
+    const clozeCount = parsed.clozeCount ?? actualClozeCount;
+    const conceptCount = parsed.conceptCount;
+    const concepts = parsed.concepts;
     const recommendation = parsed.recommendation === "split" ? "split" : "ok";
-    const rawSplit =
-      typeof parsed.suggestedSplitCount === "number" ? parsed.suggestedSplitCount : conceptCount;
+    const rawSplit = parsed.suggestedSplitCount ?? conceptCount;
     const suggestedSplitCount = recommendation === "split" ? rawSplit : undefined;
-    const rawConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 80;
+    const rawConfidence = parsed.confidence;
 
     // 상태 결정
     let status: VerboseResult["status"] = "valid";

@@ -249,3 +249,17 @@ export const DEFAULT_MODIFICATION_PATTERNS: ModificationPatterns = {
   cardsSplit: 0,
   hintAdded: 0,
 };
+
+/**
+ * 분할 히스토리 상태 (server/web 공유)
+ */
+export const HISTORY_STATUSES = [
+  "generating",
+  "generated",
+  "applied",
+  "rejected",
+  "error",
+  "not_split",
+] as const;
+
+export type HistoryStatus = (typeof HISTORY_STATUSES)[number];

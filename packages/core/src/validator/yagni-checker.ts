@@ -7,10 +7,19 @@
  * - 도메인 무관 잡지식
  */
 
+import { z } from "zod";
+
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import type { YagniResult } from "./types.js";
 import { cleanCardText } from "./utils.js";
+
+const YagniResponseSchema = z.object({
+  isYagni: z.boolean().optional().default(false),
+  reason: z.string().optional().default(""),
+  affectedClozes: z.array(z.number().int()).default([]),
+  confidence: z.number().optional().default(80),
+});
 
 const YAGNI_CHECK_PROMPT = `
 당신은 Anki 학습 카드의 YAGNI(You Aren't Gonna Need It) 분석가입니다.
@@ -100,20 +109,15 @@ ${cleanContent}
     });
 
     const text = llmResult.text;
-    const parsed = JSON.parse(text);
+    const parsed = YagniResponseSchema.parse(JSON.parse(text));
 
-    // 타입 가드: LLM 응답을 신뢰하지 않고 각 필드를 안전하게 변환
-    const isYagni = typeof parsed.isYagni === "boolean" ? parsed.isYagni : false;
-    const reason = typeof parsed.reason === "string" ? parsed.reason : "";
-    const rawClozes = Array.isArray(parsed.affectedClozes)
-      ? parsed.affectedClozes.filter(
-          (c: unknown) => typeof c === "number" && Number.isInteger(c) && clozeNumbers.includes(c),
-        )
-      : [];
+    const isYagni = parsed.isYagni;
+    const reason = parsed.reason;
+    const rawClozes = parsed.affectedClozes.filter((c) => clozeNumbers.includes(c));
     const affectedClozes: number[] = isYagni ? [...new Set<number>(rawClozes)] : [];
     // isYagni=true인데 affectedClozes가 비면 LLM 응답 불일치 → isYagni를 false로 override
     const resolvedIsYagni = isYagni && affectedClozes.length > 0;
-    const rawConfidence = typeof parsed.confidence === "number" ? parsed.confidence : 80;
+    const rawConfidence = parsed.confidence;
 
     // 상태 결정
     let status: YagniResult["status"] = "valid";

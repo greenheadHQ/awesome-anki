@@ -1,13 +1,14 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { AllValidationResult } from "../../lib/api";
-import { ClinicStatusIcon } from "./ClinicStatusIcon";
+import { StatusIcon } from "../ui/status-icon";
+import type { ValidationTypeKey } from "./clinic-constants";
 import { ValidationDetails } from "./ValidationDetails";
 
 interface ValidationSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
-  typeKey: string;
+  typeKey: ValidationTypeKey;
   icon: React.ElementType;
   label: string;
   result: AllValidationResult["results"][keyof AllValidationResult["results"]] | undefined;
@@ -34,7 +35,7 @@ export function ValidationSection({
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" />
           <span className="font-medium text-sm">{label}</span>
-          <ClinicStatusIcon status={result.status} />
+          <StatusIcon status={result.status} />
         </div>
         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>

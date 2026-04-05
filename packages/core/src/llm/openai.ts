@@ -30,7 +30,12 @@ async function getClient(): Promise<import("openai").default> {
 /**
  * 응답 정규화: markdown code fence 제거 + refusal 체크
  */
-function normalizeResponseText(response: { output_text: string; output: any[] }): string {
+interface ResponseOutputItem {
+  type: string;
+  content?: Array<{ type: string; refusal?: string }>;
+}
+
+function normalizeResponseText(response: { output_text: string; output: ResponseOutputItem[] }): string {
   // refusal 체크
   for (const item of response.output) {
     if (item.type === "message") {

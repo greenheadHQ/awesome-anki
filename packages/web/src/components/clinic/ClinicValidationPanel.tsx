@@ -4,8 +4,9 @@ import type { AllValidationResult, ValidationStatus } from "../../lib/api";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { AllInOnePanel } from "./AllInOnePanel";
-import { VALIDATION_TYPES } from "./clinic-constants";
-import { ClinicStatusIcon, STATUS_LABELS, getSimilarityBadgeClass, getStatusBg } from "./ClinicStatusIcon";
+import { VALIDATION_TYPES, type ValidationTypeKey } from "./clinic-constants";
+import { STATUS_LABELS, getSimilarityBadgeClass, getStatusBg } from "./clinic-status-utils";
+import { StatusIcon } from "../ui/status-icon";
 import { ValidationSection } from "./ValidationSection";
 
 type DetailTab = "validate" | "related";
@@ -25,8 +26,8 @@ interface ClinicValidationPanelProps {
   isValidating: boolean;
   detailTab: DetailTab;
   onDetailTabChange: (tab: DetailTab) => void;
-  expandedSections: Set<string>;
-  onToggleSection: (section: string) => void;
+  expandedSections: Set<ValidationTypeKey>;
+  onToggleSection: (section: ValidationTypeKey) => void;
   onValidateSelected: () => void;
   onSelectCard: (noteId: number) => void;
 }
@@ -85,7 +86,7 @@ export function ClinicValidationPanel({
                 getStatusBg(cachedResult.status),
               )}
             >
-              <ClinicStatusIcon status={cachedResult.status} size="md" />
+              <StatusIcon status={cachedResult.status} size="md" />
               <div>
                 <p className="font-medium">{STATUS_LABELS[cachedResult.status]}</p>
                 <p className="text-xs text-muted-foreground">

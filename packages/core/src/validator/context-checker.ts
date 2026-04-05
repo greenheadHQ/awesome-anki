@@ -7,12 +7,29 @@
  * 3. 불일치 사항 보고
  */
 
+import { z } from "zod";
+
 import { findNotes, getNotesInfo, type NoteInfo } from "../anki/client.js";
 import { createLLMClient, getDefaultModelId } from "../llm/factory.js";
 import type { LLMModelId } from "../llm/types.js";
 import { extractUniqueNids } from "../parser/nid-parser.js";
 import type { ContextResult, Inconsistency } from "./types.js";
 import { cleanCardText } from "./utils.js";
+
+const ContextResponseSchema = z.object({
+  inconsistencies: z
+    .array(
+      z.object({
+        description: z.string().optional().default(""),
+        conflictingNoteId: z.number().optional(),
+        severity: z.enum(["low", "medium", "high"]).catch("medium"),
+      }),
+    )
+    .default([]),
+  hasInconsistency: z.boolean().optional(),
+  coherenceScore: z.number().optional(),
+  summary: z.string().optional(),
+});
 
 const CONTEXT_CHECK_PROMPT = `
 당신은 지식 카드(Anki) 간의 논리적 일관성을 검증하는 전문가입니다.
@@ -194,16 +211,14 @@ ${cardsText}
     });
 
     const text = llmResult.text;
-    const parsed = JSON.parse(text);
+    const parsed = ContextResponseSchema.parse(JSON.parse(text));
 
     // 결과 변환
-    const inconsistencies: Inconsistency[] = (parsed.inconsistencies || []).map(
-      (inc: { description?: string; conflictingNoteId?: number; severity?: string }) => ({
-        description: inc.description || "",
-        conflictingNoteId: inc.conflictingNoteId,
-        severity: inc.severity || "medium",
-      }),
-    );
+    const inconsistencies: Inconsistency[] = parsed.inconsistencies.map((inc) => ({
+      description: inc.description,
+      conflictingNoteId: inc.conflictingNoteId,
+      severity: inc.severity,
+    }));
 
     const hasInconsistency = parsed.hasInconsistency ?? inconsistencies.length > 0;
     const coherenceScore = parsed.coherenceScore ?? (hasInconsistency ? 70 : 100);

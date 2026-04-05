@@ -1,15 +1,12 @@
-export const HISTORY_STATUSES = [
-  "generating",
-  "generated",
-  "applied",
-  "rejected",
-  "error",
-  "not_split",
-] as const;
+import {
+  HISTORY_STATUSES,
+  type HistoryStatus,
+  type SplitRequestMetadata,
+  type SplitResponse,
+  type TokenUsage,
+} from "@anki-splitter/core";
 
-export type HistoryStatus = (typeof HISTORY_STATUSES)[number];
-
-import type { TokenUsage } from "@anki-splitter/core";
+export { HISTORY_STATUSES, type HistoryStatus };
 export type { TokenUsage };
 
 export interface SplitCardPayload {
@@ -100,7 +97,7 @@ export interface CreateSessionInput {
 
 export interface SplitGeneratedPayload {
   splitCards: SplitCardPayload[];
-  aiResponse: Record<string, unknown> | null;
+  aiResponse: (SplitResponse & SplitRequestMetadata) | Record<string, unknown> | null;
   splitReason?: string;
   aiModel?: string;
   provider?: string;
@@ -118,7 +115,7 @@ export interface SplitNotSplitPayload {
   actualCostUsd?: number;
   executionTimeMs?: number;
   tokenUsage?: TokenUsage;
-  aiResponse?: Record<string, unknown> | null;
+  aiResponse?: (SplitResponse & SplitRequestMetadata) | Record<string, unknown> | null;
 }
 
 export interface SplitAppliedPayload {
