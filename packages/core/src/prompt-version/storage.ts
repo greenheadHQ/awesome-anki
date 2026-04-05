@@ -214,30 +214,4 @@ export async function getActivePrompts(): Promise<PromptVersion | null> {
   return getVersion(activeInfo.versionId);
 }
 
-// ============================================================================
-// Re-exports — 하위 호환성 유지
-// ============================================================================
-
-export {
-  createExperiment,
-  completeExperiment,
-  getExperiment,
-  listExperiments,
-} from "./experiments.js";
-export {
-  analyzeFailurePatterns,
-  type PromptMetricsEvent,
-  recordPromptMetricsEvent,
-} from "./analytics.js";
-export {
-  getRemoteSystemPromptPayload,
-  setRemoteSystemPromptPayload,
-  clearRemoteSystemPromptPayload,
-  parseRemoteSystemPromptPayload,
-  SYSTEM_PROMPT_CONFIG_KEY,
-  type RemoteSystemPromptPayload,
-} from "./remote-prompt.js";
-export {
-  type SystemPromptMigrationResult,
-  migrateLegacySystemPromptToRemoteIfNeeded,
-} from "./migration.js";
+// Re-exports는 순환 의존성 방지를 위해 core/src/index.ts에서 직접 import한다.

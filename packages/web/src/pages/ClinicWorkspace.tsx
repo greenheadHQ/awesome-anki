@@ -50,11 +50,10 @@ import type { AllValidationResult } from "../lib/api";
 import { cn } from "../lib/utils";
 import type { MobilePanel } from "../lib/workspace-types";
 import { startViewTransition } from "../lib/view-transition";
+import { VALIDATION_TYPES } from "../components/clinic/clinic-constants";
 
 type DetailTab = "validate" | "related";
 type FilterMode = "all" | "unvalidated" | "needs-review";
-
-import { VALIDATION_TYPES } from "../components/clinic/clinic-constants";
 
 export function ClinicWorkspace() {
   const isMobile = useIsMobile("xl");
