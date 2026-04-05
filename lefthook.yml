@@ -11,7 +11,11 @@ pre-commit:
       run: .claude/scripts/check-docs-freshness.sh {staged_files}
 
 pre-push:
-  parallel: false
+  parallel: true
   commands:
-    quality-gate:
-      run: bun run lint && bun run typecheck && bun run test
+    lint:
+      run: bun run lint
+    typecheck:
+      run: bun run typecheck
+    test:
+      run: bun run test

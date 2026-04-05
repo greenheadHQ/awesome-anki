@@ -114,8 +114,6 @@ export * from "./llm/index.js";
 // Parser exports
 export * from "./parser/index.js";
 export {
-  // History
-  addHistoryEntry,
   // Analysis
   analyzeFailurePatterns,
   clearRemoteSystemPromptPayload,
@@ -128,8 +126,6 @@ export {
   // Active version
   getActiveVersion,
   getExperiment,
-  getHistory,
-  getHistoryByVersion,
   getRemoteSystemPromptPayload,
   getVersion as getPromptVersion,
   listExperiments,
@@ -165,14 +161,7 @@ export {
 } from "./prompt-version/types.js";
 // Splitter exports
 export * from "./splitter/index.js";
-export {
-  createLineDiff,
-  createWordDiff,
-  type DiffResult,
-  printBatchAnalysis,
-  printProgress,
-  printSplitPreview,
-} from "./utils/diff-viewer.js";
+export { createLineDiff, createWordDiff, type DiffResult } from "./utils/diff-viewer.js";
 // Utils exports (excluding validateStylePreservation which conflicts with gemini/validator)
 export {
   cleanupEmptyLines,

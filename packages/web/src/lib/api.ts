@@ -144,9 +144,6 @@ export interface SplitPreviewResult {
   historyWarning?: string;
 }
 
-/** @deprecated Use SplitPreviewResult instead */
-export type SplitPreview = SplitPreviewResult;
-
 export interface SplitApplyResult {
   success: boolean;
   backupId: string;
