@@ -35,7 +35,6 @@ const FACT_CHECK_PROMPT = `
       "source": "참고 출처 (있는 경우)"
     }
   ],
-  "overallAccuracy": 0-100,
   "summary": "전체 검증 요약"
 }
 `;
@@ -84,7 +83,8 @@ ${cleanContent}
         source?: string;
       }) => ({
         claim: c.claim || "",
-        isVerified: c.isVerified ?? true,
+        isVerified:
+          c.correction != null && c.correction.trim() !== "" ? false : (c.isVerified ?? true),
         confidence: c.confidence ?? 50,
         correction: c.correction,
         source: c.source,
@@ -92,23 +92,23 @@ ${cleanContent}
     );
 
     const overallAccuracy =
-      parsed.overallAccuracy ??
-      (claims.length > 0
+      claims.length > 0
         ? Math.round((claims.filter((c) => c.isVerified).length / claims.length) * 100)
-        : 100);
+        : 100;
 
     // 상태 결정
+    const hasInaccurateClaims = claims.some((c) => !c.isVerified);
     let status: FactCheckResult["status"] = "valid";
     if (overallAccuracy < 50) {
       status = "error";
-    } else if (overallAccuracy < 80) {
+    } else if (overallAccuracy < 80 || hasInaccurateClaims) {
       status = "warning";
     }
 
     return {
       status,
       type: "fact-check",
-      message: parsed.summary || getStatusMessage(status, overallAccuracy),
+      message: parsed.summary || getStatusMessage(status, overallAccuracy, hasInaccurateClaims),
       confidence: overallAccuracy,
       details: {
         claims,
@@ -136,14 +136,16 @@ ${cleanContent}
   }
 }
 
-function getStatusMessage(status: string, accuracy: number): string {
+function getStatusMessage(status: string, accuracy: number, hasInaccurateClaims: boolean): string {
   switch (status) {
     case "valid":
       return `내용이 정확합니다 (정확도: ${accuracy}%)`;
     case "warning":
-      return `일부 내용 검증 필요 (정확도: ${accuracy}%)`;
+      return hasInaccurateClaims
+        ? `부정확한 내용 발견 (정확도: ${accuracy}%)`
+        : `일부 내용 검증 필요 (정확도: ${accuracy}%)`;
     case "error":
-      return `부정확한 내용 발견 (정확도: ${accuracy}%)`;
+      return `내용 대부분이 부정확합니다 (정확도: ${accuracy}%)`;
     default:
       return "검증 불가";
   }
