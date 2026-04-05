@@ -7,9 +7,9 @@ import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { getConfig, setConfig } from "../anki/client.js";
+import { AnkiConnectError } from "../errors.js";
 // NOTE: countCardChars는 순수 텍스트 유틸리티. gemini 모듈에 위치하지만 순환 의존 아님.
 import { countCardChars } from "../gemini/cloze-enhancer.js";
-import { AnkiConnectError } from "../errors.js";
 import { atomicWriteFile, withFileMutex } from "../utils/atomic-write.js";
 import type {
   ActiveVersionInfo,
