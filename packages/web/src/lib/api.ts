@@ -173,6 +173,7 @@ export interface BackupEntry {
   deckName: string;
   originalNoteId: number;
   createdNoteIds: number[];
+  contentPreview?: string;
 }
 
 // Validation types

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { api } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
@@ -20,25 +20,5 @@ export function useCardDetail(noteId: number | null) {
     queryKey: queryKeys.cards.detail(noteId || 0),
     queryFn: () => api.cards.getById(noteId as number),
     enabled: !!noteId,
-  });
-}
-
-export function useBackups() {
-  return useQuery({
-    queryKey: queryKeys.backups.all,
-    queryFn: () => api.backup.list(),
-    staleTime: 30 * 1000,
-  });
-}
-
-export function useRollback() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (backupId: string) => api.backup.rollback(backupId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.backups.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.cards.all });
-    },
   });
 }

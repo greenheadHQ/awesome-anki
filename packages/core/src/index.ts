@@ -2,7 +2,6 @@
 
 export {
   type BackupEntry,
-  createBackup,
   getLatestBackupId,
   listBackups,
   preBackup,

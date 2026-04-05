@@ -223,12 +223,21 @@ function BackupListItem({
 
   return (
     <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 hover:bg-muted/50 transition-colors">
-      <code className="text-xs font-mono text-foreground shrink-0">{backup.originalNoteId}</code>
-      <span className="text-xs text-muted-foreground shrink-0">{relativeTime}</span>
-      <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
-        {backup.createdNoteIds.length}장
-      </span>
-      <div className="flex-1" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <code className="text-xs font-mono text-foreground shrink-0">{backup.originalNoteId}</code>
+          {backup.deckName && (
+            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{backup.deckName}</span>
+          )}
+          <span className="text-xs text-muted-foreground shrink-0">{relativeTime}</span>
+          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
+            {backup.createdNoteIds.length}장
+          </span>
+        </div>
+        {backup.contentPreview && (
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{backup.contentPreview}</p>
+        )}
+      </div>
       <Button
         variant="ghost"
         size="icon"

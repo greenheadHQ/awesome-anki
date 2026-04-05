@@ -173,41 +173,6 @@ async function findBackupFileContainingEntry(backupId: string): Promise<string |
 }
 
 /**
- * 분할 전 상태 백업
- */
-export async function createBackup(
-  deckName: string,
-  originalNoteId: number,
-  createdNoteIds: number[],
-): Promise<string> {
-  // 원본 노트 정보 조회
-  const [originalNote] = await getNotesInfo([originalNoteId]);
-
-  if (!originalNote) {
-    throw new Error(`노트 ${originalNoteId}를 찾을 수 없습니다.`);
-  }
-
-  const backupId = `${originalNoteId}-${Date.now()}`;
-  const entry: BackupEntry = {
-    id: backupId,
-    timestamp: new Date().toISOString(),
-    deckName,
-    originalNoteId,
-    originalContent: {
-      noteId: originalNote.noteId,
-      fields: originalNote.fields,
-      tags: originalNote.tags,
-      modelName: originalNote.modelName,
-    },
-    createdNoteIds,
-  };
-
-  await appendBackupEntry(entry);
-
-  return backupId;
-}
-
-/**
  * 사전 백업 (분할 적용 전)
  *
  * 분할 적용 전에 원본 상태를 미리 저장
@@ -305,6 +270,13 @@ export async function rollback(backupId: string): Promise<{
     return { success: false, error: `백업 ID ${backupId}를 찾을 수 없습니다.` };
   }
 
+  if (!Number.isFinite(entry.originalNoteId) || entry.originalNoteId <= 0) {
+    return {
+      success: false,
+      error: `유효하지 않은 백업 엔트리입니다 (originalNoteId: ${entry.originalNoteId}).`,
+    };
+  }
+
   try {
     // 1. 생성된 서브 카드들 삭제
     if (entry.createdNoteIds.length > 0) {
@@ -364,10 +336,9 @@ export function listBackups(): BackupEntry[] {
     allEntries.push(...backupFile.entries);
   }
 
-  // 최신순 정렬
-  return allEntries.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-  );
+  return allEntries
+    .filter((e) => Number.isFinite(e.originalNoteId) && e.originalNoteId > 0)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 /**
