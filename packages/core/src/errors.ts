@@ -6,12 +6,11 @@
  */
 
 export class AppError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    message: string,
-  ) {
+  readonly statusCode: number;
+  constructor(statusCode: number, message: string) {
     super(message);
     this.name = "AppError";
+    this.statusCode = statusCode;
   }
 }
 
@@ -32,12 +31,11 @@ export class ValidationError extends AppError {
 export type AnkiConnectErrorCode = "UNSUPPORTED_REMOTE_CONFIG_ACTION";
 
 export class AnkiConnectError extends AppError {
-  constructor(
-    message = "AnkiConnect 요청 실패",
-    public readonly code?: AnkiConnectErrorCode,
-  ) {
+  readonly code?: AnkiConnectErrorCode;
+  constructor(message = "AnkiConnect 요청 실패", code?: AnkiConnectErrorCode) {
     super(502, message);
     this.name = "AnkiConnectError";
+    this.code = code;
   }
 }
 
