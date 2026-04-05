@@ -84,9 +84,7 @@ ${cleanContent}
       }) => ({
         claim: c.claim || "",
         isVerified:
-          c.correction != null && c.correction.trim() !== ""
-            ? false
-            : (c.isVerified ?? true),
+          c.correction != null && c.correction.trim() !== "" ? false : (c.isVerified ?? true),
         confidence: c.confidence ?? 50,
         correction: c.correction,
         source: c.source,
@@ -110,8 +108,7 @@ ${cleanContent}
     return {
       status,
       type: "fact-check",
-      message:
-        parsed.summary || getStatusMessage(status, overallAccuracy, hasInaccurateClaims),
+      message: parsed.summary || getStatusMessage(status, overallAccuracy, hasInaccurateClaims),
       confidence: overallAccuracy,
       details: {
         claims,
@@ -139,11 +136,7 @@ ${cleanContent}
   }
 }
 
-function getStatusMessage(
-  status: string,
-  accuracy: number,
-  hasInaccurateClaims: boolean,
-): string {
+function getStatusMessage(status: string, accuracy: number, hasInaccurateClaims: boolean): string {
   switch (status) {
     case "valid":
       return `내용이 정확합니다 (정확도: ${accuracy}%)`;
@@ -152,7 +145,7 @@ function getStatusMessage(
         ? `부정확한 내용 발견 (정확도: ${accuracy}%)`
         : `일부 내용 검증 필요 (정확도: ${accuracy}%)`;
     case "error":
-      return `부정확한 내용 발견 (정확도: ${accuracy}%)`;
+      return `내용 대부분이 부정확합니다 (정확도: ${accuracy}%)`;
     default:
       return "검증 불가";
   }
