@@ -1,3 +1,5 @@
+import type { HistoryStatus } from "@anki-splitter/core";
+
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
@@ -459,8 +461,6 @@ export class PromptConflictError extends Error {
     this.latest = latest;
   }
 }
-
-import { type HistoryStatus } from "@anki-splitter/core";
 
 export type SplitHistoryStatus = HistoryStatus;
 

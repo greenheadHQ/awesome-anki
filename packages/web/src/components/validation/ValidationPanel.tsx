@@ -22,12 +22,27 @@ import {
   type AllValidationResult,
   api,
   type SimilarityResult,
+  type ValidationStatus,
 } from "../../lib/api";
 import { cn } from "../../lib/utils";
-import { getStatusBg } from "../clinic/clinic-status-utils";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { StatusIcon } from "../ui/status-icon";
+
+type SectionKey = "factCheck" | "freshness" | "similarity" | "context";
+
+function getStatusBg(status: ValidationStatus): string {
+  switch (status) {
+    case "valid":
+      return "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800";
+    case "warning":
+      return "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800";
+    case "error":
+      return "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800";
+    default:
+      return "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700";
+  }
+}
 
 interface ValidationPanelProps {
   noteId: number;
@@ -37,7 +52,7 @@ interface ValidationPanelProps {
 
 export function ValidationPanel({ noteId, deckName, className }: ValidationPanelProps) {
   const [result, setResult] = useState<AllValidationResult | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set());
   const [useEmbedding, setUseEmbedding] = useState(false);
   const [similarityResult, setSimilarityResult] = useState<SimilarityResult | null>(null);
 
@@ -60,7 +75,7 @@ export function ValidationPanel({ noteId, deckName, className }: ValidationPanel
     onSuccess: (data) => setSimilarityResult(data.result),
   });
 
-  const toggleSection = (section: string) => {
+  const toggleSection = (section: SectionKey) => {
     setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(section)) {

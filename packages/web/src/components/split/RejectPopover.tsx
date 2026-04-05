@@ -1,10 +1,19 @@
 import { ChevronDown, X } from "lucide-react";
 import { useState } from "react";
 
-import { REJECTION_REASONS } from "@anki-splitter/core";
-
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+
+// NOTE: core의 REJECTION_REASONS는 런타임 import 시 브라우저 번들 경계를 넘기 때문에
+// web 패키지에서 동일 스키마를 로컬 상수로 유지한다.
+const REJECTION_REASONS = [
+  { id: "too-granular", label: "분할이 너무 세분화" },
+  { id: "context-missing", label: "맥락 태그 부적절" },
+  { id: "char-exceeded", label: "글자수 초과" },
+  { id: "cloze-inappropriate", label: "Cloze 위치/내용 부적절" },
+  { id: "quality-low", label: "전반적 품질 미달" },
+  { id: "other", label: "기타" },
+] as const;
 
 export function RejectPopover({
   canReject,
