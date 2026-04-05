@@ -4,6 +4,7 @@
 
 import {
   type BackupEntry,
+  decodeHtmlEntities,
   getLatestBackupId,
   listBackups,
   rollback,
@@ -11,12 +12,10 @@ import {
 } from "@anki-splitter/core";
 import { Hono } from "hono";
 
-function extractContentPreview(
-  originalContent: BackupEntry["originalContent"],
-): string {
+function extractContentPreview(originalContent: BackupEntry["originalContent"]): string {
   const textField = originalContent?.fields?.Text;
   if (!textField?.value) return "";
-  const plain = textField.value.replace(/<[^>]*>/g, "").trim();
+  const plain = decodeHtmlEntities(textField.value.replace(/<[^>]*>/g, "")).trim();
   return plain.length > 100 ? plain.slice(0, 100) + "..." : plain;
 }
 
