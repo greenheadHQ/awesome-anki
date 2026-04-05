@@ -2,8 +2,22 @@
  * Backup API Routes
  */
 
-import { getLatestBackupId, listBackups, rollback, ValidationError } from "@anki-splitter/core";
+import {
+  type BackupEntry,
+  decodeHtmlEntities,
+  getLatestBackupId,
+  listBackups,
+  rollback,
+  ValidationError,
+} from "@anki-splitter/core";
 import { Hono } from "hono";
+
+function extractContentPreview(originalContent: BackupEntry["originalContent"]): string {
+  const textField = originalContent?.fields?.Text;
+  if (!textField?.value) return "";
+  const plain = decodeHtmlEntities(textField.value.replace(/<[^>]*>/g, "")).trim();
+  return plain.length > 100 ? plain.slice(0, 100) + "..." : plain;
+}
 
 const app = new Hono();
 
@@ -21,6 +35,7 @@ app.get("/", async (c) => {
       deckName: backup.deckName,
       originalNoteId: backup.originalNoteId,
       createdNoteIds: backup.createdNoteIds,
+      contentPreview: extractContentPreview(backup.originalContent),
     })),
     total: backups.length,
   });

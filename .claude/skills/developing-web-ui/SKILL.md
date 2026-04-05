@@ -33,7 +33,7 @@ packages/web/src/
 │   ├── RouteError.tsx
 │   └── SyncStatusBadge.tsx
 ├── hooks/           # TanStack Query 훅 + 유틸 훅
-│   ├── useCards.ts         # useCards, useCardDetail + useBackups, useRollback (중복)
+│   ├── useCards.ts         # useCards, useCardDetail
 │   ├── useBackups.ts       # useBackups, useRollback (정규 위치)
 │   ├── useDecks.ts         # useDecks, useDeckStats
 │   ├── useDifficultCards.ts # useDifficultCards
@@ -57,10 +57,9 @@ packages/web/src/
     └── utils.ts             # cn() 등 공용 유틸
 ```
 
-### 훅 중복 주의
+### 훅 위치 참조
 
-`useBackups`와 `useRollback`가 `useCards.ts`와 `useBackups.ts` 양쪽에 존재한다.
-import 시 어느 쪽을 참조하는지 확인 필요. 정규 위치는 `useBackups.ts`.
+`useBackups`, `useRollback`는 `useBackups.ts`에만 정의. `useCards.ts`는 `useCards`, `useCardDetail`만 포함.
 
 ## 페이지 목록
 

@@ -33,7 +33,7 @@ description: |
 |------|------|-------------|
 | `client.ts` | AnkiConnect 저수준 래퍼 + 고수준 함수 | `ankiConnect()`, `getVersion()`, `getProfiles()`, `getDeckNames()`, `getModelNames()`, `getModelFieldNames()`, `findNotes()`, `getNotesInfo()`, `updateNoteFields()`, `addNote()`, `addNotes()`, `addTags()`, `removeTags()`, `deleteNotes()`, `sync()`, `getConfig()`, `setConfig()` |
 | `operations.ts` | 카드 CRUD, 분할 적용 (nid 승계) | `getDeckNotes()`, `getNoteById()`, `updateMainCard()`, `addSplitCards()`, `applySplitResult()`, `extractTextField()`, `extractTags()` |
-| `backup.ts` | 분할 전 백업, 롤백 (날짜별 파일, 원자적 쓰기) | `createBackup()`, `preBackup()`, `updateBackupWithCreatedNotes()`, `rollback()`, `listBackups()`, `getLatestBackupId()` |
+| `backup.ts` | 분할 전 백업, 롤백 (날짜별 파일, 원자적 쓰기) | `preBackup()`, `updateBackupWithCreatedNotes()`, `rollback()`, `listBackups()`, `getLatestBackupId()` |
 | `scheduling.ts` | 학습 데이터 조회/복제 (6개 함수) | `getCardSchedulingInfo()`, `getFullCardInfo()`, `findCardsByNote()`, `setCardScheduling()`, `copySchedulingToNewCards()`, `cloneSchedulingAfterSplit()` |
 | `difficulty.ts` | 학습 통계 기반 어려운 카드 탐지 | `computeDifficultyScore()`, `getDifficultyReasons()`, `getDifficultCards()`, `DEFAULT_THRESHOLDS` |
 
