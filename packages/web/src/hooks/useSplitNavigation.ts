@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-import type { MobilePanel } from "../lib/workspace-types";
-import { startViewTransition } from "../lib/view-transition";
 import type { SplitCandidate, WorkspaceMode } from "../components/split/types";
+import { startViewTransition } from "../lib/view-transition";
+import type { MobilePanel } from "../lib/workspace-types";
 
 export function useSplitNavigation(isMobile: boolean) {
   const [selectedCard, setSelectedCard] = useState<SplitCandidate | null>(null);

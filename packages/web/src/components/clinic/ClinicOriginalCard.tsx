@@ -2,8 +2,8 @@ import { AlertTriangle, Loader2, Shield } from "lucide-react";
 
 import type { AllValidationResult } from "../../lib/api";
 import { ContentRenderer } from "../card/ContentRenderer";
-import { ActionPreview } from "./ActionPreview";
 import { Button } from "../ui/button";
+import { ActionPreview } from "./ActionPreview";
 
 interface ClinicOriginalCardProps {
   selectedNoteId: number | null;

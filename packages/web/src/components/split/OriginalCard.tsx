@@ -1,9 +1,9 @@
 import { AlertTriangle, ChevronRight, Loader2, Shield } from "lucide-react";
 
+import { cn } from "../../lib/utils";
 import { ContentRenderer } from "../card/ContentRenderer";
 import { Button } from "../ui/button";
 import { ValidationPanel } from "../validation/ValidationPanel";
-import { cn } from "../../lib/utils";
 import type { SplitCandidate } from "./types";
 
 interface OriginalCardProps {

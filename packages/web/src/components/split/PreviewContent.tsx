@@ -1,10 +1,10 @@
 import { Loader2, Sparkles } from "lucide-react";
 
+import type { SplitPreviewResult } from "../../lib/api";
 import { SplitPreviewCard } from "../card/DiffViewer";
 import { Button } from "../ui/button";
 import { formatCostUsd, ModelBadge } from "../ui/model-badge";
 import { SplitErrorState } from "./SplitErrorState";
-import type { SplitPreviewResult } from "../../lib/api";
 import type { SplitCandidate } from "./types";
 
 interface PreviewContentProps {

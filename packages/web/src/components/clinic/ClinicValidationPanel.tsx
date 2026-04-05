@@ -4,10 +4,9 @@ import type { AllValidationResult, ValidationStatus } from "../../lib/api";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { AllInOnePanel } from "./AllInOnePanel";
+import { VALIDATION_TYPES } from "./clinic-constants";
 import { ClinicStatusIcon, STATUS_LABELS, getStatusBg } from "./ClinicStatusIcon";
 import { ValidationSection } from "./ValidationSection";
-
-import { VALIDATION_TYPES } from "./clinic-constants";
 
 type DetailTab = "validate" | "related";
 

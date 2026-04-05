@@ -19,6 +19,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ContentRenderer } from "../components/card/ContentRenderer";
 import { ActionPreview } from "../components/clinic/ActionPreview";
 import { AllInOnePanel } from "../components/clinic/AllInOnePanel";
+import { VALIDATION_TYPES } from "../components/clinic/clinic-constants";
 import { ClinicCardList } from "../components/clinic/ClinicCardList";
 import { ClinicOriginalCard } from "../components/clinic/ClinicOriginalCard";
 import {
@@ -48,9 +49,8 @@ import { useIsMobile } from "../hooks/useMediaQuery";
 import { useModelSelection } from "../hooks/useModelSelection";
 import type { AllValidationResult } from "../lib/api";
 import { cn } from "../lib/utils";
-import type { MobilePanel } from "../lib/workspace-types";
 import { startViewTransition } from "../lib/view-transition";
-import { VALIDATION_TYPES } from "../components/clinic/clinic-constants";
+import type { MobilePanel } from "../lib/workspace-types";
 
 type DetailTab = "validate" | "related";
 type FilterMode = "all" | "unvalidated" | "needs-review";
