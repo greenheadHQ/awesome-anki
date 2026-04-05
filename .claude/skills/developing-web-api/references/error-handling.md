@@ -35,18 +35,35 @@ export class AnkiConnectError extends AppError {
 ## 글로벌 에러 핸들러 (packages/server/src/index.ts)
 
 ```typescript
+// type은 공개 식별자만 노출 (내부 클래스명 차단)
+const ERROR_TYPE_MAP: Record<string, string> = {
+  AppError: "server",
+  AnkiConnectError: "upstream",
+  TimeoutError: "timeout",
+  ValidationError: "validation",
+  NotFoundError: "not_found",
+};
+
 app.onError((err, c) => {
+  const endpoint = `${c.req.method} ${c.req.path}`;
   if (err instanceof AppError) {
-    console.error(`[${err.statusCode}] ${err.name}:`, err.message);
-    return c.json({ error: err.message }, err.statusCode);
+    console.error(`[${err.statusCode}] ${err.name}:`, endpoint, err.message);
+    return c.json(
+      { error: err.message, type: ERROR_TYPE_MAP[err.name] ?? "server" },
+      err.statusCode,
+    );
   }
-  console.error("Unhandled server error:", err);
-  return c.json({ error: "Internal server error" }, 500);
+  const errorType = err instanceof Error &&
+    (err.message.includes("ECONNREFUSED") || err.message.includes("fetch failed"))
+    ? "connection" : "unhandled";
+  console.error(`[500] ${errorType}:`, endpoint, err);
+  return c.json({ error: "Internal server error", type: errorType }, 500);
 });
 ```
 
-- `AppError` 인스턴스 -> 해당 statusCode + 메시지 반환
-- 그 외 -> 500 + generic 메시지 (내부 에러 노출 방지)
+- `AppError` 인스턴스 -> 해당 statusCode + 메시지 + type(공개 식별자) 반환
+- 그 외 -> 500 + generic 메시지 (내부 에러 노출 방지) + type(connection/unhandled)
+- `endpoint`는 서버 로그에만 포함 (클라이언트 응답에서 제외)
 
 ## 라우트에서 에러 throw 패턴
 
