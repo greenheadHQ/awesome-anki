@@ -154,7 +154,13 @@ export function ClinicWorkspace() {
     filter: "all",
   });
 
-  const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(selectedNoteId);
+  const {
+    data: cardDetail,
+    isLoading: isLoadingDetail,
+    isError: isDetailError,
+    error: detailError,
+    refetch: refetchDetail,
+  } = useCardDetail(selectedNoteId);
 
   // LLM 모델 선택 (공통 훅)
   const { activeProvider, activeModel, activeModelKey, setSelectedModelKey, llmModelsData } =
@@ -618,6 +624,19 @@ export function ClinicWorkspace() {
           isLoadingDetail ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : isDetailError ? (
+            <div className="flex flex-col items-center justify-center h-full text-destructive">
+              <AlertTriangle className="w-8 h-8 mb-3" />
+              <span className="font-medium mb-2">카드 상세 조회 실패</span>
+              {detailError && (
+                <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
+                  {detailError instanceof Error ? detailError.message : String(detailError)}
+                </p>
+              )}
+              <Button onClick={() => refetchDetail()} variant="outline" size="sm" className="mt-3">
+                다시 시도
+              </Button>
             </div>
           ) : (
             <>
@@ -1116,6 +1135,26 @@ export function ClinicWorkspace() {
                     {isLoadingDetail ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : isDetailError ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-destructive">
+                        <AlertTriangle className="w-8 h-8 mb-3" />
+                        <span className="font-medium mb-2">카드 상세 조회 실패</span>
+                        {detailError && (
+                          <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
+                            {detailError instanceof Error
+                              ? detailError.message
+                              : String(detailError)}
+                          </p>
+                        )}
+                        <Button
+                          onClick={() => refetchDetail()}
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                        >
+                          다시 시도
+                        </Button>
                       </div>
                     ) : (
                       <>
