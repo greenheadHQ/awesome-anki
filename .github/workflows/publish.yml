@@ -64,6 +64,7 @@ jobs:
           docker run -d --name smoke-test -p 3100:3100 \
             -e ANKI_SPLITTER_REQUIRE_API_KEY=false \
             -e ANKI_CONNECT_URL=http://localhost:8765 \
+            -e GEMINI_API_KEY=smoke-test-dummy \
             ${{ env.REGISTRY }}/${{ env.IMAGE_LC }}:smoke-test
 
           for i in $(seq 1 30); do
