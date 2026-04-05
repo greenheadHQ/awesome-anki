@@ -124,7 +124,13 @@ export function CardBrowser() {
     limit: 20,
     filter: filter === "splitable" ? "splitable" : "all",
   });
-  const { data: cardDetail } = useCardDetail(selectedNoteId);
+  const {
+    data: cardDetail,
+    isLoading: isLoadingDetail,
+    isError: isDetailError,
+    error: detailError,
+    refetch: refetchDetail,
+  } = useCardDetail(selectedNoteId);
 
   // ESC 키로 상세 패널 닫기
   useEffect(() => {
@@ -245,6 +251,23 @@ export function CardBrowser() {
         <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
           <FileText className="w-8 h-8 opacity-40" />
           <p className="text-sm">목록에서 카드를 선택하세요</p>
+        </div>
+      ) : isLoadingDetail ? (
+        <div className="h-full flex items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin" />
+        </div>
+      ) : isDetailError ? (
+        <div className="flex flex-col items-center justify-center h-full text-destructive">
+          <AlertTriangle className="w-8 h-8 mb-3" />
+          <span className="font-medium mb-2">카드 상세 조회 실패</span>
+          {detailError && (
+            <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
+              {detailError instanceof Error ? detailError.message : String(detailError)}
+            </p>
+          )}
+          <Button onClick={() => refetchDetail()} variant="outline" size="sm" className="mt-3">
+            다시 시도
+          </Button>
         </div>
       ) : !cardDetail ? (
         <div className="h-full flex items-center justify-center">

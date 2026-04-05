@@ -272,9 +272,13 @@ export function SplitWorkspace() {
     useModelSelection();
 
   // 선택된 카드의 상세 정보 (전체 텍스트 포함)
-  const { data: cardDetail, isLoading: isLoadingDetail } = useCardDetail(
-    selectedCard?.noteId ?? null,
-  );
+  const {
+    data: cardDetail,
+    isLoading: isLoadingDetail,
+    isError: isDetailError,
+    error: detailError,
+    refetch: refetchDetail,
+  } = useCardDetail(selectedCard?.noteId ?? null);
 
   const splitPreview = useSplitPreview();
   const splitApply = useSplitApply();
@@ -705,6 +709,19 @@ export function SplitWorkspace() {
           isLoadingDetail ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : isDetailError ? (
+            <div className="flex flex-col items-center justify-center h-full text-destructive">
+              <AlertTriangle className="w-8 h-8 mb-3" />
+              <span className="font-medium mb-2">카드 상세 조회 실패</span>
+              {detailError && (
+                <p className="text-xs text-muted-foreground text-center max-w-xs bg-muted p-2 rounded">
+                  {detailError instanceof Error ? detailError.message : String(detailError)}
+                </p>
+              )}
+              <Button onClick={() => refetchDetail()} variant="outline" size="sm" className="mt-3">
+                다시 시도
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">

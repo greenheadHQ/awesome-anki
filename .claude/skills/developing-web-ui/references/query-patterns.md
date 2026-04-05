@@ -57,7 +57,7 @@ export const queryKeys = {
 | 훅 | 타입 | staleTime | 설명 |
 |----|------|-----------|------|
 | `useCards(deckName, opts)` | useQuery | 30초 | 카드 목록 (page/limit/filter) |
-| `useCardDetail(noteId)` | useQuery | 기본 | 카드 상세 |
+| `useCardDetail(noteId)` | useQuery | 30초 | 카드 상세 (retryDelay: 지수 백오프) |
 | `useBackups()` | useQuery | 30초 | 백업 목록 (**중복**: useBackups.ts에도 동일) |
 | `useRollback()` | useMutation | -- | 롤백 (**중복**: useBackups.ts에도 동일) |
 

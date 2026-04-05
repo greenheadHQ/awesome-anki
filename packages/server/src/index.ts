@@ -135,14 +135,35 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-// Error handler
+// Error handler — type은 공개 식별자만 노출 (내부 클래스명 차단)
+// 키는 errors.ts의 this.name 값과 일치해야 함. 미등록 서브클래스는 "server" fallback.
+const ERROR_TYPE_MAP: Record<string, string> = {
+  AppError: "server",
+  AnkiConnectError: "upstream",
+  TimeoutError: "timeout",
+  ValidationError: "validation",
+  NotFoundError: "not_found",
+};
+
 app.onError((err, c) => {
+  const endpoint = `${c.req.method} ${c.req.path}`;
+
   if (err instanceof AppError) {
-    console.error(`[${err.statusCode}] ${err.name}:`, err.message);
-    return c.json({ error: err.message }, err.statusCode as 400 | 404 | 500 | 502 | 504);
+    console.error(`[${err.statusCode}] ${err.name}:`, endpoint, err.message);
+    return c.json(
+      { error: err.message, type: ERROR_TYPE_MAP[err.name] ?? "server" },
+      err.statusCode as 400 | 404 | 500 | 502 | 504,
+    );
   }
-  console.error("Unhandled server error:", err);
-  return c.json({ error: "Internal server error" }, 500);
+
+  const errorType =
+    err instanceof Error &&
+    (err.message.includes("ECONNREFUSED") || err.message.includes("fetch failed"))
+      ? "connection"
+      : "unhandled";
+
+  console.error(`[500] ${errorType}:`, endpoint, err);
+  return c.json({ error: "Internal server error", type: errorType }, 500);
 });
 
 // Start server — Bun.serve()를 직접 호출하여 HMR 이중 바인딩 방지

@@ -20,5 +20,7 @@ export function useCardDetail(noteId: number | null) {
     queryKey: queryKeys.cards.detail(noteId || 0),
     queryFn: () => api.cards.getById(noteId as number),
     enabled: !!noteId,
+    staleTime: 30 * 1000,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
   });
 }
