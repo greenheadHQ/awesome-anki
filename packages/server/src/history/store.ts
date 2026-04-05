@@ -1,10 +1,7 @@
 import { Database } from "bun:sqlite";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
-
-import type { SplitHistoryEntry } from "@anki-splitter/core";
 
 import type {
   CreateSessionInput,
@@ -21,15 +18,11 @@ import type {
   SplitSessionListItem,
   TokenUsage,
 } from "./types.js";
+import { applyAllSchemaMigrations } from "./schema-migrations.js";
+import { importLegacyJsonOnce } from "./legacy-import.js";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
 const DEFAULT_DB_PATH = join(REPO_ROOT, "data", "split-history.db");
-const LEGACY_HISTORY_PATH = join(REPO_ROOT, "output", "prompts", "history");
-
-const SCHEMA_MIGRATION_INITIAL = "001-initial-schema";
-const SCHEMA_MIGRATION_LEGACY = "002-legacy-json-import-v1";
-const SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE = "003-remove-split-type";
-const SCHEMA_MIGRATION_ADD_PROVIDER_COST = "004-add-provider-and-cost";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -49,24 +42,8 @@ function toNullableJson(value: unknown): string | null {
   return JSON.stringify(value);
 }
 
-function sanitizeSessionId(raw: string): string {
-  return raw.replace(/[^a-zA-Z0-9:_-]/g, "-").slice(0, 120);
-}
-
 function buildRuntimeSessionId(): string {
   return `session-${Date.now()}-${randomUUID().slice(0, 8)}`;
-}
-
-function mapLegacyActionToStatus(action: string): HistoryStatus {
-  switch (action) {
-    case "approved":
-    case "modified":
-      return "applied";
-    case "rejected":
-      return "rejected";
-    default:
-      return "generated";
-  }
 }
 
 interface SessionRow {
@@ -116,19 +93,6 @@ function ensureParentDir(targetPath: string): void {
   }
 }
 
-function buildLegacyMigrationKey(entry: SplitHistoryEntry): string {
-  return [
-    entry.id ?? "",
-    entry.timestamp ?? "",
-    String(entry.noteId ?? ""),
-    entry.userAction ?? "",
-  ].join("|");
-}
-
-function hasValidLegacyNoteId(noteId: unknown): noteId is number {
-  return typeof noteId === "number" && Number.isFinite(noteId);
-}
-
 export class HistorySessionNotFoundError extends Error {
   constructor(sessionId: string) {
     super(`History session not found: ${sessionId}`);
@@ -151,317 +115,12 @@ export class SplitHistoryStore {
   }
 
   async initialize(): Promise<void> {
-    this.applySchemaMigrations();
-    await this.importLegacyJsonOnce();
+    applyAllSchemaMigrations(this.db);
+    await importLegacyJsonOnce(this.db);
   }
 
   close(): void {
     this.db.close(false);
-  }
-
-  private hasMigration(name: string): boolean {
-    const stmt = this.db.query<{ name: string }, [string]>(
-      "SELECT name FROM schema_migrations WHERE name = ?",
-    );
-    return !!stmt.get(name);
-  }
-
-  private markMigration(name: string): void {
-    const stmt = this.db.query("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)");
-    stmt.run(name, nowIso());
-  }
-
-  private hasSplitTypeColumn(): boolean {
-    return this.hasColumn("split_type");
-  }
-
-  private hasColumn(column: string): boolean {
-    const rows = this.db
-      .query<{ name: string }, [string]>(
-        "SELECT name FROM pragma_table_info('split_sessions') WHERE name = ?",
-      )
-      .all(column);
-    return rows.length > 0;
-  }
-
-  private applySchemaMigrations(): void {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS schema_migrations (
-        name TEXT PRIMARY KEY,
-        applied_at TEXT NOT NULL
-      );
-    `);
-
-    if (!this.hasMigration(SCHEMA_MIGRATION_INITIAL)) {
-      this.db.exec(`
-        CREATE TABLE IF NOT EXISTS split_sessions (
-          id TEXT PRIMARY KEY,
-          note_id INTEGER NOT NULL,
-          deck_name TEXT NOT NULL DEFAULT '',
-          status TEXT NOT NULL CHECK (status IN ('generating','generated','applied','rejected','error','not_split')),
-          prompt_version_id TEXT,
-          original_text TEXT NOT NULL,
-          original_tags_json TEXT NOT NULL DEFAULT '[]',
-          ai_response_json TEXT,
-          split_cards_json TEXT NOT NULL DEFAULT '[]',
-          split_reason TEXT,
-          ai_model TEXT,
-          execution_time_ms INTEGER,
-          token_usage_json TEXT,
-          rejection_reason TEXT,
-          error_message TEXT,
-          source TEXT NOT NULL DEFAULT 'runtime' CHECK (source IN ('runtime','legacy_json')),
-          legacy_entry_id TEXT,
-          migration_dedup_key TEXT UNIQUE,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          applied_at TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS split_events (
-          id TEXT PRIMARY KEY,
-          session_id TEXT NOT NULL REFERENCES split_sessions(id) ON DELETE CASCADE,
-          event_type TEXT NOT NULL,
-          status TEXT NOT NULL CHECK (status IN ('generating','generated','applied','rejected','error','not_split')),
-          payload_json TEXT,
-          created_at TEXT NOT NULL
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_split_sessions_created_at ON split_sessions(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_split_sessions_deck_name ON split_sessions(deck_name);
-        CREATE INDEX IF NOT EXISTS idx_split_sessions_status ON split_sessions(status);
-        CREATE INDEX IF NOT EXISTS idx_split_sessions_note_id ON split_sessions(note_id);
-        CREATE INDEX IF NOT EXISTS idx_split_events_session_id ON split_events(session_id);
-        CREATE INDEX IF NOT EXISTS idx_split_events_created_at ON split_events(created_at);
-      `);
-
-      this.markMigration(SCHEMA_MIGRATION_INITIAL);
-    }
-
-    this.migrateRemoveSplitType();
-    this.migrateAddProviderAndCost();
-  }
-
-  private migrateRemoveSplitType(): void {
-    // Short-circuit: split_type 컬럼이 이미 없으면 마이그레이션 불필요
-    if (!this.hasSplitTypeColumn()) {
-      if (!this.hasMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE)) {
-        this.markMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE);
-      }
-      return;
-    }
-
-    if (this.hasMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE)) {
-      return;
-    }
-
-    // FK 제약 비활성화 후 try/finally로 복원 보장
-    this.db.exec("PRAGMA foreign_keys = OFF;");
-    try {
-      this.db.transaction(() => {
-        // 1. 새 테이블 생성 (split_type 컬럼 없이)
-        this.db.exec(`
-          CREATE TABLE split_sessions_new (
-            id TEXT PRIMARY KEY,
-            note_id INTEGER NOT NULL,
-            deck_name TEXT NOT NULL DEFAULT '',
-            status TEXT NOT NULL CHECK (status IN ('generating','generated','applied','rejected','error','not_split')),
-            prompt_version_id TEXT,
-            original_text TEXT NOT NULL,
-            original_tags_json TEXT NOT NULL DEFAULT '[]',
-            ai_response_json TEXT,
-            split_cards_json TEXT NOT NULL DEFAULT '[]',
-            split_reason TEXT,
-            ai_model TEXT,
-            execution_time_ms INTEGER,
-            token_usage_json TEXT,
-            rejection_reason TEXT,
-            error_message TEXT,
-            source TEXT NOT NULL DEFAULT 'runtime' CHECK (source IN ('runtime','legacy_json')),
-            legacy_entry_id TEXT,
-            migration_dedup_key TEXT UNIQUE,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            applied_at TEXT
-          );
-        `);
-
-        // 2. 데이터 복사 (split_type 제외)
-        this.db.exec(`
-          INSERT INTO split_sessions_new
-            SELECT id, note_id, deck_name, status, prompt_version_id,
-                   original_text, original_tags_json, ai_response_json,
-                   split_cards_json, split_reason, ai_model, execution_time_ms,
-                   token_usage_json, rejection_reason, error_message, source,
-                   legacy_entry_id, migration_dedup_key, created_at,
-                   updated_at, applied_at
-            FROM split_sessions;
-        `);
-
-        // 3. 기존 테이블 삭제 + 리네임
-        this.db.exec("DROP TABLE split_sessions;");
-        this.db.exec("ALTER TABLE split_sessions_new RENAME TO split_sessions;");
-
-        // 4. 인덱스 재생성 (idx_split_sessions_split_type 제외)
-        this.db.exec(`
-          CREATE INDEX IF NOT EXISTS idx_split_sessions_created_at ON split_sessions(created_at DESC);
-          CREATE INDEX IF NOT EXISTS idx_split_sessions_deck_name ON split_sessions(deck_name);
-          CREATE INDEX IF NOT EXISTS idx_split_sessions_status ON split_sessions(status);
-          CREATE INDEX IF NOT EXISTS idx_split_sessions_note_id ON split_sessions(note_id);
-        `);
-
-        // 5. 마이그레이션 기록 (트랜잭션 내부에서 원자성 확보)
-        this.markMigration(SCHEMA_MIGRATION_REMOVE_SPLIT_TYPE);
-      })();
-    } finally {
-      // FK 제약 복원 보장
-      this.db.exec("PRAGMA foreign_keys = ON;");
-    }
-  }
-
-  private migrateAddProviderAndCost(): void {
-    if (this.hasMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST)) {
-      return;
-    }
-
-    // 3개 컬럼을 개별 확인하여 누락분만 추가
-    const hasProvider = this.hasColumn("provider");
-    const hasEstimatedCost = this.hasColumn("estimated_cost_usd");
-    const hasActualCost = this.hasColumn("actual_cost_usd");
-
-    if (hasProvider && hasEstimatedCost && hasActualCost) {
-      // 모든 컬럼이 이미 존재 — 마이그레이션 기록만 추가
-      this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
-      return;
-    }
-
-    this.db.transaction(() => {
-      if (!hasProvider) {
-        this.db.exec("ALTER TABLE split_sessions ADD COLUMN provider TEXT DEFAULT 'gemini';");
-      }
-      if (!hasEstimatedCost) {
-        this.db.exec("ALTER TABLE split_sessions ADD COLUMN estimated_cost_usd REAL;");
-      }
-      if (!hasActualCost) {
-        this.db.exec("ALTER TABLE split_sessions ADD COLUMN actual_cost_usd REAL;");
-      }
-      this.markMigration(SCHEMA_MIGRATION_ADD_PROVIDER_COST);
-    })();
-  }
-
-  private async importLegacyJsonOnce(): Promise<void> {
-    if (this.hasMigration(SCHEMA_MIGRATION_LEGACY)) {
-      return;
-    }
-
-    if (process.env.SPLIT_HISTORY_SKIP_LEGACY_IMPORT === "true") {
-      this.markMigration(SCHEMA_MIGRATION_LEGACY);
-      return;
-    }
-
-    if (!existsSync(LEGACY_HISTORY_PATH)) {
-      this.markMigration(SCHEMA_MIGRATION_LEGACY);
-      return;
-    }
-
-    const files = (await readdir(LEGACY_HISTORY_PATH))
-      .filter((name) => name.startsWith("history-") && name.endsWith(".json"))
-      .sort();
-
-    const allEntries: SplitHistoryEntry[] = [];
-    for (const file of files) {
-      const fullPath = join(LEGACY_HISTORY_PATH, file);
-      const raw = await readFile(fullPath, "utf8");
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          allEntries.push(...(parsed as SplitHistoryEntry[]));
-        }
-      } catch {
-        // malformed 파일은 무시
-      }
-    }
-
-    const importAllEntries = this.db.transaction((entries: SplitHistoryEntry[]) => {
-      for (const entry of entries) {
-        this.importLegacyEntry(entry);
-      }
-    });
-    importAllEntries(allEntries);
-
-    this.markMigration(SCHEMA_MIGRATION_LEGACY);
-  }
-
-  private importLegacyEntry(entry: SplitHistoryEntry): void {
-    if (!hasValidLegacyNoteId(entry.noteId)) return;
-
-    const dedupKey = buildLegacyMigrationKey(entry);
-
-    const dedupStmt = this.db.query<{ id: string }, [string]>(
-      "SELECT id FROM split_sessions WHERE migration_dedup_key = ?",
-    );
-    if (dedupStmt.get(dedupKey)) return;
-
-    const status = mapLegacyActionToStatus(entry.userAction);
-    const timestamp = entry.timestamp || nowIso();
-    const sessionId = sanitizeSessionId(
-      `legacy-${entry.id || `${entry.noteId}-${Date.parse(timestamp) || Date.now()}`}`,
-    );
-
-    const hasAiResponseMetadata = Boolean(
-      entry.aiModel || entry.splitReason || entry.executionTimeMs || entry.tokenUsage,
-    );
-    const aiResponse = hasAiResponseMetadata
-      ? {
-          aiModel: entry.aiModel,
-          splitReason: entry.splitReason,
-          executionTimeMs: entry.executionTimeMs,
-          tokenUsage: entry.tokenUsage,
-        }
-      : null;
-
-    const insert = this.db.query(
-      `INSERT INTO split_sessions (
-        id, note_id, deck_name, status, prompt_version_id,
-        original_text, original_tags_json, ai_response_json, split_cards_json,
-        split_reason, ai_model, execution_time_ms, token_usage_json,
-        rejection_reason, source, legacy_entry_id, migration_dedup_key,
-        created_at, updated_at, applied_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'legacy_json', ?, ?, ?, ?, ?)`,
-    );
-
-    insert.run(
-      sessionId,
-      entry.noteId,
-      entry.deckName || "",
-      status,
-      entry.promptVersionId || null,
-      entry.originalContent || "",
-      JSON.stringify(entry.originalTags || []),
-      toNullableJson(aiResponse),
-      JSON.stringify(entry.splitCards || []),
-      entry.splitReason || null,
-      entry.aiModel || null,
-      entry.executionTimeMs ?? null,
-      toNullableJson(entry.tokenUsage ?? null),
-      entry.rejectionReason || null,
-      entry.id || null,
-      dedupKey,
-      timestamp,
-      timestamp,
-      status === "applied" ? timestamp : null,
-    );
-
-    this.insertEvent(
-      sessionId,
-      "legacy_imported",
-      status,
-      {
-        importedFrom: "output/prompts/history",
-        legacyEntryId: entry.id,
-      },
-      timestamp,
-    );
   }
 
   private insertEvent(
